@@ -1,0 +1,36 @@
+# Render.com Blueprint - Deploy Backend + AI Services
+# This file defines both services for automatic deployment
+
+services:
+  # Python AI Service (FastAPI + CrewAI) - Deploy this FIRST
+  - type: web
+    name: resume-builder-ai
+    runtime: python
+    region: oregon
+    plan: free
+    rootDir: ai_service
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: GOOGLE_API_KEY
+        sync: false  # Set this manually in Render dashboard
+      - key: PYTHONUNBUFFERED
+        value: "1"
+
+  # Express Backend Server - Depends on AI service
+  - type: web
+    name: resume-builder-backend
+    runtime: node
+    region: oregon
+    plan: free
+    rootDir: server
+    buildCommand: npm install
+    startCommand: node index.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: AI_SERVICE_URL
+        fromService:
+          name: resume-builder-ai
+          type: web
+          property: host

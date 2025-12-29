@@ -1,0 +1,39 @@
+# Dependencies
+node_modules/
+client/node_modules/
+server/node_modules/
+
+# Python virtual environment
+ai_service/venv/
+ai_service/__pycache__/
+ai_service/**/__pycache__/
+*.pyc
+*.pyo
+
+# Environment variables
+.env
+.env.local
+.env.production
+ai_service/.env
+
+# Build output
+client/dist/
+build/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Test files
+ai_service/test_*.py
+
+# Artifacts (local development)
+.gemini/
