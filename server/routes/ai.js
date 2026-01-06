@@ -162,5 +162,42 @@ router.post('/analyze-pdf', upload.single('file'), async (req, res) => {
     }
 })
 
+/**
+ * POST /api/ai/portfolio-enhance
+ * Transform resume data into portfolio-ready content
+ */
+router.post('/portfolio-enhance', async (req, res) => {
+    try {
+        const { resume_data } = req.body
+
+        if (!resume_data) {
+            return res.status(400).json({ error: 'No resume data provided' })
+        }
+
+        const response = await axios.post(`${AI_SERVICE_URL}/portfolio-enhance`, {
+            resume_data
+        })
+
+        return res.json(response.data)
+    } catch (error) {
+        console.error('Portfolio Enhance Error:', error.message)
+
+        if (error.code === 'ECONNREFUSED') {
+            return res.status(503).json({
+                error: 'AI service is not running',
+                message: 'Please start the Python AI service'
+            })
+        }
+
+        // Forward error from Python service
+        if (error.response) {
+            return res.status(error.response.status).json(error.response.data)
+        }
+
+        return res.status(500).json({ error: error.message })
+    }
+})
+
 module.exports = router
+
 

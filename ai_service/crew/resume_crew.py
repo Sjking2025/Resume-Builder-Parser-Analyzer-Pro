@@ -79,6 +79,11 @@ class SystemLogger:
             "icon": "✨",
             "role": "Professional Resume Writer",
             "goal": "Transform bullet points into impactful achievement statements"
+        },
+        "PortfolioEnhancer": {
+            "icon": "🌐",
+            "role": "Portfolio Content Strategist",
+            "goal": "Transform resume content into engaging web portfolio copy"
         }
     }
 
@@ -828,3 +833,240 @@ RULES:
             "project_ideas": []
         }
 
+    # ═══════════════════════════════════════════════════════════════════════════════
+    # PORTFOLIO ENHANCEMENT
+    # ═══════════════════════════════════════════════════════════════════════════════
+
+    def enhance_for_portfolio(self, resume_data: dict) -> dict:
+        """Transform resume content into web-optimized portfolio copy."""
+        import time
+        crew_start = time.time()
+        
+        if not self.model:
+            SystemLogger.error("System", "AI model not initialized")
+            raise ValueError("AI model not initialized.")
+        
+        # Log the portfolio enhancement process
+        SystemLogger.crew_banner()
+        SystemLogger.working_agent("PortfolioEnhancer", "Transform resume into portfolio content")
+        
+        # Extract key information
+        name = resume_data.get("personalInfo", {}).get("fullName", "Unknown")
+        SystemLogger.agent_thinking(f"Analyzing resume for {name}...")
+        
+        # Convert resume to text for AI processing
+        from utils.text_extraction import resume_data_to_text
+        resume_text = resume_data_to_text(resume_data)
+        
+        SystemLogger.using_tool("Content Transformer", f"Processing {len(resume_text)} chars")
+        SystemLogger.agent_action("Generating engaging web copy...")
+        
+        # Build the portfolio enhancement prompt
+        prompt = self._get_portfolio_prompt(resume_data, resume_text)
+        
+        try:
+            safety_settings = [
+                {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
+                {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
+                {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"},
+                {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"},
+            ]
+            
+            response = self.model.generate_content(prompt, safety_settings=safety_settings)
+            
+            if not response.text:
+                SystemLogger.error("API", "Empty response from AI")
+                return self._get_empty_portfolio(resume_data)
+            
+            raw_response = response.text
+            SystemLogger.tool_output(f"Received {len(raw_response)} chars")
+            
+            portfolio_data = self._extract_json(raw_response)
+            
+            if not portfolio_data:
+                SystemLogger.warn("System", "JSON extraction failed, using fallback")
+                return self._get_empty_portfolio(resume_data)
+            
+            # Log success
+            total_time = time.time() - crew_start
+            SystemLogger.agent_complete(f"Portfolio content generated for {name}")
+            SystemLogger.crew_finished(total_time, {
+                "Profile": name,
+                "Headline Generated": "Yes" if portfolio_data.get("hero", {}).get("headline") else "No",
+                "Projects Enhanced": len(portfolio_data.get("projects", [])),
+                "Theme Suggested": portfolio_data.get("meta", {}).get("suggestedTheme", "minimal")
+            })
+            
+            return portfolio_data
+            
+        except Exception as e:
+            SystemLogger.error("System", f"Portfolio enhancement failed: {str(e)}")
+            return self._get_empty_portfolio(resume_data)
+    
+    def _get_portfolio_prompt(self, resume_data: dict, resume_text: str) -> str:
+        """Generate the prompt for portfolio enhancement."""
+        personal_info = resume_data.get("personalInfo", {})
+        projects = resume_data.get("projects", [])
+        experience = resume_data.get("experience", [])
+        skills = resume_data.get("skills", {})
+        
+        return f'''
+You are a Portfolio Content Strategist. Transform this resume into engaging, web-optimized portfolio content.
+
+────────────────────────────────────────────
+RESUME DATA
+────────────────────────────────────────────
+{resume_text}
+
+────────────────────────────────────────────
+TASK
+────────────────────────────────────────────
+Create portfolio content that:
+1. Sounds natural and engaging (not resume-speak)
+2. Uses first-person perspective where appropriate
+3. Highlights impact and achievements
+4. Is SEO-friendly with relevant keywords
+5. Appeals to potential employers/clients
+
+────────────────────────────────────────────
+OUTPUT (Valid JSON Only)
+────────────────────────────────────────────
+{{
+  "hero": {{
+    "name": "{personal_info.get('fullName', 'Your Name')}",
+    "headline": "A compelling 5-8 word professional headline",
+    "tagline": "A brief engaging tagline (10-15 words)",
+    "ctaText": "Call-to-action button text"
+  }},
+  "about": {{
+    "title": "About Me section title",
+    "content": "2-3 paragraph engaging about me text in first person. Make it personable and professional.",
+    "highlights": ["Key achievement 1", "Key achievement 2", "Key achievement 3"]
+  }},
+  "skills": {{
+    "technical": [
+      {{"name": "Skill Name", "level": 85}}
+    ],
+    "soft": ["Soft skill 1", "Soft skill 2"],
+    "tools": ["Tool 1", "Tool 2"]
+  }},
+  "projects": [
+    {{
+      "name": "Project Name",
+      "tagline": "Brief catchy tagline",
+      "description": "Engaging 2-3 sentence description focusing on impact",
+      "impact": "Quantified impact statement",
+      "tech": ["Tech 1", "Tech 2"],
+      "github": "github url or empty",
+      "demo": "demo url or empty",
+      "featured": true
+    }}
+  ],
+  "experience": [
+    {{
+      "title": "Job Title",
+      "company": "Company Name",
+      "period": "Start - End",
+      "description": "Engaging description of role and achievements",
+      "highlights": ["Key achievement 1", "Key achievement 2"]
+    }}
+  ],
+  "education": [
+    {{
+      "degree": "Degree Name",
+      "institution": "School Name",
+      "year": "Graduation Year",
+      "highlights": ["Notable achievement"]
+    }}
+  ],
+  "contact": {{
+    "email": "{personal_info.get('email', '')}",
+    "linkedin": "{personal_info.get('linkedin', '')}",
+    "github": "{personal_info.get('github', '')}",
+    "location": "{personal_info.get('location', '')}"
+  }},
+  "meta": {{
+    "title": "SEO-friendly page title",
+    "description": "SEO meta description (150-160 chars)",
+    "keywords": ["keyword1", "keyword2"],
+    "suggestedTheme": "minimal or technical",
+    "colorScheme": "light or dark"
+  }}
+}}
+
+RULES:
+- Return ONLY valid JSON
+- No markdown code blocks
+- Make content engaging and personable
+- For skills, estimate proficiency level 1-100 based on experience
+- suggestedTheme: "technical" for developers/engineers, "minimal" for others
+'''
+    
+    def _get_empty_portfolio(self, resume_data: dict) -> dict:
+        """Return portfolio structure with original resume data as fallback."""
+        personal_info = resume_data.get("personalInfo", {})
+        skills = resume_data.get("skills", {})
+        
+        return {
+            "hero": {
+                "name": personal_info.get("fullName", ""),
+                "headline": "Professional",
+                "tagline": personal_info.get("summary", "")[:100] if personal_info.get("summary") else "",
+                "ctaText": "Get In Touch"
+            },
+            "about": {
+                "title": "About Me",
+                "content": personal_info.get("summary", "Welcome to my portfolio."),
+                "highlights": []
+            },
+            "skills": {
+                "technical": [{"name": s, "level": 75} for s in skills.get("technical", [])[:10]],
+                "soft": skills.get("soft", []),
+                "tools": []
+            },
+            "projects": [
+                {
+                    "name": p.get("name", "Project"),
+                    "tagline": "",
+                    "description": p.get("description", ""),
+                    "impact": "",
+                    "tech": p.get("technologies", "").split(",") if p.get("technologies") else [],
+                    "github": p.get("link", "") if "github" in p.get("link", "").lower() else "",
+                    "demo": p.get("link", "") if "github" not in p.get("link", "").lower() else "",
+                    "featured": i == 0
+                }
+                for i, p in enumerate(resume_data.get("projects", [])[:6])
+            ],
+            "experience": [
+                {
+                    "title": e.get("title", ""),
+                    "company": e.get("company", ""),
+                    "period": f"{e.get('startDate', '')} - {e.get('endDate', 'Present') if not e.get('current') else 'Present'}",
+                    "description": e.get("description", ""),
+                    "highlights": []
+                }
+                for e in resume_data.get("experience", [])
+            ],
+            "education": [
+                {
+                    "degree": ed.get("degree", ""),
+                    "institution": ed.get("institution", ""),
+                    "year": ed.get("graduationDate", ""),
+                    "highlights": []
+                }
+                for ed in resume_data.get("education", [])
+            ],
+            "contact": {
+                "email": personal_info.get("email", ""),
+                "linkedin": personal_info.get("linkedin", ""),
+                "github": personal_info.get("github", ""),
+                "location": personal_info.get("location", "")
+            },
+            "meta": {
+                "title": f"{personal_info.get('fullName', 'Portfolio')} - Portfolio",
+                "description": personal_info.get("summary", "")[:160] if personal_info.get("summary") else "Professional portfolio",
+                "keywords": skills.get("technical", [])[:5],
+                "suggestedTheme": "minimal",
+                "colorScheme": "light"
+            }
+        }

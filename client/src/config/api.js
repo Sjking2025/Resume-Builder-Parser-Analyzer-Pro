@@ -12,6 +12,7 @@ export const API_ENDPOINTS = {
     improve: `${API_BASE_URL}/api/ai/improve`,
     careerAdvice: `${API_BASE_URL}/api/ai/career-advice`,
     importResume: `${API_BASE_URL}/api/ai/import-resume`,
+    portfolioEnhance: `${API_BASE_URL}/api/ai/portfolio-enhance`,
     health: `${API_BASE_URL}/api/ai/health`,
 
     // PDF export

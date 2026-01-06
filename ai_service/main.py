@@ -57,6 +57,7 @@ async def lifespan(app: FastAPI):
         SystemLogger.ok("SkillAnalyzer", "Skill Gap Analyzer ready")
         SystemLogger.ok("CourseBuilder", "Course Builder active")
         SystemLogger.ok("ResumeEnhancer", "Resume Enhancer ready")
+        SystemLogger.ok("PortfolioEnhancer", "Portfolio Enhancer ready")
         
         # Ready footer
         SystemLogger.ready_footer()
@@ -234,7 +235,44 @@ async def analyze_resume_from_pdf(file: UploadFile = File(...), job_description:
         )
 
 
+@app.post("/portfolio-enhance")
+async def enhance_portfolio(request: AnalyzeRequest):
+    """
+    Transform resume data into web-optimized portfolio content.
+    Returns enhanced content for portfolio generation.
+    """
+    if not GOOGLE_API_KEY:
+        raise HTTPException(
+            status_code=503,
+            detail="AI service unavailable. Please set GOOGLE_API_KEY."
+        )
+    
+    resume_data = request.resume_data
+    if not resume_data:
+        raise HTTPException(
+            status_code=400,
+            detail="No resume data provided"
+        )
+    
+    try:
+        from crew.resume_crew import ResumeCrew
+        crew = ResumeCrew()
+        
+        # Transform resume to portfolio content
+        portfolio_data = crew.enhance_for_portfolio(resume_data)
+        
+        return {
+            "success": True,
+            "data": portfolio_data
+        }
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error enhancing portfolio: {str(e)}"
+        )
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
-
