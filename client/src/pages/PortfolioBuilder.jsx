@@ -1,12 +1,20 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { FaHome, FaGlobe, FaSpinner, FaDownload, FaEdit, FaRocket, FaCog, FaEye } from 'react-icons/fa'
+import { FaHome, FaGlobe, FaSpinner, FaDownload, FaEdit, FaRocket, FaCog, FaEye, FaDesktop, FaTabletAlt, FaMobileAlt } from 'react-icons/fa'
 import useResumeStore from '../store/useResumeStore'
 import usePortfolioStore from '../store/usePortfolioStore'
 import { API_ENDPOINTS } from '../config/api'
 import ThemeSelector from '../components/portfolio/ThemeSelector'
 import PortfolioPreview from '../components/portfolio/PortfolioPreview'
+import GenerationProgress from '../components/portfolio/GenerationProgress'
 import { themeMap } from '../components/portfolio/PortfolioPreview'
+
+// Device presets for responsive preview
+const DEVICE_PRESETS = {
+  desktop: { width: '100%', icon: FaDesktop, label: 'Desktop' },
+  tablet: { width: '768px', icon: FaTabletAlt, label: 'Tablet' },
+  mobile: { width: '375px', icon: FaMobileAlt, label: 'Mobile' }
+}
 
 /**
  * PortfolioBuilder - Main page for generating and customizing portfolio
@@ -30,6 +38,14 @@ const PortfolioBuilder = () => {
 
   const [activeTab, setActiveTab] = useState('theme') // 'theme' or 'settings'
   const [showPreviewModal, setShowPreviewModal] = useState(false)
+  const [selectedDevice, setSelectedDevice] = useState('desktop') // 'desktop', 'tablet', 'mobile'
+  
+  // Streaming progress state
+  const [streamProgress, setStreamProgress] = useState(0)
+  const [streamStatus, setStreamStatus] = useState('')
+  const [completedSections, setCompletedSections] = useState([])
+  const [currentSection, setCurrentSection] = useState('')
+  const [isStreaming, setIsStreaming] = useState(false)
 
   // Check if resume has content
   const hasResumeContent = resume.personalInfo?.fullName || 
@@ -37,41 +53,114 @@ const PortfolioBuilder = () => {
     resume.education?.length > 0 ||
     resume.projects?.length > 0
 
-  // Generate portfolio with AI enhancement
+  // Generate portfolio using SSE streaming for real-time updates
   const handleGeneratePortfolio = async () => {
     if (!hasResumeContent) {
       setEnhanceError('Please add content to your resume first')
       return
     }
 
+    // Reset state
     setEnhancing(true)
     setEnhanceError(null)
+    setIsStreaming(true)
+    setStreamProgress(0)
+    setStreamStatus('Initializing...')
+    setCompletedSections([])
+    setCurrentSection('')
+
+    // Initialize with empty portfolio structure
+    let buildingPortfolio = {
+      hero: {}, about: {}, skills: {}, projects: [], 
+      experience: [], education: [], contact: {}, meta: {}
+    }
 
     try {
-      const response = await fetch(API_ENDPOINTS.portfolioEnhance, {
+      const response = await fetch(API_ENDPOINTS.portfolioEnhanceStream, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ resume_data: resume })
       })
 
       if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || errorData.detail || 'Failed to enhance portfolio')
+        throw new Error('Failed to start stream')
       }
 
-      const result = await response.json()
-      
-      if (result.success && result.data) {
-        setPortfolioData(result.data)
-        // Use AI-suggested theme if available
-        if (result.data.meta?.suggestedTheme && themeMap[result.data.meta.suggestedTheme]) {
-          setSelectedTheme(result.data.meta.suggestedTheme)
+      const reader = response.body.getReader()
+      const decoder = new TextDecoder()
+
+      while (true) {
+        const { done, value } = await reader.read()
+        
+        if (done) break
+
+        // Decode the chunk
+        const chunk = decoder.decode(value)
+        const lines = chunk.split('\n')
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const data = JSON.parse(line.slice(6))
+              
+              // Handle error
+              if (data.error) {
+                setEnhanceError(data.error)
+                break
+              }
+
+              // Update progress
+              setStreamProgress(data.progress || 0)
+              setStreamStatus(data.status || '')
+              
+              // Update current section
+              if (data.section) {
+                setCurrentSection(data.section)
+                
+                // Update portfolio data progressively
+                buildingPortfolio[data.section] = data.data
+                setPortfolioData({ ...buildingPortfolio })
+                
+                // Mark section as completed
+                setCompletedSections(prev => [...prev, data.section])
+              }
+
+              // Handle completion
+              if (data.complete) {
+                setStreamStatus('Portfolio ready! ✨')
+                
+                // Set suggested theme
+                if (buildingPortfolio.meta?.suggestedTheme && themeMap[buildingPortfolio.meta.suggestedTheme]) {
+                  setSelectedTheme(buildingPortfolio.meta.suggestedTheme)
+                }
+                
+                // Close modal after short delay
+                setTimeout(() => {
+                  setIsStreaming(false)
+                }, 1500)
+              }
+
+            } catch (e) {
+              console.error('Error parsing SSE data:', e)
+            }
+          }
         }
-      } else {
-        throw new Error('Invalid response from server')
       }
+
     } catch (err) {
+      console.error('Streaming error:', err)
       setEnhanceError(err.message)
+      
+      // Fallback to direct transformation
+      const { transformResumeToPortfolio } = await import('../utils/transformResumeToPortfolio')
+      const fallback = transformResumeToPortfolio(resume)
+      if (fallback) {
+        setPortfolioData(fallback)
+        if (fallback.meta?.suggestedTheme && themeMap[fallback.meta.suggestedTheme]) {
+          setSelectedTheme(fallback.meta.suggestedTheme)
+        }
+      }
+      setIsStreaming(false)
     } finally {
       setEnhancing(false)
     }
@@ -185,16 +274,16 @@ const PortfolioBuilder = () => {
     
     /* Animations */
     @keyframes fadeInUp {
-      from { opacity: 0; transform: translateY(40px); }
+      from { opacity: 0; transform: translateY(30px); }
       to { opacity: 1; transform: translateY(0); }
     }
-    @keyframes floatBg {
-      0%, 100% { transform: translate(0, 0) scale(1); }
-      50% { transform: translate(-20px, -20px) scale(1.1); }
+    @keyframes float {
+      0%, 100% { transform: translateY(0) scale(1); }
+      50% { transform: translateY(-20px) scale(1.05); }
     }
-    @keyframes pulse {
-      0%, 100% { opacity: 0.3; }
-      50% { opacity: 0.5; }
+    @keyframes pulse-glow {
+      0%, 100% { opacity: 0.3; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(1.1); }
     }
     @keyframes growWidth {
       from { width: 0; }
@@ -203,22 +292,30 @@ const PortfolioBuilder = () => {
       0%, 100% { transform: translateY(0); }
       50% { transform: translateY(-8px); }
     }
-    .animate-fadeInUp { animation: fadeInUp 0.8s ease-out forwards; opacity: 0; }
-    .animate-delay-100 { animation-delay: 0.1s; }
-    .animate-delay-200 { animation-delay: 0.2s; }
-    .animate-delay-300 { animation-delay: 0.3s; }
-    .animate-delay-400 { animation-delay: 0.4s; }
-    .animate-float { animation: floatBg 8s ease-in-out infinite; }
-    .animate-pulse-slow { animation: pulse 3s ease-in-out infinite; }
+    @keyframes scrollDown {
+      0%, 100% { transform: translateY(0); opacity: 1; }
+      50% { transform: translateY(4px); opacity: 0.5; }
+    }
+    
+    .animate-fadeInUp { animation: fadeInUp 0.6s ease-out both; }
+    .stagger-1 { animation-delay: 0.1s; }
+    .stagger-2 { animation-delay: 0.2s; }
+    .stagger-3 { animation-delay: 0.3s; }
+    .stagger-4 { animation-delay: 0.4s; }
+    .animate-float { animation: float 6s ease-in-out infinite; }
+    .animate-pulse-glow { animation: pulse-glow 4s ease-in-out infinite; }
+    .animate-bounce { animation: bounce 2s ease-in-out infinite; }
+    .animate-scroll-down { animation: scrollDown 1.5s ease-in-out infinite; }
     .skill-bar { animation: growWidth 1.5s ease-out forwards; }
     
-    /* Transitions */
+    /* Hover Effects */
     .hover-lift { transition: transform 0.3s ease, box-shadow 0.3s ease; }
     .hover-lift:hover { transform: translateY(-8px); box-shadow: 0 20px 40px rgba(0,0,0,0.15); }
     .hover-scale { transition: transform 0.3s ease; }
     .hover-scale:hover { transform: scale(1.05); }
     .hover-glow { transition: box-shadow 0.3s ease; }
-    .hover-glow:hover { box-shadow: 0 0 30px ${isTechnical ? 'rgba(34,197,94,0.3)' : 'rgba(59,130,246,0.3)'}; }
+    .hover-glow:hover { box-shadow: 0 0 25px ${isTechnical ? 'rgba(34,197,94,0.4)' : 'rgba(59,130,246,0.4)'}; }
+    .smooth-transition { transition: all 0.3s ease; }
     
     /* Gradient text */
     .gradient-text { 
@@ -228,23 +325,17 @@ const PortfolioBuilder = () => {
       background-clip: text;
     }
     
-    /* Cards */
+    /* Glassmorphism Cards */
     .card-glass {
       background: ${isTechnical ? 'rgba(17, 24, 39, 0.8)' : 'rgba(255, 255, 255, 0.8)'};
       backdrop-filter: blur(12px);
       border: 1px solid ${isTechnical ? 'rgba(55, 65, 81, 0.5)' : 'rgba(229, 231, 235, 0.5)'};
     }
     
-    /* Section styling */
-    .section-title::after {
-      content: '';
-      display: block;
-      width: 60px;
-      height: 4px;
-      margin-top: 12px;
-      border-radius: 2px;
-      background: linear-gradient(135deg, ${isTechnical ? '#22c55e, #10b981' : '#3b82f6, #6366f1'});
-    }
+    /* Line clamp */
+    .line-clamp-1 { display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
+    .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .line-clamp-3 { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
   </style>
 </head>
 <body class="${themeStyles}">
@@ -288,38 +379,41 @@ const PortfolioBuilder = () => {
     ` : ''}
 
     <!-- Hero Section -->
-    <section id="hero" class="min-h-[100vh] flex items-center justify-center relative overflow-hidden px-4 sm:px-6 py-16 sm:py-20" style="background: ${isTechnical ? 'linear-gradient(135deg, #111827, #1f2937, #111827)' : 'linear-gradient(135deg, #ffffff, #eff6ff, #e0e7ff)'};">
+    <section id="hero" class="min-h-[90vh] flex items-center justify-center relative overflow-hidden px-3 sm:px-6 py-12 sm:py-20" style="background: ${isTechnical ? 'linear-gradient(135deg, #111827, #1f2937, #111827)' : 'linear-gradient(135deg, #ffffff, #eff6ff, #e0e7ff)'};">
       <!-- Animated Background Blobs -->
-      <div class="absolute -top-32 -right-32 w-64 sm:w-96 h-64 sm:h-96 rounded-full blur-3xl animate-pulse-slow animate-float" style="background: ${isTechnical ? 'rgba(34,197,94,0.2)' : 'rgba(59,130,246,0.2)'};"></div>
-      <div class="absolute -bottom-32 -left-32 w-64 sm:w-96 h-64 sm:h-96 rounded-full blur-3xl animate-pulse-slow animate-float" style="background: ${isTechnical ? 'rgba(16,185,129,0.15)' : 'rgba(99,102,241,0.15)'}; animation-delay: 2s;"></div>
+      <div class="absolute -top-16 -right-16 w-32 sm:w-64 md:w-80 h-32 sm:h-64 md:h-80 rounded-full blur-3xl opacity-30 animate-float" style="background: ${isTechnical ? '#22c55e' : '#3b82f6'};"></div>
+      <div class="absolute -bottom-16 -left-16 w-32 sm:w-64 md:w-80 h-32 sm:h-64 md:h-80 rounded-full blur-3xl opacity-20 animate-float" style="background: ${isTechnical ? '#10b981' : '#6366f1'}; animation-delay: 2s;"></div>
       
-      <div class="max-w-4xl mx-auto text-center relative z-10">
-        <h1 class="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-4 sm:mb-6 animate-fadeInUp ${isTechnical ? 'text-green-400' : 'text-gray-900'}">${portfolioData.hero?.name || 'Your Name'}</h1>
-        <p class="text-xl sm:text-2xl md:text-3xl font-semibold mb-4 sm:mb-6 gradient-text animate-fadeInUp animate-delay-100">${portfolioData.hero?.headline || 'Professional'}</p>
-        ${portfolioData.hero?.tagline ? `<p class="text-base sm:text-lg md:text-xl mb-8 sm:mb-10 max-w-2xl mx-auto leading-relaxed ${isTechnical ? 'text-gray-400' : 'text-gray-600'} animate-fadeInUp animate-delay-200">${portfolioData.hero.tagline}</p>` : ''}
-        <div class="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center animate-fadeInUp animate-delay-300">
-          <a href="#contact" class="px-6 sm:px-8 py-3 sm:py-4 rounded-xl font-semibold transition-all duration-300 hover-scale shadow-lg ${isTechnical ? 'bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-gray-900 shadow-green-500/30' : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-blue-500/30'}">${portfolioData.hero?.ctaText || 'Get In Touch'}</a>
-          <a href="#projects" class="px-6 sm:px-8 py-3 sm:py-4 rounded-xl font-semibold transition-all duration-300 hover-scale ${isTechnical ? 'border-2 border-green-500 text-green-500 hover:bg-gray-800' : 'border-2 border-blue-600 text-blue-600 hover:bg-blue-50'}">View My Work</a>
+      <div class="w-full max-w-4xl mx-auto text-center relative z-10 px-2">
+        <h1 class="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-2 sm:mb-4 animate-fadeInUp leading-tight ${isTechnical ? 'text-green-400' : 'text-gray-900'}">${portfolioData.hero?.name || 'Your Name'}</h1>
+        <p class="text-sm sm:text-lg md:text-2xl lg:text-3xl font-semibold mb-2 sm:mb-4 gradient-text animate-fadeInUp stagger-1">${portfolioData.hero?.headline || 'Professional'}</p>
+        ${portfolioData.hero?.tagline ? `<p class="text-xs sm:text-sm md:text-base mb-6 sm:mb-8 max-w-2xl mx-auto leading-relaxed ${isTechnical ? 'text-gray-400' : 'text-gray-600'} animate-fadeInUp stagger-2 px-2">${portfolioData.hero.tagline}</p>` : ''}
+        <div class="flex flex-col gap-2 sm:flex-row sm:gap-3 justify-center animate-fadeInUp stagger-3 px-4 sm:px-0">
+          <a href="#contact" class="w-full sm:w-auto text-center px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl font-semibold text-xs sm:text-sm hover-scale smooth-transition shadow-lg ${isTechnical ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-gray-900' : 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white'}">${portfolioData.hero?.ctaText || 'Get In Touch'}</a>
+          <a href="#projects" class="w-full sm:w-auto text-center px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl font-semibold text-xs sm:text-sm hover-scale smooth-transition ${isTechnical ? 'border-2 border-green-500 text-green-500' : 'border-2 border-blue-600 text-blue-600'}">View My Work</a>
         </div>
         
-        <!-- Scroll Indicator -->
-        <div class="absolute bottom-8 left-1/2 -translate-x-1/2 hidden sm:block" style="animation: bounce 2s infinite;">
-          <div class="w-6 h-10 border-2 rounded-full flex justify-center pt-2 ${isTechnical ? 'border-green-500' : 'border-gray-400'}">
-            <div class="w-1.5 h-2.5 rounded-full ${isTechnical ? 'bg-green-500' : 'bg-gray-400'}"></div>
+        <!-- Scroll indicator - hidden mobile -->
+        <div class="absolute bottom-6 left-1/2 -translate-x-1/2 hidden sm:block animate-bounce">
+          <div class="w-5 h-8 border-2 rounded-full flex justify-center pt-1.5 ${isTechnical ? 'border-green-500' : 'border-gray-400'}">
+            <div class="w-1 h-2 rounded-full animate-scroll-down ${isTechnical ? 'bg-green-500' : 'bg-gray-400'}"></div>
           </div>
         </div>
       </div>
     </section>
 
     <!-- About Section -->
-    <section id="about" class="py-20 px-6 ${isTechnical ? 'bg-gray-800' : 'bg-gray-50'}">
+    <section id="about" class="py-10 sm:py-14 lg:py-20 px-3 sm:px-6" style="background: ${isTechnical ? 'linear-gradient(180deg, #1f2937, #111827)' : 'linear-gradient(180deg, #f9fafb, #ffffff)'};">
       <div class="max-w-4xl mx-auto">
-        <h2 class="text-3xl md:text-4xl font-bold mb-8 ${isTechnical ? 'text-gray-100' : 'text-gray-900'}">${portfolioData.about?.title || 'About Me'}</h2>
-        <div class="${isTechnical ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-200'} rounded-2xl p-8 shadow-lg border">
-          <div class="text-lg leading-relaxed ${isTechnical ? 'text-gray-400' : 'text-gray-600'} whitespace-pre-line">${portfolioData.about?.content || 'Welcome to my portfolio.'}</div>
+        <div class="mb-6 sm:mb-8 animate-fadeInUp">
+          <h2 class="text-lg sm:text-2xl md:text-3xl font-bold mb-2 ${isTechnical ? 'text-gray-100' : 'text-gray-900'}">${portfolioData.about?.title || 'About Me'}</h2>
+          <div class="h-1 w-12 sm:w-16 rounded-full" style="background: linear-gradient(90deg, ${isTechnical ? '#22c55e, #10b981' : '#3b82f6, #6366f1'});"></div>
+        </div>
+        <div class="card-glass rounded-xl sm:rounded-2xl p-4 sm:p-6 lg:p-8 shadow-lg hover-lift animate-fadeInUp stagger-1">
+          <div class="text-xs sm:text-sm lg:text-base leading-relaxed ${isTechnical ? 'text-gray-400' : 'text-gray-600'} whitespace-pre-line">${portfolioData.about?.content || 'Welcome to my portfolio.'}</div>
           ${portfolioData.about?.highlights && portfolioData.about.highlights.length > 0 ? `
-            <div class="mt-8 flex flex-wrap gap-3">
-              ${portfolioData.about.highlights.map(h => `<span class="px-4 py-2 rounded-full text-sm font-medium ${isTechnical ? 'bg-green-900/50 text-green-400 border border-green-500/30' : 'bg-blue-100 text-blue-800'}">${h}</span>`).join('')}
+            <div class="mt-4 sm:mt-6 flex flex-wrap gap-1.5 sm:gap-2">
+              ${portfolioData.about.highlights.map(h => `<span class="px-2 sm:px-3 py-1 rounded-full text-[10px] sm:text-xs font-medium smooth-transition hover-scale ${isTechnical ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-gray-900' : 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white'}">${h}</span>`).join('')}
             </div>
           ` : ''}
         </div>
@@ -327,30 +421,48 @@ const PortfolioBuilder = () => {
     </section>
 
     <!-- Skills Section -->
-    <section id="skills" class="py-20 px-6 ${isTechnical ? 'bg-gray-900' : 'bg-white'}">
+    <section id="skills" class="py-10 sm:py-14 lg:py-20 px-3 sm:px-6 ${isTechnical ? 'bg-gray-900' : 'bg-white'}">
       <div class="max-w-4xl mx-auto">
-        <h2 class="text-3xl md:text-4xl font-bold mb-12 ${isTechnical ? 'text-green-400' : 'text-gray-900'}">Skills & Technologies</h2>
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-12">
+        <div class="mb-6 sm:mb-10 animate-fadeInUp">
+          <h2 class="text-lg sm:text-2xl md:text-3xl font-bold mb-2 ${isTechnical ? 'text-green-400' : 'text-gray-900'}">Skills & Technologies</h2>
+          <div class="h-1 w-12 sm:w-16 rounded-full" style="background: linear-gradient(90deg, ${isTechnical ? '#22c55e, #10b981' : '#3b82f6, #6366f1'});"></div>
+        </div>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
           ${portfolioData.skills?.technical && portfolioData.skills.technical.length > 0 ? `
-            <div>
-              <h3 class="text-xl font-semibold mb-6 ${isTechnical ? 'text-gray-100' : 'text-gray-900'}">Technical Skills</h3>
-              ${generateSkillBars(portfolioData.skills.technical)}
+            <div class="animate-fadeInUp stagger-1">
+              <h3 class="text-sm sm:text-base font-semibold mb-3 sm:mb-4 ${isTechnical ? 'text-gray-100' : 'text-gray-900'}">Technical Skills</h3>
+              <div class="space-y-2.5 sm:space-y-3">
+                ${portfolioData.skills.technical.map((skill, idx) => {
+                  const name = typeof skill === 'string' ? skill : skill.name
+                  const level = typeof skill === 'object' ? skill.level : 75
+                  return `
+                    <div class="group">
+                      <div class="flex justify-between mb-1">
+                        <span class="text-[10px] sm:text-xs font-medium smooth-transition ${isTechnical ? 'text-gray-300 group-hover:text-green-400' : 'text-gray-600 group-hover:text-blue-600'}">${name}</span>
+                        <span class="text-[10px] sm:text-xs ${isTechnical ? 'text-gray-400' : 'text-gray-500'}">${level}%</span>
+                      </div>
+                      <div class="h-1.5 sm:h-2 rounded-full ${isTechnical ? 'bg-gray-700' : 'bg-gray-200'} overflow-hidden">
+                        <div class="h-full rounded-full skill-bar" style="width: ${level}%; background: linear-gradient(90deg, ${isTechnical ? '#22c55e, #10b981' : '#3b82f6, #6366f1'}); animation-delay: ${idx * 0.1}s;"></div>
+                      </div>
+                    </div>`
+                }).join('')}
+              </div>
             </div>
           ` : ''}
-          <div class="space-y-8">
+          <div class="space-y-5 sm:space-y-6 animate-fadeInUp stagger-2">
             ${portfolioData.skills?.soft && portfolioData.skills.soft.length > 0 ? `
               <div>
-                <h3 class="text-xl font-semibold mb-4 ${isTechnical ? 'text-gray-100' : 'text-gray-900'}">Soft Skills</h3>
-                <div class="flex flex-wrap gap-2">
-                  ${portfolioData.skills.soft.map(s => `<span class="px-4 py-2 rounded-full text-sm font-medium ${isTechnical ? 'bg-gray-800 text-gray-300 border border-gray-700' : 'bg-gray-100 text-gray-700'}">${s}</span>`).join('')}
+                <h3 class="text-sm sm:text-base font-semibold mb-2 sm:mb-3 ${isTechnical ? 'text-gray-100' : 'text-gray-900'}">Soft Skills</h3>
+                <div class="flex flex-wrap gap-1 sm:gap-1.5">
+                  ${portfolioData.skills.soft.map(s => `<span class="px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-medium smooth-transition hover-scale ${isTechnical ? 'bg-gray-800 text-gray-300 border border-gray-700 hover:border-green-500' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}">${s}</span>`).join('')}
                 </div>
               </div>
             ` : ''}
             ${portfolioData.skills?.tools && portfolioData.skills.tools.length > 0 ? `
               <div>
-                <h3 class="text-xl font-semibold mb-4 ${isTechnical ? 'text-gray-100' : 'text-gray-900'}">Tools & Platforms</h3>
-                <div class="flex flex-wrap gap-2">
-                  ${portfolioData.skills.tools.map(t => `<span class="px-4 py-2 rounded-lg text-sm font-medium ${isTechnical ? 'bg-green-900/30 text-green-400 border border-green-500/30' : 'bg-blue-50 text-blue-700 border border-blue-200'}">${t}</span>`).join('')}
+                <h3 class="text-sm sm:text-base font-semibold mb-2 sm:mb-3 ${isTechnical ? 'text-gray-100' : 'text-gray-900'}">Tools & Platforms</h3>
+                <div class="flex flex-wrap gap-1 sm:gap-1.5">
+                  ${portfolioData.skills.tools.map(t => `<span class="px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-lg text-[10px] sm:text-xs font-medium smooth-transition hover-scale ${isTechnical ? 'bg-green-900/30 text-green-400 border border-green-500/30 hover:bg-green-900/50' : 'bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100'}">${t}</span>`).join('')}
                 </div>
               </div>
             ` : ''}
@@ -360,55 +472,137 @@ const PortfolioBuilder = () => {
     </section>
 
     <!-- Projects Section -->
-    <section id="projects" class="py-20 px-6 ${isTechnical ? 'bg-gray-800' : 'bg-gray-50'}">
-      <div class="max-w-6xl mx-auto">
-        <h2 class="text-3xl md:text-4xl font-bold mb-12 ${isTechnical ? 'text-gray-100' : 'text-gray-900'}">Featured Projects</h2>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          ${generateProjects(portfolioData.projects)}
+    <section id="projects" class="py-10 sm:py-14 lg:py-20 px-3 sm:px-6" style="background: ${isTechnical ? 'linear-gradient(180deg, #1f2937, #111827)' : 'linear-gradient(180deg, #f9fafb, #f3f4f6)'};">
+      <div class="max-w-5xl mx-auto">
+        <div class="mb-6 sm:mb-10 animate-fadeInUp">
+          <h2 class="text-lg sm:text-2xl md:text-3xl font-bold mb-2 ${isTechnical ? 'text-gray-100' : 'text-gray-900'}">Featured Projects</h2>
+          <div class="h-1 w-12 sm:w-16 rounded-full" style="background: linear-gradient(90deg, ${isTechnical ? '#22c55e, #10b981' : '#3b82f6, #6366f1'});"></div>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+          ${(portfolioData.projects || []).map((project, idx) => `
+            <div class="card-glass rounded-xl p-3 sm:p-4 hover-lift animate-fadeInUp ${project.featured ? (isTechnical ? 'ring-2 ring-green-500' : 'ring-2 ring-blue-500') : ''}" style="animation-delay: ${idx * 0.1}s">
+              ${project.featured ? `<div class="flex items-center gap-1 text-yellow-500 text-[10px] sm:text-xs font-medium mb-2">⭐ Featured</div>` : ''}
+              <h3 class="text-sm sm:text-base font-bold mb-1 line-clamp-2 ${isTechnical ? 'text-gray-100' : 'text-gray-900'}">${project.name}</h3>
+              ${project.tagline ? `<p class="text-[10px] sm:text-xs font-medium mb-1.5 ${isTechnical ? 'text-green-400' : 'text-blue-600'}">${project.tagline}</p>` : ''}
+              <p class="text-[10px] sm:text-xs mb-2 line-clamp-3 ${isTechnical ? 'text-gray-400' : 'text-gray-600'}">${project.description}</p>
+              ${project.impact ? `<p class="text-[10px] sm:text-xs font-semibold mb-2 ${isTechnical ? 'text-gray-100' : 'text-gray-900'}">📈 ${project.impact}</p>` : ''}
+              ${project.tech && project.tech.length > 0 ? `
+                <div class="flex flex-wrap gap-1 mb-2">
+                  ${project.tech.slice(0, 4).map(t => `<span class="px-1.5 py-0.5 rounded text-[8px] sm:text-[10px] font-medium smooth-transition hover-scale ${isTechnical ? 'bg-gray-900 text-green-400 border border-green-500/30' : 'bg-blue-100 text-blue-700'}">${t}</span>`).join('')}
+                  ${project.tech.length > 4 ? `<span class="px-1.5 py-0.5 rounded text-[8px] sm:text-[10px] font-medium opacity-60 ${isTechnical ? 'bg-gray-900 text-gray-400' : 'bg-gray-100 text-gray-600'}">+${project.tech.length - 4}</span>` : ''}
+                </div>
+              ` : ''}
+              <div class="flex gap-3 mt-auto pt-2 border-t ${isTechnical ? 'border-gray-700' : 'border-gray-200'}">
+                ${project.github ? `<a href="${project.github}" target="_blank" class="flex items-center gap-1 text-[10px] sm:text-xs font-medium smooth-transition hover-scale ${isTechnical ? 'text-green-400 hover:text-green-300' : 'text-blue-600 hover:text-blue-700'}">💻 Code</a>` : ''}
+                ${project.demo ? `<a href="${project.demo}" target="_blank" class="flex items-center gap-1 text-[10px] sm:text-xs font-medium smooth-transition hover-scale ${isTechnical ? 'text-green-400 hover:text-green-300' : 'text-blue-600 hover:text-blue-700'}">🔗 Demo</a>` : ''}
+              </div>
+            </div>
+          `).join('')}
         </div>
       </div>
     </section>
 
     <!-- Experience Section -->
-    <section id="experience" class="py-20 px-6 ${isTechnical ? 'bg-gray-900' : 'bg-white'}">
-      <div class="max-w-4xl mx-auto">
-        <h2 class="text-3xl md:text-4xl font-bold mb-12 ${isTechnical ? 'text-gray-100' : 'text-gray-900'}">Work Experience</h2>
+    <section id="experience" class="py-10 sm:py-14 lg:py-20 px-3 sm:px-6 ${isTechnical ? 'bg-gray-900' : 'bg-white'}">
+      <div class="max-w-3xl mx-auto">
+        <div class="mb-6 sm:mb-10 animate-fadeInUp">
+          <h2 class="text-lg sm:text-2xl md:text-3xl font-bold mb-2 ${isTechnical ? 'text-gray-100' : 'text-gray-900'}">Work Experience</h2>
+          <div class="h-1 w-12 sm:w-16 rounded-full" style="background: linear-gradient(90deg, ${isTechnical ? '#22c55e, #10b981' : '#3b82f6, #6366f1'});"></div>
+        </div>
         <div class="relative">
-          <div class="absolute left-4 md:left-8 top-0 bottom-0 w-0.5 ${isTechnical ? 'bg-gray-700' : 'bg-blue-200'}"></div>
-          ${generateExperience(portfolioData.experience)}
+          <div class="absolute left-2.5 sm:left-3 top-0 bottom-0 w-0.5" style="background: linear-gradient(180deg, ${isTechnical ? '#22c55e, #10b981' : '#3b82f6, #6366f1'});"></div>
+          <div class="space-y-4 sm:space-y-6">
+            ${(portfolioData.experience || []).map((exp, idx) => `
+              <div class="relative pl-7 sm:pl-10 animate-fadeInUp" style="animation-delay: ${idx * 0.15}s">
+                <div class="absolute left-1 sm:left-1.5 top-1 w-3 h-3 sm:w-4 sm:h-4 rounded-full" style="background: linear-gradient(135deg, ${isTechnical ? '#22c55e, #10b981' : '#3b82f6, #6366f1'}); box-shadow: 0 0 10px ${isTechnical ? 'rgba(34,197,94,0.4)' : 'rgba(59,130,246,0.4)'};"></div>
+                <div class="card-glass rounded-lg sm:rounded-xl p-3 sm:p-4 border ${isTechnical ? 'border-gray-700' : 'border-gray-200'} hover-lift">
+                  <p class="text-[9px] sm:text-[10px] font-semibold mb-0.5 ${isTechnical ? 'text-green-400' : 'text-blue-600'}">${exp.period}</p>
+                  <h3 class="text-xs sm:text-sm lg:text-base font-bold ${isTechnical ? 'text-gray-100' : 'text-gray-900'}">${exp.title}</h3>
+                  <p class="text-[10px] sm:text-xs mb-1.5 ${isTechnical ? 'text-gray-400' : 'text-gray-600'}">${exp.company}</p>
+                  ${exp.description ? `<p class="text-[10px] sm:text-xs mb-1.5 ${isTechnical ? 'text-gray-400' : 'text-gray-600'}">${exp.description}</p>` : ''}
+                  ${exp.highlights && exp.highlights.length > 0 ? `
+                    <ul class="space-y-0.5 sm:space-y-1">
+                      ${exp.highlights.slice(0, 3).map(h => `<li class="flex items-start gap-1.5 text-[9px] sm:text-[10px] ${isTechnical ? 'text-gray-400' : 'text-gray-600'}"><span class="mt-1 w-1 h-1 rounded-full flex-shrink-0" style="background: ${isTechnical ? '#22c55e' : '#3b82f6'};"></span><span class="line-clamp-2">${h}</span></li>`).join('')}
+                    </ul>
+                  ` : ''}
+                </div>
+              </div>
+            `).join('')}
+          </div>
         </div>
       </div>
     </section>
 
     <!-- Education Section -->
-    <section id="education" class="py-20 px-6 ${isTechnical ? 'bg-gray-800' : 'bg-gray-50'}">
-      <div class="max-w-4xl mx-auto">
-        <h2 class="text-3xl md:text-4xl font-bold mb-12 ${isTechnical ? 'text-gray-100' : 'text-gray-900'}">Education</h2>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-          ${generateEducation(portfolioData.education)}
+    <section id="education" class="py-10 sm:py-14 lg:py-20 px-3 sm:px-6" style="background: ${isTechnical ? 'linear-gradient(180deg, #1f2937, #111827)' : 'linear-gradient(180deg, #f9fafb, #f3f4f6)'};">
+      <div class="max-w-3xl mx-auto">
+        <div class="mb-6 sm:mb-10 animate-fadeInUp">
+          <h2 class="text-lg sm:text-2xl md:text-3xl font-bold mb-2 ${isTechnical ? 'text-gray-100' : 'text-gray-900'}">Education</h2>
+          <div class="h-1 w-12 sm:w-16 rounded-full" style="background: linear-gradient(90deg, ${isTechnical ? '#22c55e, #10b981' : '#3b82f6, #6366f1'});"></div>
+        </div>
+        <div class="grid grid-cols-1 gap-3 sm:gap-4">
+          ${(portfolioData.education || []).map((edu, idx) => `
+            <div class="group card-glass rounded-lg sm:rounded-xl p-3 sm:p-4 flex gap-2.5 sm:gap-4 border ${isTechnical ? 'border-gray-700' : 'border-gray-200'} hover-lift animate-fadeInUp" style="animation-delay: ${idx * 0.1}s">
+              <div class="w-9 h-9 sm:w-11 sm:h-11 rounded-lg flex items-center justify-center flex-shrink-0 group-hover:scale-110 smooth-transition" style="background: linear-gradient(135deg, ${isTechnical ? '#22c55e, #10b981' : '#3b82f6, #6366f1'});">
+                <span class="text-sm sm:text-lg">🎓</span>
+              </div>
+              <div class="flex-1 min-w-0">
+                <h3 class="text-xs sm:text-sm font-bold truncate ${isTechnical ? 'text-gray-100' : 'text-gray-900'}">${edu.degree}</h3>
+                <p class="text-[10px] sm:text-xs truncate ${isTechnical ? 'text-gray-400' : 'text-gray-600'}">${edu.institution}</p>
+                <p class="text-[9px] sm:text-[10px] font-semibold ${isTechnical ? 'text-green-400' : 'text-blue-600'}">${edu.year}</p>
+                ${edu.highlights && edu.highlights.length > 0 ? `
+                  <ul class="mt-1.5 space-y-0.5">
+                    ${edu.highlights.slice(0, 2).map(h => `<li class="flex items-start gap-1 text-[9px] sm:text-[10px] ${isTechnical ? 'text-gray-400' : 'text-gray-600'}"><span class="mt-0.5 w-1 h-1 rounded-full flex-shrink-0" style="background: ${isTechnical ? '#22c55e' : '#3b82f6'};"></span><span class="line-clamp-1">${h}</span></li>`).join('')}
+                  </ul>
+                ` : ''}
+              </div>
+            </div>
+          `).join('')}
         </div>
       </div>
     </section>
 
     <!-- Contact Section -->
-    <section id="contact" class="py-20 px-6 ${isTechnical ? 'bg-gray-900' : 'bg-white'}">
-      <div class="max-w-4xl mx-auto text-center">
-        <h2 class="text-3xl md:text-4xl font-bold mb-4 ${isTechnical ? 'text-green-400' : 'text-gray-900'}">Let's Connect</h2>
-        <p class="text-lg mb-12 ${isTechnical ? 'text-gray-400' : 'text-gray-600'}">I'm always open to discussing new opportunities and interesting projects.</p>
-        ${portfolioData.contact?.location ? `<p class="flex items-center justify-center gap-2 mb-8 ${isTechnical ? 'text-gray-400' : 'text-gray-600'}">📍 ${portfolioData.contact.location}</p>` : ''}
-        <div class="flex flex-wrap justify-center gap-4">
-          ${portfolioData.contact?.email ? `<a href="mailto:${portfolioData.contact.email}" class="flex items-center gap-3 px-6 py-4 rounded-xl font-medium transition-all ${isTechnical ? 'bg-green-500 hover:bg-green-600 text-gray-900' : 'bg-blue-600 hover:bg-blue-700 text-white'}">📧 Email</a>` : ''}
-          ${portfolioData.contact?.linkedin ? `<a href="${portfolioData.contact.linkedin.startsWith('http') ? portfolioData.contact.linkedin : 'https://linkedin.com/in/' + portfolioData.contact.linkedin}" target="_blank" class="flex items-center gap-3 px-6 py-4 rounded-xl font-medium transition-all ${isTechnical ? 'bg-green-500 hover:bg-green-600 text-gray-900' : 'bg-blue-600 hover:bg-blue-700 text-white'}">💼 LinkedIn</a>` : ''}
-          ${portfolioData.contact?.github ? `<a href="${portfolioData.contact.github.startsWith('http') ? portfolioData.contact.github : 'https://github.com/' + portfolioData.contact.github}" target="_blank" class="flex items-center gap-3 px-6 py-4 rounded-xl font-medium transition-all ${isTechnical ? 'bg-green-500 hover:bg-green-600 text-gray-900' : 'bg-blue-600 hover:bg-blue-700 text-white'}">💻 GitHub</a>` : ''}
+    <section id="contact" class="py-10 sm:py-14 lg:py-20 px-3 sm:px-6 relative overflow-hidden" style="background: ${isTechnical ? 'linear-gradient(135deg, #111827, #1f2937, #111827)' : 'linear-gradient(135deg, #ffffff, #eff6ff, #e0e7ff)'};">
+      <div class="absolute -top-16 -right-16 w-32 sm:w-48 h-32 sm:h-48 rounded-full blur-3xl opacity-20 animate-pulse-glow" style="background: ${isTechnical ? '#22c55e' : '#3b82f6'};"></div>
+      <div class="absolute -bottom-16 -left-16 w-32 sm:w-48 h-32 sm:h-48 rounded-full blur-3xl opacity-15 animate-pulse-glow" style="background: ${isTechnical ? '#10b981' : '#6366f1'}; animation-delay: 1s;"></div>
+      
+      <div class="max-w-3xl mx-auto text-center relative z-10">
+        <div class="mb-4 sm:mb-6 animate-fadeInUp">
+          <h2 class="text-lg sm:text-2xl md:text-3xl font-bold mb-2 ${isTechnical ? 'text-green-400' : 'text-gray-900'}">Let's Connect</h2>
+          <div class="h-1 w-12 sm:w-16 rounded-full mx-auto" style="background: linear-gradient(90deg, ${isTechnical ? '#22c55e, #10b981' : '#3b82f6, #6366f1'});"></div>
+        </div>
+        <p class="text-[10px] sm:text-xs md:text-sm mb-4 sm:mb-6 max-w-md mx-auto ${isTechnical ? 'text-gray-400' : 'text-gray-600'} animate-fadeInUp stagger-1">I'm always open to discussing new opportunities and interesting projects.</p>
+        ${portfolioData.contact?.location ? `<p class="flex items-center justify-center gap-1.5 mb-4 sm:mb-6 text-[10px] sm:text-xs ${isTechnical ? 'text-gray-400' : 'text-gray-600'} animate-fadeInUp stagger-2">📍 ${portfolioData.contact.location}</p>` : ''}
+        <div class="flex flex-col sm:flex-row gap-2 sm:gap-3 justify-center animate-fadeInUp stagger-3 px-4 sm:px-0">
+          ${portfolioData.contact?.email ? `<a href="mailto:${portfolioData.contact.email}" class="flex items-center justify-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5 rounded-lg font-semibold text-xs sm:text-sm smooth-transition hover-scale shadow-lg ${isTechnical ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-gray-900' : 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white'}">📧 Email</a>` : ''}
+          ${portfolioData.contact?.linkedin ? `<a href="${portfolioData.contact.linkedin.startsWith('http') ? portfolioData.contact.linkedin : 'https://linkedin.com/in/' + portfolioData.contact.linkedin}" target="_blank" class="flex items-center justify-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5 rounded-lg font-semibold text-xs sm:text-sm smooth-transition hover-scale shadow-lg ${isTechnical ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-gray-900' : 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white'}">💼 LinkedIn</a>` : ''}
+          ${portfolioData.contact?.github ? `<a href="${portfolioData.contact.github.startsWith('http') ? portfolioData.contact.github : 'https://github.com/' + portfolioData.contact.github}" target="_blank" class="flex items-center justify-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5 rounded-lg font-semibold text-xs sm:text-sm smooth-transition hover-scale shadow-lg ${isTechnical ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-gray-900' : 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white'}">💻 GitHub</a>` : ''}
+        </div>
+        
+        <!-- Footer -->
+        <div class="mt-8 sm:mt-10 pt-4 sm:pt-6 border-t ${isTechnical ? 'border-gray-700' : 'border-gray-300'} animate-fadeInUp stagger-4">
+          <p class="text-[9px] sm:text-[10px] ${isTechnical ? 'text-gray-500' : 'text-gray-500'}">© ${new Date().getFullYear()} ${portfolioData.hero?.name || ''} • Built with Resume Builder Platform</p>
         </div>
       </div>
     </section>
   </main>
 
-  <!-- Footer -->
-  <footer class="py-8 text-center border-t ${isTechnical ? 'bg-gray-900 border-gray-800 text-gray-500' : 'bg-gray-100 border-gray-200 text-gray-500'}">
-    <p>© ${new Date().getFullYear()} ${portfolioData.hero?.name || ''} • Built with Resume Builder Platform</p>
-  </footer>
+  <script>
+    // Intersection Observer for scroll animations
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.style.animationPlayState = 'running';
+        }
+      });
+    }, { threshold: 0.1 });
+    
+    document.querySelectorAll('.animate-fadeInUp').forEach(el => {
+      el.style.animationPlayState = 'paused';
+      observer.observe(el);
+    });
+  </script>
 </body>
 </html>`
 
@@ -588,21 +782,96 @@ const PortfolioBuilder = () => {
           {/* Preview Panel */}
           <div className="lg:col-span-3">
             <div className="bg-white rounded-2xl shadow-lg p-4 min-h-[600px]">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-lg font-semibold text-gray-800">Preview</h2>
-                {portfolioData && (
-                  <span className="text-sm text-gray-500">
-                    Theme: {selectedTheme.charAt(0).toUpperCase() + selectedTheme.slice(1)}
-                  </span>
-                )}
+              {/* Preview Header with Device Selector */}
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
+                <div className="flex items-center gap-4">
+                  <h2 className="text-lg font-semibold text-gray-800">Preview</h2>
+                  {portfolioData && (
+                    <span className="text-sm text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
+                      {selectedTheme.charAt(0).toUpperCase() + selectedTheme.slice(1)} Theme
+                    </span>
+                  )}
+                </div>
+                
+                {/* Device Selector */}
+                <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
+                  {Object.entries(DEVICE_PRESETS).map(([device, preset]) => {
+                    const Icon = preset.icon
+                    return (
+                      <button
+                        key={device}
+                        onClick={() => setSelectedDevice(device)}
+                        className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
+                          selectedDevice === device
+                            ? 'bg-white shadow-sm text-primary-600'
+                            : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                        }`}
+                        title={preset.label}
+                      >
+                        <Icon className="text-lg" />
+                        <span className="hidden sm:inline">{preset.label}</span>
+                      </button>
+                    )
+                  })}
+                </div>
               </div>
               
-              <div className="border border-gray-200 rounded-lg overflow-hidden max-h-[70vh] overflow-y-auto">
-                <PortfolioPreview
-                  portfolioData={portfolioData}
-                  selectedTheme={selectedTheme}
-                />
+              {/* Device Frame Container */}
+              <div className={`bg-gray-100 rounded-xl p-4 transition-all duration-300 ${
+                selectedDevice !== 'desktop' ? 'flex justify-center' : ''
+              }`}>
+                {/* Device Frame */}
+                <div 
+                  className={`transition-all duration-500 ease-out ${
+                    selectedDevice === 'mobile' 
+                      ? 'w-[375px] rounded-[2.5rem] border-[14px] border-gray-800 shadow-2xl bg-gray-800'
+                      : selectedDevice === 'tablet'
+                        ? 'w-[768px] rounded-[1.5rem] border-[12px] border-gray-700 shadow-2xl bg-gray-700'
+                        : 'w-full rounded-lg border border-gray-200'
+                  }`}
+                  style={{ maxWidth: DEVICE_PRESETS[selectedDevice].width }}
+                >
+                  {/* Device Notch (Mobile) */}
+                  {selectedDevice === 'mobile' && (
+                    <div className="flex justify-center py-2 bg-gray-800">
+                      <div className="w-20 h-5 bg-gray-900 rounded-full flex items-center justify-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-gray-700"></div>
+                        <div className="w-8 h-2 rounded-full bg-gray-700"></div>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Device Screen */}
+                  <div className={`overflow-hidden ${
+                    selectedDevice === 'mobile' ? 'rounded-b-[1.5rem] max-h-[600px]' 
+                    : selectedDevice === 'tablet' ? 'rounded-b-xl max-h-[700px]'
+                    : 'rounded-lg max-h-[70vh]'
+                  } overflow-y-auto bg-white`}>
+                    <PortfolioPreview
+                      portfolioData={portfolioData}
+                      selectedTheme={selectedTheme}
+                    />
+                  </div>
+                  
+                  {/* Device Home Button (Mobile/Tablet) */}
+                  {selectedDevice !== 'desktop' && (
+                    <div className={`flex justify-center py-2 ${
+                      selectedDevice === 'mobile' ? 'bg-gray-800' : 'bg-gray-700'
+                    }`}>
+                      <div className={`${
+                        selectedDevice === 'mobile' ? 'w-24 h-1 rounded-full bg-gray-600' : 'w-10 h-10 rounded-full border-2 border-gray-500'
+                      }`}></div>
+                    </div>
+                  )}
+                </div>
               </div>
+              
+              {/* Device Info */}
+              {selectedDevice !== 'desktop' && (
+                <div className="mt-3 text-center text-sm text-gray-500">
+                  {selectedDevice === 'mobile' ? '375px × 667px' : '768px × 1024px'} viewport
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -629,6 +898,16 @@ const PortfolioBuilder = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Generation Progress Overlay */}
+      {isStreaming && (
+        <GenerationProgress
+          progress={streamProgress}
+          currentStatus={streamStatus}
+          completedSections={completedSections}
+          currentSection={currentSection}
+        />
       )}
     </div>
   )

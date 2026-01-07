@@ -903,6 +903,118 @@ RULES:
             SystemLogger.error("System", f"Portfolio enhancement failed: {str(e)}")
             return self._get_empty_portfolio(resume_data)
     
+    def enhance_for_portfolio_streaming(self, resume_data: dict):
+        """Stream portfolio enhancement section by section for real-time updates."""
+        import time
+        
+        if not self.model:
+            SystemLogger.error("System", "AI model not initialized")
+            # Yield error state
+            yield {"error": "AI model not initialized", "progress": 0}
+            return
+        
+        # Get direct portfolio transformation as fallback
+        from utils.text_extraction import resume_data_to_text
+        resume_text = resume_data_to_text(resume_data)
+        
+        # Get fallback data
+        fallback = self._get_empty_portfolio(resume_data)
+        
+        # Define sections with their progress ranges
+        sections = [
+            ("hero", 0, 15, "Creating your headline..."),
+            ("about", 15, 30, "Writing about section..."),
+            ("skills", 30, 45, "Analyzing your skills..."),
+            ("projects", 45, 60, "Enhancing project descriptions..."),
+            ("experience", 60, 75, "Formatting work experience..."),
+            ("education", 75, 85, "Processing education..."),
+            ("contact", 85, 95, "Setting up contact info..."),
+            ("meta", 95, 100, "Finalizing...")
+        ]
+        
+        try:
+            # Start generation
+            SystemLogger.crew_banner()
+            SystemLogger.working_agent("PortfolioEnhancer", "Streaming portfolio generation")
+            
+            # Generate all content at once (AI call)
+            prompt = self._get_portfolio_prompt(resume_data, resume_text)
+            safety_settings = [
+                {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
+                {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
+                {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"},
+                {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"},
+            ]
+            
+            response = self.model.generate_content(prompt, safety_settings=safety_settings)
+            
+            if not response.text:
+                # Use fallback and stream it
+                for section_name, start, end, status in sections:
+                    yield {
+                        "section": section_name,
+                        "data": fallback.get(section_name, {}),
+                        "progress": end,
+                        "status": status
+                    }
+                    time.sleep(0.3)  # Simulate streaming delay
+                return
+            
+            # Extract portfolio data
+            portfolio_data = self._extract_json(response.text)
+            
+            if not portfolio_data:
+                # Use fallback
+                for section_name, start, end, status in sections:
+                    yield {
+                        "section": section_name,
+                        "data": fallback.get(section_name, {}),
+                        "progress": end,
+                        "status": status
+                    }
+                    time.sleep(0.3)
+                return
+            
+            # Stream each section progressively
+            for section_name, start, end, status in sections:
+                SystemLogger.agent_action(status)
+                
+                yield {
+                    "section": section_name,
+                    "data": portfolio_data.get(section_name, fallback.get(section_name, {})),
+                    "progress": end,
+                    "status": status
+                }
+                
+                # Small delay for visual effect (can be removed for instant)
+                time.sleep(0.2)
+            
+            # Final complete message
+            SystemLogger.agent_complete("Portfolio generation complete!")
+            yield {
+                "complete": True,
+                "progress": 100,
+                "status": "Portfolio ready! ✨"
+            }
+            
+        except Exception as e:
+            SystemLogger.error("System", f"Streaming failed: {str(e)}")
+            # Stream fallback on error
+            for section_name, start, end, status in sections:
+                yield {
+                    "section": section_name,
+                    "data": fallback.get(section_name, {}),
+                    "progress": end,
+                    "status": status
+                }
+                time.sleep(0.2)
+            
+            yield {
+                "complete": True,
+                "progress": 100,
+                "status": "Portfolio ready!"
+            }
+    
     def _get_portfolio_prompt(self, resume_data: dict, resume_text: str) -> str:
         """Generate the prompt for portfolio enhancement."""
         personal_info = resume_data.get("personalInfo", {})

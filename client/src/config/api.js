@@ -13,6 +13,7 @@ export const API_ENDPOINTS = {
     careerAdvice: `${API_BASE_URL}/api/ai/career-advice`,
     importResume: `${API_BASE_URL}/api/ai/import-resume`,
     portfolioEnhance: `${API_BASE_URL}/api/ai/portfolio-enhance`,
+    portfolioEnhanceStream: `${API_BASE_URL}/api/ai/portfolio-enhance-stream`,
     health: `${API_BASE_URL}/api/ai/health`,
 
     // PDF export

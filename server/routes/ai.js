@@ -198,6 +198,71 @@ router.post('/portfolio-enhance', async (req, res) => {
     }
 })
 
+/**
+ * POST /api/ai/portfolio-enhance-stream
+ * Stream portfolio generation with SSE (Server-Sent Events)
+ */
+router.post('/portfolio-enhance-stream', async (req, res) => {
+    try {
+        const { resume_data } = req.body
+
+        if (!resume_data) {
+            return res.status(400).json({ error: 'No resume data provided' })
+        }
+
+        // Set headers for SSE
+        res.setHeader('Content-Type', 'text/event-stream')
+        res.setHeader('Cache-Control', 'no-cache')
+        res.setHeader('Connection', 'keep-alive')
+        res.setHeader('X-Accel-Buffering', 'no')
+        res.flushHeaders()
+
+        // Make streaming request to Python service
+        const response = await axios.post(`${AI_SERVICE_URL}/portfolio-enhance-stream`, {
+            resume_data
+        }, {
+            responseType: 'stream'
+        })
+
+        // Pipe the SSE stream directly to the client
+        response.data.on('data', (chunk) => {
+            res.write(chunk)
+        })
+
+        response.data.on('end', () => {
+            res.end()
+        })
+
+        response.data.on('error', (err) => {
+            console.error('SSE Stream Error:', err)
+            res.write(`data: ${JSON.stringify({ error: err.message, progress: 0 })}\n\n`)
+            res.end()
+        })
+
+    } catch (error) {
+        console.error('Portfolio Stream Error:', error.message)
+
+        // Send error as SSE event
+        res.setHeader('Content-Type', 'text/event-stream')
+        res.flushHeaders()
+
+        if (error.code === 'ECONNREFUSED') {
+            res.write(`data: ${JSON.stringify({
+                error: 'AI service is not running',
+                progress: 0,
+                status: 'Service unavailable'
+            })}\n\n`)
+        } else {
+            res.write(`data: ${JSON.stringify({
+                error: error.message,
+                progress: 0,
+                status: 'Stream failed'
+            })}\n\n`)
+        }
+        res.end()
+    }
+})
+
 module.exports = router
 
 

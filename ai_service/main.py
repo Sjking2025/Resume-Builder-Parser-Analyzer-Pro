@@ -9,6 +9,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, UploadFile, File
+from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from dotenv import load_dotenv
@@ -271,6 +272,58 @@ async def enhance_portfolio(request: AnalyzeRequest):
             status_code=500,
             detail=f"Error enhancing portfolio: {str(e)}"
         )
+
+
+@app.post("/portfolio-enhance-stream")
+async def enhance_portfolio_stream(request: AnalyzeRequest):
+    """
+    Stream portfolio generation section-by-section using Server-Sent Events.
+    Returns real-time progress updates as portfolio is generated.
+    """
+    if not GOOGLE_API_KEY:
+        raise HTTPException(
+            status_code=503,
+            detail="AI service unavailable. Please set GOOGLE_API_KEY."
+        )
+    
+    resume_data = request.resume_data
+    if not resume_data:
+        raise HTTPException(
+            status_code=400,
+            detail="No resume data provided"
+        )
+    
+    async def generate():
+        """SSE generator that yields portfolio sections progressively."""
+        from crew.resume_crew import ResumeCrew
+        import json
+        
+        try:
+            crew = ResumeCrew()
+            
+            # Stream portfolio generation
+            for event in crew.enhance_for_portfolio_streaming(resume_data):
+                # Format as SSE message
+                yield f"data: {json.dumps(event)}\n\n"
+                
+        except Exception as e:
+            # Send error event
+            error_event = {
+                "error": str(e),
+                "progress": 0,
+                "status": "Generation failed"
+            }
+            yield f"data: {json.dumps(error_event)}\n\n"
+    
+    return StreamingResponse(
+        generate(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no"  # Disable nginx buffering
+        }
+    )
 
 
 if __name__ == "__main__":
