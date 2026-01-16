@@ -1,6 +1,6 @@
 import React from 'react'
 import { useNavigate } from 'react-router-dom'
-import { FaFileAlt, FaRocket, FaShieldAlt, FaStar, FaArrowRight } from 'react-icons/fa'
+import { FaFileAlt, FaRocket, FaShieldAlt, FaStar, FaArrowRight, FaGlobe, FaBullseye } from 'react-icons/fa'
 
 const HomePage = () => {
   const navigate = useNavigate()
@@ -42,7 +42,7 @@ const HomePage = () => {
             <span className="font-semibold text-primary-600">No watermarks. No paywalls. No BS.</span>
           </p>
           
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center flex-wrap">
             <button
               onClick={() => navigate('/editor')}
               className="btn-primary text-lg px-10 py-4 animate-slide-up inline-flex items-center gap-3"
@@ -55,6 +55,20 @@ const HomePage = () => {
               style={{ animationDelay: '100ms' }}
             >
               <FaRocket /> AI Resume Analysis
+            </button>
+            <button
+              onClick={() => navigate('/portfolio')}
+              className="bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 text-white text-lg px-10 py-4 rounded-xl font-semibold transition-all shadow-lg hover:shadow-xl inline-flex items-center gap-3 animate-slide-up"
+              style={{ animationDelay: '200ms' }}
+            >
+              <FaGlobe /> Generate Portfolio
+            </button>
+            <button
+              onClick={() => navigate('/skill-gap')}
+              className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white text-lg px-10 py-4 rounded-xl font-semibold transition-all shadow-lg hover:shadow-xl inline-flex items-center gap-3 animate-slide-up"
+              style={{ animationDelay: '300ms' }}
+            >
+              <FaBullseye /> Skill Gap Analyzer
             </button>
           </div>
 

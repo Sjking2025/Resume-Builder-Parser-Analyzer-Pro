@@ -79,6 +79,11 @@ class SystemLogger:
             "icon": "✨",
             "role": "Professional Resume Writer",
             "goal": "Transform bullet points into impactful achievement statements"
+        },
+        "PortfolioEnhancer": {
+            "icon": "🌐",
+            "role": "Portfolio Content Strategist",
+            "goal": "Transform resume content into engaging web portfolio copy"
         }
     }
 
@@ -827,4 +832,788 @@ RULES:
             "recommended_certifications": [],
             "project_ideas": []
         }
+
+    # ═══════════════════════════════════════════════════════════════════════════════
+    # PORTFOLIO ENHANCEMENT
+    # ═══════════════════════════════════════════════════════════════════════════════
+
+    def enhance_for_portfolio(self, resume_data: dict) -> dict:
+        """Transform resume content into web-optimized portfolio copy."""
+        import time
+        crew_start = time.time()
+        
+        if not self.model:
+            SystemLogger.error("System", "AI model not initialized")
+            raise ValueError("AI model not initialized.")
+        
+        # Log the portfolio enhancement process
+        SystemLogger.crew_banner()
+        SystemLogger.working_agent("PortfolioEnhancer", "Transform resume into portfolio content")
+        
+        # Extract key information
+        name = resume_data.get("personalInfo", {}).get("fullName", "Unknown")
+        SystemLogger.agent_thinking(f"Analyzing resume for {name}...")
+        
+        # Convert resume to text for AI processing
+        from utils.text_extraction import resume_data_to_text
+        resume_text = resume_data_to_text(resume_data)
+        
+        SystemLogger.using_tool("Content Transformer", f"Processing {len(resume_text)} chars")
+        SystemLogger.agent_action("Generating engaging web copy...")
+        
+        # Build the portfolio enhancement prompt
+        prompt = self._get_portfolio_prompt(resume_data, resume_text)
+        
+        try:
+            safety_settings = [
+                {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
+                {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
+                {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"},
+                {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"},
+            ]
+            
+            response = self.model.generate_content(prompt, safety_settings=safety_settings)
+            
+            if not response.text:
+                SystemLogger.error("API", "Empty response from AI")
+                return self._get_empty_portfolio(resume_data)
+            
+            raw_response = response.text
+            SystemLogger.tool_output(f"Received {len(raw_response)} chars")
+            
+            portfolio_data = self._extract_json(raw_response)
+            
+            if not portfolio_data:
+                SystemLogger.warn("System", "JSON extraction failed, using fallback")
+                return self._get_empty_portfolio(resume_data)
+            
+            # Log success
+            total_time = time.time() - crew_start
+            SystemLogger.agent_complete(f"Portfolio content generated for {name}")
+            SystemLogger.crew_finished(total_time, {
+                "Profile": name,
+                "Headline Generated": "Yes" if portfolio_data.get("hero", {}).get("headline") else "No",
+                "Projects Enhanced": len(portfolio_data.get("projects", [])),
+                "Theme Suggested": portfolio_data.get("meta", {}).get("suggestedTheme", "minimal")
+            })
+            
+            return portfolio_data
+            
+        except Exception as e:
+            SystemLogger.error("System", f"Portfolio enhancement failed: {str(e)}")
+            return self._get_empty_portfolio(resume_data)
+    
+    def enhance_for_portfolio_streaming(self, resume_data: dict):
+        """Stream portfolio enhancement section by section for real-time updates."""
+        import time
+        
+        if not self.model:
+            SystemLogger.error("System", "AI model not initialized")
+            # Yield error state
+            yield {"error": "AI model not initialized", "progress": 0}
+            return
+        
+        # Get direct portfolio transformation as fallback
+        from utils.text_extraction import resume_data_to_text
+        resume_text = resume_data_to_text(resume_data)
+        
+        # Get fallback data
+        fallback = self._get_empty_portfolio(resume_data)
+        
+        # Define sections with their progress ranges
+        sections = [
+            ("hero", 0, 15, "Creating your headline..."),
+            ("about", 15, 30, "Writing about section..."),
+            ("skills", 30, 45, "Analyzing your skills..."),
+            ("projects", 45, 60, "Enhancing project descriptions..."),
+            ("experience", 60, 75, "Formatting work experience..."),
+            ("education", 75, 85, "Processing education..."),
+            ("contact", 85, 95, "Setting up contact info..."),
+            ("meta", 95, 100, "Finalizing...")
+        ]
+        
+        try:
+            # Start generation
+            SystemLogger.crew_banner()
+            SystemLogger.working_agent("PortfolioEnhancer", "Streaming portfolio generation")
+            
+            # Generate all content at once (AI call)
+            prompt = self._get_portfolio_prompt(resume_data, resume_text)
+            safety_settings = [
+                {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
+                {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
+                {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"},
+                {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"},
+            ]
+            
+            response = self.model.generate_content(prompt, safety_settings=safety_settings)
+            
+            if not response.text:
+                # Use fallback and stream it
+                for section_name, start, end, status in sections:
+                    yield {
+                        "section": section_name,
+                        "data": fallback.get(section_name, {}),
+                        "progress": end,
+                        "status": status
+                    }
+                    time.sleep(0.3)  # Simulate streaming delay
+                return
+            
+            # Extract portfolio data
+            portfolio_data = self._extract_json(response.text)
+            
+            if not portfolio_data:
+                # Use fallback
+                for section_name, start, end, status in sections:
+                    yield {
+                        "section": section_name,
+                        "data": fallback.get(section_name, {}),
+                        "progress": end,
+                        "status": status
+                    }
+                    time.sleep(0.3)
+                return
+            
+            # Stream each section progressively
+            for section_name, start, end, status in sections:
+                SystemLogger.agent_action(status)
+                
+                yield {
+                    "section": section_name,
+                    "data": portfolio_data.get(section_name, fallback.get(section_name, {})),
+                    "progress": end,
+                    "status": status
+                }
+                
+                # Small delay for visual effect (can be removed for instant)
+                time.sleep(0.2)
+            
+            # Final complete message
+            SystemLogger.agent_complete("Portfolio generation complete!")
+            yield {
+                "complete": True,
+                "progress": 100,
+                "status": "Portfolio ready! ✨"
+            }
+            
+        except Exception as e:
+            SystemLogger.error("System", f"Streaming failed: {str(e)}")
+            # Stream fallback on error
+            for section_name, start, end, status in sections:
+                yield {
+                    "section": section_name,
+                    "data": fallback.get(section_name, {}),
+                    "progress": end,
+                    "status": status
+                }
+                time.sleep(0.2)
+            
+            yield {
+                "complete": True,
+                "progress": 100,
+                "status": "Portfolio ready!"
+            }
+    
+    def _get_portfolio_prompt(self, resume_data: dict, resume_text: str) -> str:
+        """Generate the prompt for portfolio enhancement."""
+        personal_info = resume_data.get("personalInfo", {})
+        projects = resume_data.get("projects", [])
+        experience = resume_data.get("experience", [])
+        skills = resume_data.get("skills", {})
+        
+        return f'''
+You are a Portfolio Content Strategist. Transform this resume into engaging, web-optimized portfolio content.
+
+────────────────────────────────────────────
+RESUME DATA
+────────────────────────────────────────────
+{resume_text}
+
+────────────────────────────────────────────
+TASK
+────────────────────────────────────────────
+Create portfolio content that:
+1. Sounds natural and engaging (not resume-speak)
+2. Uses first-person perspective where appropriate
+3. Highlights impact and achievements
+4. Is SEO-friendly with relevant keywords
+5. Appeals to potential employers/clients
+
+────────────────────────────────────────────
+OUTPUT (Valid JSON Only)
+────────────────────────────────────────────
+{{
+  "hero": {{
+    "name": "{personal_info.get('fullName', 'Your Name')}",
+    "headline": "A compelling 5-8 word professional headline",
+    "tagline": "A brief engaging tagline (10-15 words)",
+    "ctaText": "Call-to-action button text"
+  }},
+  "about": {{
+    "title": "About Me section title",
+    "content": "2-3 paragraph engaging about me text in first person. Make it personable and professional.",
+    "highlights": ["Key achievement 1", "Key achievement 2", "Key achievement 3"]
+  }},
+  "skills": {{
+    "technical": [
+      {{"name": "Skill Name", "level": 85}}
+    ],
+    "soft": ["Soft skill 1", "Soft skill 2"],
+    "tools": ["Tool 1", "Tool 2"]
+  }},
+  "projects": [
+    {{
+      "name": "Project Name",
+      "tagline": "Brief catchy tagline",
+      "description": "Engaging 2-3 sentence description focusing on impact",
+      "impact": "Quantified impact statement",
+      "tech": ["Tech 1", "Tech 2"],
+      "github": "github url or empty",
+      "demo": "demo url or empty",
+      "featured": true
+    }}
+  ],
+  "experience": [
+    {{
+      "title": "Job Title",
+      "company": "Company Name",
+      "period": "Start - End",
+      "description": "Engaging description of role and achievements",
+      "highlights": ["Key achievement 1", "Key achievement 2"]
+    }}
+  ],
+  "education": [
+    {{
+      "degree": "Degree Name",
+      "institution": "School Name",
+      "year": "Graduation Year",
+      "highlights": ["Notable achievement"]
+    }}
+  ],
+  "contact": {{
+    "email": "{personal_info.get('email', '')}",
+    "linkedin": "{personal_info.get('linkedin', '')}",
+    "github": "{personal_info.get('github', '')}",
+    "location": "{personal_info.get('location', '')}"
+  }},
+  "meta": {{
+    "title": "SEO-friendly page title",
+    "description": "SEO meta description (150-160 chars)",
+    "keywords": ["keyword1", "keyword2"],
+    "suggestedTheme": "minimal or technical",
+    "colorScheme": "light or dark"
+  }}
+}}
+
+RULES:
+- Return ONLY valid JSON
+- No markdown code blocks
+- Make content engaging and personable
+- For skills, estimate proficiency level 1-100 based on experience
+- suggestedTheme: "technical" for developers/engineers, "minimal" for others
+'''
+    
+    def _get_empty_portfolio(self, resume_data: dict) -> dict:
+        """Return portfolio structure with original resume data as fallback."""
+        personal_info = resume_data.get("personalInfo", {})
+        skills = resume_data.get("skills", {})
+        
+        return {
+            "hero": {
+                "name": personal_info.get("fullName", ""),
+                "headline": "Professional",
+                "tagline": personal_info.get("summary", "")[:100] if personal_info.get("summary") else "",
+                "ctaText": "Get In Touch"
+            },
+            "about": {
+                "title": "About Me",
+                "content": personal_info.get("summary", "Welcome to my portfolio."),
+                "highlights": []
+            },
+            "skills": {
+                "technical": [{"name": s, "level": 75} for s in skills.get("technical", [])[:10]],
+                "soft": skills.get("soft", []),
+                "tools": []
+            },
+            "projects": [
+                {
+                    "name": p.get("name", "Project"),
+                    "tagline": "",
+                    "description": p.get("description", ""),
+                    "impact": "",
+                    "tech": p.get("technologies", "").split(",") if p.get("technologies") else [],
+                    "github": p.get("link", "") if "github" in p.get("link", "").lower() else "",
+                    "demo": p.get("link", "") if "github" not in p.get("link", "").lower() else "",
+                    "featured": i == 0
+                }
+                for i, p in enumerate(resume_data.get("projects", [])[:6])
+            ],
+            "experience": [
+                {
+                    "title": e.get("title", ""),
+                    "company": e.get("company", ""),
+                    "period": f"{e.get('startDate', '')} - {e.get('endDate', 'Present') if not e.get('current') else 'Present'}",
+                    "description": e.get("description", ""),
+                    "highlights": []
+                }
+                for e in resume_data.get("experience", [])
+            ],
+            "education": [
+                {
+                    "degree": ed.get("degree", ""),
+                    "institution": ed.get("institution", ""),
+                    "year": ed.get("graduationDate", ""),
+                    "highlights": []
+                }
+                for ed in resume_data.get("education", [])
+            ],
+            "contact": {
+                "email": personal_info.get("email", ""),
+                "linkedin": personal_info.get("linkedin", ""),
+                "github": personal_info.get("github", ""),
+                "location": personal_info.get("location", "")
+            },
+            "meta": {
+                "title": f"{personal_info.get('fullName', 'Portfolio')} - Portfolio",
+                "description": personal_info.get("summary", "")[:160] if personal_info.get("summary") else "Professional portfolio",
+                "keywords": skills.get("technical", [])[:5],
+                "suggestedTheme": "minimal",
+                "colorScheme": "light"
+            }
+        }
+
+    # ═══════════════════════════════════════════════════════════════════════════════
+    # SKILL GAP ANALYZER & ROADMAP GENERATOR
+    # ═══════════════════════════════════════════════════════════════════════════════
+    
+    def analyze_skill_gap(self, resume_data: dict, job_description: str) -> dict:
+        """
+        Analyze skill gap between resume and job description.
+        Returns matched skills, missing skills, and gap score.
+        """
+        import time
+        start_time = time.time()
+        
+        if not self.model:
+            SystemLogger.error("System", "AI model not initialized")
+            raise ValueError("AI model not initialized.")
+        
+        SystemLogger.crew_banner()
+        SystemLogger.working_agent("SkillGapAnalyzer", "Analyzing resume vs job description")
+        
+        # Extract resume text
+        from utils.text_extraction import resume_data_to_text
+        resume_text = resume_data_to_text(resume_data)
+        
+        SystemLogger.using_tool("SkillExtractor", f"Processing JD ({len(job_description)} chars)")
+        
+        prompt = f'''
+You are an expert Career Analyst. Analyze the gap between this resume and job description.
+
+════════════════════════════════════════════════════════════════
+RESUME
+════════════════════════════════════════════════════════════════
+{resume_text}
+
+════════════════════════════════════════════════════════════════
+JOB DESCRIPTION
+════════════════════════════════════════════════════════════════
+{job_description}
+
+════════════════════════════════════════════════════════════════
+TASK
+════════════════════════════════════════════════════════════════
+1. Extract all skills required in the JD (technical, tools, frameworks, soft skills)
+2. Identify which skills the candidate has (matched)
+3. Identify which skills are missing or weak
+4. Calculate a match percentage
+5. Prioritize missing skills by importance (how often mentioned, required vs preferred)
+
+Return ONLY valid JSON:
+{{
+    "jobTitle": "extracted job title",
+    "company": "company name if mentioned",
+    "matchScore": 75,
+    "matchedSkills": [
+        {{"name": "Python", "confidence": "strong", "evidence": "3 years mentioned"}},
+        {{"name": "SQL", "confidence": "moderate", "evidence": "used in projects"}}
+    ],
+    "missingSkills": [
+        {{"name": "Kubernetes", "priority": "high", "reason": "mentioned 3 times, required", "difficulty": "medium"}},
+        {{"name": "GraphQL", "priority": "medium", "reason": "preferred skill", "difficulty": "easy"}}
+    ],
+    "weakSkills": [
+        {{"name": "React", "currentLevel": "beginner", "requiredLevel": "advanced", "gap": "significant"}}
+    ],
+    "recommendations": [
+        "Focus on Kubernetes first - most critical gap",
+        "Upgrade React skills from beginner to advanced"
+    ],
+    "estimatedPrepTime": "4-6 weeks"
+}}
+'''
+        
+        try:
+            safety_settings = [
+                {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
+                {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
+                {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"},
+                {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"},
+            ]
+            
+            response = self.model.generate_content(prompt, safety_settings=safety_settings)
+            
+            if not response.text:
+                SystemLogger.error("API", "Empty response from AI")
+                return {"error": "Empty response from AI", "matchScore": 0}
+            
+            result = self._extract_json(response.text)
+            
+            if not result:
+                SystemLogger.warn("System", "JSON extraction failed")
+                return {"error": "Failed to parse analysis", "matchScore": 0}
+            
+            total_time = time.time() - start_time
+            SystemLogger.agent_complete(f"Gap analysis complete")
+            SystemLogger.crew_finished(total_time, {
+                "Match Score": f"{result.get('matchScore', 0)}%",
+                "Matched Skills": len(result.get('matchedSkills', [])),
+                "Missing Skills": len(result.get('missingSkills', [])),
+                "Weak Skills": len(result.get('weakSkills', []))
+            })
+            
+            return result
+            
+        except Exception as e:
+            SystemLogger.error("System", f"Gap analysis failed: {str(e)}")
+            return {"error": str(e), "matchScore": 0}
+    
+    def generate_roadmap(self, gap_analysis: dict, learner_profile: dict = None) -> dict:
+        """
+        Generate a practice-focused roadmap based on skill gaps.
+        40% learning, 60% practice with curated resources.
+        """
+        import time
+        start_time = time.time()
+        
+        if not self.model:
+            SystemLogger.error("System", "AI model not initialized")
+            raise ValueError("AI model not initialized.")
+        
+        # Default learner profile
+        if not learner_profile:
+            learner_profile = {
+                "hoursPerDay": 2,
+                "learningSpeed": "moderate",
+                "targetDays": 30,
+                "preferredStyle": "mixed",
+                "existingKnowledge": []
+            }
+        
+        SystemLogger.crew_banner()
+        SystemLogger.working_agent("RoadmapGenerator", "Creating practice-focused learning path")
+        
+        missing_skills = gap_analysis.get("missingSkills", [])
+        weak_skills = gap_analysis.get("weakSkills", [])
+        
+        if not missing_skills and not weak_skills:
+            return {"message": "No skill gaps found!", "roadmap": []}
+        
+        skills_to_learn = [s["name"] for s in missing_skills] + [s["name"] for s in weak_skills]
+        
+        SystemLogger.agent_thinking(f"Planning roadmap for {len(skills_to_learn)} skills")
+        
+        prompt = f'''
+You are an expert Career Coach creating a PRACTICE-FOCUSED roadmap.
+
+════════════════════════════════════════════════════════════════
+PHILOSOPHY
+════════════════════════════════════════════════════════════════
+- 40% Learning, 60% Hands-on Practice
+- Real skills develop through trial and error
+- Build from day 1, avoid tutorial hell
+- Include EXPECTED ERRORS the learner will face
+- Industry-focused, not academic
+
+════════════════════════════════════════════════════════════════
+SKILLS TO LEARN (Priority Order)
+════════════════════════════════════════════════════════════════
+{json.dumps(missing_skills + weak_skills, indent=2)}
+
+════════════════════════════════════════════════════════════════
+LEARNER PROFILE
+════════════════════════════════════════════════════════════════
+- Available: {learner_profile.get("hoursPerDay", 2)} hours/day
+- Speed: {learner_profile.get("learningSpeed", "moderate")}
+- Target: {learner_profile.get("targetDays", 30)} days
+- Style: {learner_profile.get("preferredStyle", "mixed")}
+- Preferred Video Languages: {", ".join(learner_profile.get("preferredLanguages", ["english"]))}
+- Already knows: {learner_profile.get("existingKnowledge", [])}
+
+════════════════════════════════════════════════════════════════
+TASK
+════════════════════════════════════════════════════════════════
+Create a week-by-week roadmap. For EACH skill include:
+1. Learn section (40% of time) - Core concepts only
+2. Practice section (60% of time) - Real mini-projects
+3. Expected errors/challenges they will face
+4. Validation criteria
+5. CURATED resources with MINIMUM 5 YouTube videos per skill
+
+CRITICAL RESOURCE REQUIREMENTS:
+- Include EXACTLY 5 or more YouTube videos per skill week
+- Categorize videos by difficulty: beginner (2), intermediate (2), advanced (1+)
+- LANGUAGE PREFERENCES: User is comfortable with these languages: {", ".join(learner_profile.get("preferredLanguages", ["english"]))}
+  - Mix videos from ALL selected language communities
+  - For "hindi": Add hindi tech channels (CodeWithHarry, Apna College, Thapa Technical)
+  - For "tamil": Add tamil tech channels (Tamil Hacks, Learn Code Tamil)
+  - For "telugu": Add telugu tech channels (Telugu Academy, Coding in Telugu)
+  - For "spanish": Add "español" to searches, Spanish dev channels
+  - For "english": Include Fireship, Traversy Media, freeCodeCamp, Web Dev Simplified
+  - Distribute videos across selected languages for variety
+- For YouTube URLs, use SEARCH URLs like: https://www.youtube.com/results?search_query=kubernetes+tutorial+hindi
+- Include official documentation links (these are always real URLs)
+- Add 1-2 free course platform links (Coursera, Udemy, etc.)
+
+Return ONLY valid JSON:
+{{
+    "totalWeeks": 4,
+    "totalHours": 80,
+    "targetJob": "{gap_analysis.get('jobTitle', 'Target Role')}",
+    "weeks": [
+        {{
+            "weekNumber": 1,
+            "focus": "Kubernetes Fundamentals",
+            "skills": ["Kubernetes"],
+            "totalHours": 20,
+            "learn": {{
+                "hours": 8,
+                "topics": ["Pods", "Deployments", "Services", "ConfigMaps"],
+                "resources": {{
+                    "videos": [
+                        {{"level": "beginner", "title": "Kubernetes Explained - Quick Intro", "searchTerms": "kubernetes explained 100 seconds", "url": "https://www.youtube.com/results?search_query=kubernetes+explained+100+seconds+fireship", "description": "Quick intro to K8s concepts"}},
+                        {{"level": "beginner", "title": "Kubernetes Full Course for Beginners", "searchTerms": "kubernetes tutorial beginners full course", "url": "https://www.youtube.com/results?search_query=kubernetes+tutorial+beginners+full+course+nana", "description": "Complete beginner course"}},
+                        {{"level": "intermediate", "title": "Kubernetes Hands-on Tutorial", "searchTerms": "kubernetes deployments services tutorial", "url": "https://www.youtube.com/results?search_query=kubernetes+deployments+services+practical", "description": "Hands-on deployments and services"}},
+                        {{"level": "intermediate", "title": "K8s Networking Deep Dive", "searchTerms": "kubernetes networking explained", "url": "https://www.youtube.com/results?search_query=kubernetes+networking+services+ingress", "description": "Understanding services and ingress"}},
+                        {{"level": "advanced", "title": "Production Kubernetes Best Practices", "searchTerms": "kubernetes production best practices", "url": "https://www.youtube.com/results?search_query=kubernetes+production+best+practices+enterprise", "description": "Enterprise patterns"}}
+                    ],
+                    "docs": [
+                        {{"title": "Kubernetes Official Docs", "url": "https://kubernetes.io/docs/", "section": "Getting Started"}},
+                        {{"title": "Kubernetes Cheatsheet", "url": "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"}}
+                    ],
+                    "courses": [
+                        {{"title": "Kubernetes for Developers", "platform": "Coursera", "url": "https://www.coursera.org/search?query=kubernetes", "duration": "4 weeks"}}
+                    ]
+                }}
+            }},
+            "practice": {{
+                "hours": 12,
+                "projects": [
+                    {{
+                        "name": "Deploy Todo App to Minikube",
+                        "description": "Containerize and deploy a simple app",
+                        "estimatedHours": 3,
+                        "requirements": ["Create Dockerfile", "Write deployment.yaml", "Expose via Service"],
+                        "expectedErrors": ["ImagePullBackOff", "CrashLoopBackOff", "Service not accessible"],
+                        "successCriteria": "App accessible on localhost"
+                    }},
+                    {{
+                        "name": "Multi-container Pod",
+                        "description": "Deploy app with sidecar container",
+                        "estimatedHours": 4,
+                        "requirements": ["Multi-container pod spec", "Shared volume", "Init container"],
+                        "expectedErrors": ["Container ordering issues", "Volume mount permissions"],
+                        "successCriteria": "Both containers running and communicating"
+                    }}
+                ]
+            }},
+            "validation": [
+                "Can you deploy an app without looking at docs?",
+                "Can you debug a CrashLoopBackOff?",
+                "Can you explain pod lifecycle?"
+            ]
+        }}
+    ],
+    "bonusProjects": [
+        {{"name": "Deploy to real cloud (GKE/EKS)", "skill": "Kubernetes", "hours": 6}}
+    ]
+}}
+
+CRITICAL URL RULES:
+- For YouTube: Use SEARCH URLs format: https://www.youtube.com/results?search_query=topic+keywords+here
+- Replace spaces with + in search queries
+- Add channel names to search for specific creators (fireship, traversy, nana, freecodecamp)
+- For documentation: Use REAL, official URLs (kubernetes.io, reactjs.org, docs.docker.com, etc.)
+- For courses: Link to search pages on Coursera/Udemy that show real courses
+'''
+        
+        try:
+            safety_settings = [
+                {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
+                {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
+                {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"},
+                {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"},
+            ]
+            
+            response = self.model.generate_content(prompt, safety_settings=safety_settings)
+            
+            if not response.text:
+                SystemLogger.error("API", "Empty response from AI")
+                return {"error": "Empty response from AI"}
+            
+            result = self._extract_json(response.text)
+            
+            if not result:
+                SystemLogger.warn("System", "JSON extraction failed")
+                return {"error": "Failed to parse roadmap"}
+            
+            total_time = time.time() - start_time
+            SystemLogger.agent_complete("Roadmap generated!")
+            SystemLogger.crew_finished(total_time, {
+                "Total Weeks": result.get("totalWeeks", 0),
+                "Total Hours": result.get("totalHours", 0),
+                "Skills Covered": len(skills_to_learn)
+            })
+            
+            return result
+            
+        except Exception as e:
+            SystemLogger.error("System", f"Roadmap generation failed: {str(e)}")
+            return {"error": str(e)}
+    
+    def generate_roadmap_streaming(self, gap_analysis: dict, learner_profile: dict = None):
+        """
+        Stream roadmap generation week by week for real-time UI updates.
+        Yields progress events as each week is generated.
+        """
+        import time
+        
+        if not self.model:
+            yield {"error": "AI model not initialized", "progress": 0}
+            return
+        
+        # Default learner profile
+        if not learner_profile:
+            learner_profile = {
+                "hoursPerDay": 2,
+                "learningSpeed": "moderate",
+                "targetDays": 30,
+                "preferredStyle": "mixed"
+            }
+        
+        missing_skills = gap_analysis.get("missingSkills", [])
+        weak_skills = gap_analysis.get("weakSkills", [])
+        all_skills = missing_skills + weak_skills
+        
+        if not all_skills:
+            yield {"complete": True, "progress": 100, "message": "No skill gaps found!"}
+            return
+        
+        SystemLogger.crew_banner()
+        SystemLogger.working_agent("RoadmapGenerator", "Streaming roadmap generation")
+        
+        # Generate full roadmap first
+        roadmap = self.generate_roadmap(gap_analysis, learner_profile)
+        
+        if "error" in roadmap:
+            yield {"error": roadmap["error"], "progress": 0}
+            return
+        
+        weeks = roadmap.get("weeks", [])
+        total_weeks = len(weeks)
+        
+        # Stream metadata first
+        yield {
+            "section": "meta",
+            "data": {
+                "totalWeeks": roadmap.get("totalWeeks", total_weeks),
+                "totalHours": roadmap.get("totalHours", 0),
+                "targetJob": roadmap.get("targetJob", "")
+            },
+            "progress": 5,
+            "status": "Initializing roadmap..."
+        }
+        time.sleep(0.3)
+        
+        # Stream each week
+        for i, week in enumerate(weeks):
+            progress = int(10 + (i + 1) / total_weeks * 80)
+            yield {
+                "section": f"week_{week.get('weekNumber', i+1)}",
+                "data": week,
+                "progress": progress,
+                "status": f"Week {week.get('weekNumber', i+1)}: {week.get('focus', 'Skills')}..."
+            }
+            time.sleep(0.4)
+        
+        # Stream bonus projects
+        if roadmap.get("bonusProjects"):
+            yield {
+                "section": "bonus",
+                "data": roadmap.get("bonusProjects"),
+                "progress": 95,
+                "status": "Adding bonus challenges..."
+            }
+            time.sleep(0.2)
+        
+        # Complete
+        yield {
+            "complete": True,
+            "progress": 100,
+            "status": "Roadmap ready! 🚀",
+            "fullRoadmap": roadmap
+        }
+    
+    def modify_roadmap(self, current_roadmap: dict, modification_request: str) -> dict:
+        """
+        Use AI to modify an existing roadmap based on user's natural language request.
+        """
+        if not self.model:
+            raise ValueError("AI model not initialized.")
+        
+        SystemLogger.working_agent("RoadmapModifier", "Processing modification request")
+        
+        prompt = f'''
+You are modifying an existing learning roadmap based on user feedback.
+
+════════════════════════════════════════════════════════════════
+CURRENT ROADMAP
+════════════════════════════════════════════════════════════════
+{json.dumps(current_roadmap, indent=2)}
+
+════════════════════════════════════════════════════════════════
+USER REQUEST
+════════════════════════════════════════════════════════════════
+"{modification_request}"
+
+════════════════════════════════════════════════════════════════
+TASK
+════════════════════════════════════════════════════════════════
+Modify the roadmap according to the user's request. Common modifications:
+- "Push X to week Y" → Move skill to different week
+- "Skip X, I know it" → Remove that content
+- "Make X harder" → Add advanced topics
+- "I have less time" → Compress timeline
+- "Add more practice for X" → Increase practice projects
+
+Return the COMPLETE modified roadmap as valid JSON, with a "modificationSummary" field explaining what changed.
+'''
+        
+        try:
+            response = self.model.generate_content(prompt)
+            
+            if not response.text:
+                return {"error": "Empty response", "modificationSummary": "Failed to modify"}
+            
+            result = self._extract_json(response.text)
+            
+            if not result:
+                return {"error": "Failed to parse", "modificationSummary": "Parsing error"}
+            
+            SystemLogger.agent_complete(f"Roadmap modified: {result.get('modificationSummary', 'Done')}")
+            return result
+            
+        except Exception as e:
+            return {"error": str(e), "modificationSummary": f"Error: {str(e)}"}
 

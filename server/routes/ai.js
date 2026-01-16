@@ -162,5 +162,280 @@ router.post('/analyze-pdf', upload.single('file'), async (req, res) => {
     }
 })
 
+/**
+ * POST /api/ai/portfolio-enhance
+ * Transform resume data into portfolio-ready content
+ */
+router.post('/portfolio-enhance', async (req, res) => {
+    try {
+        const { resume_data } = req.body
+
+        if (!resume_data) {
+            return res.status(400).json({ error: 'No resume data provided' })
+        }
+
+        const response = await axios.post(`${AI_SERVICE_URL}/portfolio-enhance`, {
+            resume_data
+        })
+
+        return res.json(response.data)
+    } catch (error) {
+        console.error('Portfolio Enhance Error:', error.message)
+
+        if (error.code === 'ECONNREFUSED') {
+            return res.status(503).json({
+                error: 'AI service is not running',
+                message: 'Please start the Python AI service'
+            })
+        }
+
+        // Forward error from Python service
+        if (error.response) {
+            return res.status(error.response.status).json(error.response.data)
+        }
+
+        return res.status(500).json({ error: error.message })
+    }
+})
+
+/**
+ * POST /api/ai/portfolio-enhance-stream
+ * Stream portfolio generation with SSE (Server-Sent Events)
+ */
+router.post('/portfolio-enhance-stream', async (req, res) => {
+    try {
+        const { resume_data } = req.body
+
+        if (!resume_data) {
+            return res.status(400).json({ error: 'No resume data provided' })
+        }
+
+        // Set headers for SSE
+        res.setHeader('Content-Type', 'text/event-stream')
+        res.setHeader('Cache-Control', 'no-cache')
+        res.setHeader('Connection', 'keep-alive')
+        res.setHeader('X-Accel-Buffering', 'no')
+        res.flushHeaders()
+
+        // Make streaming request to Python service
+        const response = await axios.post(`${AI_SERVICE_URL}/portfolio-enhance-stream`, {
+            resume_data
+        }, {
+            responseType: 'stream'
+        })
+
+        // Pipe the SSE stream directly to the client
+        response.data.on('data', (chunk) => {
+            res.write(chunk)
+        })
+
+        response.data.on('end', () => {
+            res.end()
+        })
+
+        response.data.on('error', (err) => {
+            console.error('SSE Stream Error:', err)
+            res.write(`data: ${JSON.stringify({ error: err.message, progress: 0 })}\n\n`)
+            res.end()
+        })
+
+    } catch (error) {
+        console.error('Portfolio Stream Error:', error.message)
+
+        // Send error as SSE event
+        res.setHeader('Content-Type', 'text/event-stream')
+        res.flushHeaders()
+
+        if (error.code === 'ECONNREFUSED') {
+            res.write(`data: ${JSON.stringify({
+                error: 'AI service is not running',
+                progress: 0,
+                status: 'Service unavailable'
+            })}\n\n`)
+        } else {
+            res.write(`data: ${JSON.stringify({
+                error: error.message,
+                progress: 0,
+                status: 'Stream failed'
+            })}\n\n`)
+        }
+        res.end()
+    }
+})
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// SKILL GAP ANALYZER ROUTES
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * POST /api/ai/skill-gap/analyze
+ * Analyze skill gap between resume and job description
+ */
+router.post('/skill-gap/analyze', async (req, res) => {
+    try {
+        const { resume_data, job_description } = req.body
+
+        if (!resume_data) {
+            return res.status(400).json({ error: 'No resume data provided' })
+        }
+        if (!job_description) {
+            return res.status(400).json({ error: 'No job description provided' })
+        }
+
+        const response = await axios.post(`${AI_SERVICE_URL}/skill-gap/analyze`, {
+            resume_data,
+            job_description
+        })
+
+        return res.json(response.data)
+    } catch (error) {
+        console.error('Skill Gap Analysis Error:', error.message)
+
+        if (error.code === 'ECONNREFUSED') {
+            return res.status(503).json({
+                error: 'AI service is not running',
+                message: 'Please start the Python AI service'
+            })
+        }
+
+        if (error.response) {
+            return res.status(error.response.status).json(error.response.data)
+        }
+
+        return res.status(500).json({ error: error.message })
+    }
+})
+
+/**
+ * POST /api/ai/skill-gap/roadmap
+ * Generate practice-focused roadmap from gap analysis
+ */
+router.post('/skill-gap/roadmap', async (req, res) => {
+    try {
+        const { gap_analysis, learner_profile } = req.body
+
+        if (!gap_analysis) {
+            return res.status(400).json({ error: 'No gap analysis provided' })
+        }
+
+        const response = await axios.post(`${AI_SERVICE_URL}/skill-gap/roadmap`, {
+            gap_analysis,
+            learner_profile
+        })
+
+        return res.json(response.data)
+    } catch (error) {
+        console.error('Roadmap Generation Error:', error.message)
+
+        if (error.code === 'ECONNREFUSED') {
+            return res.status(503).json({
+                error: 'AI service is not running',
+                message: 'Please start the Python AI service'
+            })
+        }
+
+        if (error.response) {
+            return res.status(error.response.status).json(error.response.data)
+        }
+
+        return res.status(500).json({ error: error.message })
+    }
+})
+
+/**
+ * POST /api/ai/skill-gap/roadmap-stream
+ * Stream roadmap generation with SSE
+ */
+router.post('/skill-gap/roadmap-stream', async (req, res) => {
+    try {
+        const { gap_analysis, learner_profile } = req.body
+
+        if (!gap_analysis) {
+            return res.status(400).json({ error: 'No gap analysis provided' })
+        }
+
+        // Set headers for SSE
+        res.setHeader('Content-Type', 'text/event-stream')
+        res.setHeader('Cache-Control', 'no-cache')
+        res.setHeader('Connection', 'keep-alive')
+        res.setHeader('X-Accel-Buffering', 'no')
+        res.flushHeaders()
+
+        const response = await axios.post(`${AI_SERVICE_URL}/skill-gap/roadmap-stream`, {
+            gap_analysis,
+            learner_profile
+        }, {
+            responseType: 'stream'
+        })
+
+        response.data.on('data', (chunk) => {
+            res.write(chunk)
+        })
+
+        response.data.on('end', () => {
+            res.end()
+        })
+
+        response.data.on('error', (err) => {
+            console.error('Roadmap Stream Error:', err)
+            res.write(`data: ${JSON.stringify({ error: err.message, progress: 0 })}\n\n`)
+            res.end()
+        })
+
+    } catch (error) {
+        console.error('Roadmap Stream Error:', error.message)
+
+        res.setHeader('Content-Type', 'text/event-stream')
+        res.flushHeaders()
+
+        res.write(`data: ${JSON.stringify({
+            error: error.code === 'ECONNREFUSED' ? 'AI service is not running' : error.message,
+            progress: 0,
+            status: 'Stream failed'
+        })}\n\n`)
+        res.end()
+    }
+})
+
+/**
+ * POST /api/ai/skill-gap/roadmap/modify
+ * AI-powered roadmap modification based on natural language
+ */
+router.post('/skill-gap/roadmap/modify', async (req, res) => {
+    try {
+        const { current_roadmap, modification_request } = req.body
+
+        if (!current_roadmap) {
+            return res.status(400).json({ error: 'No roadmap provided' })
+        }
+        if (!modification_request) {
+            return res.status(400).json({ error: 'No modification request provided' })
+        }
+
+        const response = await axios.post(`${AI_SERVICE_URL}/skill-gap/roadmap/modify`, {
+            current_roadmap,
+            modification_request
+        })
+
+        return res.json(response.data)
+    } catch (error) {
+        console.error('Roadmap Modify Error:', error.message)
+
+        if (error.code === 'ECONNREFUSED') {
+            return res.status(503).json({
+                error: 'AI service is not running',
+                message: 'Please start the Python AI service'
+            })
+        }
+
+        if (error.response) {
+            return res.status(error.response.status).json(error.response.data)
+        }
+
+        return res.status(500).json({ error: error.message })
+    }
+})
+
 module.exports = router
+
 
