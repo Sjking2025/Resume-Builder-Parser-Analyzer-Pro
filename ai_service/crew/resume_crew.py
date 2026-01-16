@@ -1348,6 +1348,7 @@ LEARNER PROFILE
 - Speed: {learner_profile.get("learningSpeed", "moderate")}
 - Target: {learner_profile.get("targetDays", 30)} days
 - Style: {learner_profile.get("preferredStyle", "mixed")}
+- Preferred Video Languages: {", ".join(learner_profile.get("preferredLanguages", ["english"]))}
 - Already knows: {learner_profile.get("existingKnowledge", [])}
 
 ════════════════════════════════════════════════════════════════
@@ -1358,7 +1359,22 @@ Create a week-by-week roadmap. For EACH skill include:
 2. Practice section (60% of time) - Real mini-projects
 3. Expected errors/challenges they will face
 4. Validation criteria
-5. CURATED resources (only top-rated, high-view YouTube videos, official docs, free courses)
+5. CURATED resources with MINIMUM 5 YouTube videos per skill
+
+CRITICAL RESOURCE REQUIREMENTS:
+- Include EXACTLY 5 or more YouTube videos per skill week
+- Categorize videos by difficulty: beginner (2), intermediate (2), advanced (1+)
+- LANGUAGE PREFERENCES: User is comfortable with these languages: {", ".join(learner_profile.get("preferredLanguages", ["english"]))}
+  - Mix videos from ALL selected language communities
+  - For "hindi": Add hindi tech channels (CodeWithHarry, Apna College, Thapa Technical)
+  - For "tamil": Add tamil tech channels (Tamil Hacks, Learn Code Tamil)
+  - For "telugu": Add telugu tech channels (Telugu Academy, Coding in Telugu)
+  - For "spanish": Add "español" to searches, Spanish dev channels
+  - For "english": Include Fireship, Traversy Media, freeCodeCamp, Web Dev Simplified
+  - Distribute videos across selected languages for variety
+- For YouTube URLs, use SEARCH URLs like: https://www.youtube.com/results?search_query=kubernetes+tutorial+hindi
+- Include official documentation links (these are always real URLs)
+- Add 1-2 free course platform links (Coursera, Udemy, etc.)
 
 Return ONLY valid JSON:
 {{
@@ -1374,10 +1390,22 @@ Return ONLY valid JSON:
             "learn": {{
                 "hours": 8,
                 "topics": ["Pods", "Deployments", "Services", "ConfigMaps"],
-                "resources": [
-                    {{"type": "video", "title": "Kubernetes Tutorial for Beginners", "url": "youtube.com/...", "duration": "4hrs", "views": "2M+", "rating": "4.9"}},
-                    {{"type": "docs", "title": "Kubernetes Official Docs - Getting Started", "url": "kubernetes.io/docs/..."}}
-                ]
+                "resources": {{
+                    "videos": [
+                        {{"level": "beginner", "title": "Kubernetes Explained - Quick Intro", "searchTerms": "kubernetes explained 100 seconds", "url": "https://www.youtube.com/results?search_query=kubernetes+explained+100+seconds+fireship", "description": "Quick intro to K8s concepts"}},
+                        {{"level": "beginner", "title": "Kubernetes Full Course for Beginners", "searchTerms": "kubernetes tutorial beginners full course", "url": "https://www.youtube.com/results?search_query=kubernetes+tutorial+beginners+full+course+nana", "description": "Complete beginner course"}},
+                        {{"level": "intermediate", "title": "Kubernetes Hands-on Tutorial", "searchTerms": "kubernetes deployments services tutorial", "url": "https://www.youtube.com/results?search_query=kubernetes+deployments+services+practical", "description": "Hands-on deployments and services"}},
+                        {{"level": "intermediate", "title": "K8s Networking Deep Dive", "searchTerms": "kubernetes networking explained", "url": "https://www.youtube.com/results?search_query=kubernetes+networking+services+ingress", "description": "Understanding services and ingress"}},
+                        {{"level": "advanced", "title": "Production Kubernetes Best Practices", "searchTerms": "kubernetes production best practices", "url": "https://www.youtube.com/results?search_query=kubernetes+production+best+practices+enterprise", "description": "Enterprise patterns"}}
+                    ],
+                    "docs": [
+                        {{"title": "Kubernetes Official Docs", "url": "https://kubernetes.io/docs/", "section": "Getting Started"}},
+                        {{"title": "Kubernetes Cheatsheet", "url": "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"}}
+                    ],
+                    "courses": [
+                        {{"title": "Kubernetes for Developers", "platform": "Coursera", "url": "https://www.coursera.org/search?query=kubernetes", "duration": "4 weeks"}}
+                    ]
+                }}
             }},
             "practice": {{
                 "hours": 12,
@@ -1412,7 +1440,12 @@ Return ONLY valid JSON:
     ]
 }}
 
-IMPORTANT: Only include REAL, working resource URLs. For YouTube, include videos with 100K+ views and high ratings. For docs, use official documentation.
+CRITICAL URL RULES:
+- For YouTube: Use SEARCH URLs format: https://www.youtube.com/results?search_query=topic+keywords+here
+- Replace spaces with + in search queries
+- Add channel names to search for specific creators (fireship, traversy, nana, freecodecamp)
+- For documentation: Use REAL, official URLs (kubernetes.io, reactjs.org, docs.docker.com, etc.)
+- For courses: Link to search pages on Coursera/Udemy that show real courses
 '''
         
         try:

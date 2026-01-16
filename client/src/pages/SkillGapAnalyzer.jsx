@@ -1,6 +1,6 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { FaHome, FaBullseye, FaSearch, FaRocket, FaSpinner, FaCheckCircle, FaExclamationTriangle, FaTimesCircle, FaClock, FaEdit, FaPaperPlane } from 'react-icons/fa'
+import { FaHome, FaBullseye, FaSearch, FaRocket, FaSpinner, FaCheckCircle, FaExclamationTriangle, FaTimesCircle, FaClock, FaEdit, FaPaperPlane, FaTimes } from 'react-icons/fa'
 import useResumeStore from '../store/useResumeStore'
 import { API_ENDPOINTS } from '../config/api'
 
@@ -19,12 +19,75 @@ const SkillGapAnalyzer = () => {
   const [error, setError] = useState(null)
   const [isLoading, setIsLoading] = useState(false)
   
+  // Exit confirmation
+  const [showExitConfirm, setShowExitConfirm] = useState(false)
+  const [pendingNavigation, setPendingNavigation] = useState(null)
+  
+  // Check if user has unsaved progress (beyond input step)
+  const hasProgress = step !== 'input' && (jobDescription || gapAnalysis || roadmap)
+  
+  // Handle browser back button and page close
+  useEffect(() => {
+    if (!hasProgress) return
+    
+    // Warn on page close/refresh
+    const handleBeforeUnload = (e) => {
+      e.preventDefault()
+      e.returnValue = 'You have unsaved analysis progress. Are you sure you want to leave?'
+      return e.returnValue
+    }
+    
+    // Intercept back button
+    const handlePopState = (e) => {
+      e.preventDefault()
+      window.history.pushState(null, '', window.location.pathname)
+      setShowExitConfirm(true)
+      setPendingNavigation('back')
+    }
+    
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    window.addEventListener('popstate', handlePopState)
+    window.history.pushState(null, '', window.location.pathname)
+    
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload)
+      window.removeEventListener('popstate', handlePopState)
+    }
+  }, [hasProgress])
+  
+  // Safe navigation with confirmation
+  const handleSafeNavigation = useCallback((path) => {
+    if (hasProgress) {
+      setShowExitConfirm(true)
+      setPendingNavigation(path)
+    } else {
+      navigate(path)
+    }
+  }, [hasProgress, navigate])
+  
+  // Confirm exit
+  const confirmExit = () => {
+    setShowExitConfirm(false)
+    if (pendingNavigation === 'back') {
+      window.history.go(-2) // Go back past our pushed state
+    } else if (pendingNavigation) {
+      navigate(pendingNavigation)
+    }
+  }
+  
+  // Cancel exit
+  const cancelExit = () => {
+    setShowExitConfirm(false)
+    setPendingNavigation(null)
+  }
+  
   // Learner profile
   const [learnerProfile, setLearnerProfile] = useState({
     hoursPerDay: 2,
     learningSpeed: 'moderate',
     targetDays: 30,
-    preferredStyle: 'mixed'
+    preferredStyle: 'mixed',
+    preferredLanguages: ['english']  // Array for multi-select
   })
   
   // Stream progress
@@ -36,12 +99,52 @@ const SkillGapAnalyzer = () => {
   const [modifyRequest, setModifyRequest] = useState('')
   const [isModifying, setIsModifying] = useState(false)
 
+  /**
+   * Normalize JD text to reduce token count
+   * - Removes excessive line breaks (3+ newlines → 2)
+   * - Trims leading/trailing whitespace per line
+   * - Removes multiple consecutive spaces
+   * - Preserves paragraph structure
+   */
+  const normalizeJDText = (text) => {
+    return text
+      // Replace Windows line endings
+      .replace(/\r\n/g, '\n')
+      // Replace multiple spaces with single space
+      .replace(/[^\S\n]+/g, ' ')
+      // Trim each line
+      .split('\n')
+      .map(line => line.trim())
+      .join('\n')
+      // Replace 3+ consecutive newlines with 2
+      .replace(/\n{3,}/g, '\n\n')
+      // Final trim
+      .trim()
+  }
+
+  // Handle paste event to normalize text
+  const handleJDPaste = (e) => {
+    e.preventDefault()
+    const pastedText = e.clipboardData.getData('text')
+    const normalized = normalizeJDText(pastedText)
+    setJobDescription(normalized)
+  }
+
+  // Normalize on blur for manual typing edge cases
+  const handleJDBlur = () => {
+    if (jobDescription) {
+      setJobDescription(normalizeJDText(jobDescription))
+    }
+  }
+
   // Check if resume has content
   const hasResumeContent = resume.personalInfo?.fullName || 
     resume.experience?.length > 0 || 
     resume.skills?.technical?.length > 0
 
   // Analyze skill gap
+  const [analysisProgress, setAnalysisProgress] = useState(0)
+  
   const handleAnalyze = async () => {
     if (!jobDescription.trim()) {
       setError('Please paste a job description')
@@ -51,6 +154,16 @@ const SkillGapAnalyzer = () => {
     setStep('analyzing')
     setError(null)
     setIsLoading(true)
+    setAnalysisProgress(0)
+    
+    // Simulate progress animation
+    const progressInterval = setInterval(() => {
+      setAnalysisProgress(prev => {
+        if (prev >= 90) return prev // Cap at 90% until complete
+        const increment = Math.random() * 15 + 5 // Random 5-20% increments
+        return Math.min(prev + increment, 90)
+      })
+    }, 500)
     
     try {
       const response = await fetch(API_ENDPOINTS.skillGapAnalyze, {
@@ -62,6 +175,9 @@ const SkillGapAnalyzer = () => {
         })
       })
       
+      clearInterval(progressInterval)
+      setAnalysisProgress(100) // Complete!
+      
       if (!response.ok) {
         throw new Error('Failed to analyze skill gap')
       }
@@ -70,11 +186,12 @@ const SkillGapAnalyzer = () => {
       
       if (result.success && result.data) {
         setGapAnalysis(result.data)
-        setStep('report')
+        setTimeout(() => setStep('report'), 500) // Brief pause to show 100%
       } else {
         throw new Error(result.data?.error || 'Analysis failed')
       }
     } catch (err) {
+      clearInterval(progressInterval)
       setError(err.message)
       setStep('input')
     } finally {
@@ -83,9 +200,29 @@ const SkillGapAnalyzer = () => {
   }
 
   // Generate roadmap with SSE streaming
+  const [targetProgress, setTargetProgress] = useState(0) // Target from backend
+  
+  // Smooth progress interpolation
+  useEffect(() => {
+    if (step !== 'generating') return
+    
+    const interval = setInterval(() => {
+      setStreamProgress(prev => {
+        if (prev >= targetProgress) return targetProgress
+        // Smoothly catch up to target
+        const diff = targetProgress - prev
+        const increment = Math.max(0.5, diff * 0.15)
+        return Math.min(prev + increment, targetProgress)
+      })
+    }, 50) // Update every 50ms for smooth animation
+    
+    return () => clearInterval(interval)
+  }, [targetProgress, step])
+  
   const handleGenerateRoadmap = async () => {
     setStep('generating')
     setStreamProgress(0)
+    setTargetProgress(0)
     setStreamStatus('Initializing...')
     setWeeks([])
     
@@ -125,7 +262,7 @@ const SkillGapAnalyzer = () => {
                 return
               }
               
-              setStreamProgress(data.progress || 0)
+              setTargetProgress(data.progress || 0)
               setStreamStatus(data.status || '')
               
               if (data.section?.startsWith('week_')) {
@@ -193,7 +330,7 @@ const SkillGapAnalyzer = () => {
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <button
-              onClick={() => navigate('/')}
+              onClick={() => handleSafeNavigation('/')}
               className="btn-ghost p-2"
             >
               <FaHome className="text-xl" />
@@ -251,9 +388,14 @@ const SkillGapAnalyzer = () => {
               <textarea
                 value={jobDescription}
                 onChange={(e) => setJobDescription(e.target.value)}
-                placeholder="Paste the complete job description here..."
+                onPaste={handleJDPaste}
+                onBlur={handleJDBlur}
+                placeholder="Paste the complete job description here... (Auto-formatted to remove extra spaces)"
                 className="w-full h-64 p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none"
               />
+              <p className="text-xs text-gray-400 mt-1">
+                ✨ Text is auto-cleaned on paste to optimize processing
+              </p>
             </div>
             
             {/* Resume Status */}
@@ -298,7 +440,41 @@ const SkillGapAnalyzer = () => {
         {/* Step: Analyzing */}
         {step === 'analyzing' && (
           <div className="flex flex-col items-center justify-center py-20">
-            <FaSpinner className="text-6xl text-primary-500 animate-spin mb-6" />
+            {/* Circular progress with percentage */}
+            <div className="relative w-32 h-32 mb-6">
+              {/* Background circle */}
+              <svg className="w-full h-full transform -rotate-90">
+                <circle
+                  cx="64" cy="64" r="56"
+                  stroke="#e5e7eb"
+                  strokeWidth="8"
+                  fill="none"
+                />
+                {/* Progress circle */}
+                <circle
+                  cx="64" cy="64" r="56"
+                  stroke="url(#gradient)"
+                  strokeWidth="8"
+                  fill="none"
+                  strokeLinecap="round"
+                  strokeDasharray={`${2 * Math.PI * 56}`}
+                  strokeDashoffset={`${2 * Math.PI * 56 * (1 - analysisProgress / 100)}`}
+                  className="transition-all duration-500 ease-out"
+                />
+                <defs>
+                  <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stopColor="#6366f1" />
+                    <stop offset="100%" stopColor="#a855f7" />
+                  </linearGradient>
+                </defs>
+              </svg>
+              {/* Percentage text */}
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span className="text-3xl font-bold text-gray-800">
+                  {Math.round(analysisProgress)}%
+                </span>
+              </div>
+            </div>
             <h2 className="text-2xl font-bold text-gray-900 mb-2">Analyzing Your Skills...</h2>
             <p className="text-gray-600">Comparing resume with job requirements</p>
           </div>
@@ -413,12 +589,38 @@ const SkillGapAnalyzer = () => {
               </div>
             )}
             
-            {/* Generate Roadmap Button */}
+            {/* Generate Roadmap Button - Smooth satisfying animation */}
             <button
               onClick={() => setStep('profile')}
-              className="w-full btn-primary py-4 text-lg font-bold flex items-center justify-center gap-2"
+              className="w-full py-4 text-lg font-bold flex items-center justify-center gap-2 rounded-xl text-white
+                bg-gradient-to-r from-primary-500 via-indigo-500 to-purple-500
+                relative overflow-hidden group"
+              style={{
+                transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease',
+                boxShadow: '0 4px 20px rgba(99, 102, 241, 0.4)'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.filter = 'brightness(1.1)'
+                e.currentTarget.style.boxShadow = '0 8px 30px rgba(99, 102, 241, 0.6)'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.filter = 'brightness(1)'
+                e.currentTarget.style.boxShadow = '0 4px 20px rgba(99, 102, 241, 0.4)'
+              }}
+              onMouseDown={(e) => {
+                e.currentTarget.style.filter = 'brightness(0.85) saturate(1.2)'
+                e.currentTarget.style.boxShadow = '0 2px 15px rgba(168, 85, 247, 0.7)'
+              }}
+              onMouseUp={(e) => {
+                e.currentTarget.style.filter = 'brightness(1.1)'
+                e.currentTarget.style.boxShadow = '0 8px 30px rgba(99, 102, 241, 0.6)'
+              }}
             >
-              <FaRocket /> Generate Practice Roadmap
+              {/* Shimmer effect */}
+              <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent 
+                -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-out" />
+              <FaRocket className="relative z-10" /> 
+              <span className="relative z-10">Generate Practice Roadmap</span>
             </button>
           </div>
         )}
@@ -528,6 +730,66 @@ const SkillGapAnalyzer = () => {
                   ))}
                 </div>
               </div>
+              
+              {/* Preferred Languages for Videos - Multi-select */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-3">
+                  🌐 Video Language Preferences
+                </label>
+                <p className="text-xs text-gray-500 mb-2">
+                  Select all languages you're comfortable with (multiple allowed)
+                </p>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {[
+                    { value: 'english', label: 'English', flag: '🇺🇸' },
+                    { value: 'hindi', label: 'Hindi', flag: '🇮🇳' },
+                    { value: 'tamil', label: 'Tamil', flag: '🇮🇳' },
+                    { value: 'telugu', label: 'Telugu', flag: '🇮🇳' },
+                    { value: 'spanish', label: 'Spanish', flag: '🇪🇸' },
+                    { value: 'portuguese', label: 'Portuguese', flag: '🇧🇷' },
+                    { value: 'arabic', label: 'Arabic', flag: '🇸🇦' },
+                    { value: 'japanese', label: 'Japanese', flag: '🇯🇵' }
+                  ].map(lang => {
+                    const isSelected = learnerProfile.preferredLanguages?.includes(lang.value)
+                    return (
+                      <label
+                        key={lang.value}
+                        className={`flex items-center gap-2 p-3 rounded-xl cursor-pointer transition-all border-2 ${
+                          isSelected 
+                            ? 'bg-primary-50 border-primary-500 text-primary-700' 
+                            : 'bg-gray-50 border-transparent hover:bg-gray-100 text-gray-700'
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => {
+                            setLearnerProfile(p => {
+                              const current = p.preferredLanguages || ['english']
+                              if (current.includes(lang.value)) {
+                                // Remove (but keep at least one)
+                                const filtered = current.filter(l => l !== lang.value)
+                                return { ...p, preferredLanguages: filtered.length > 0 ? filtered : ['english'] }
+                              } else {
+                                // Add
+                                return { ...p, preferredLanguages: [...current, lang.value] }
+                              }
+                            })
+                          }}
+                          className="w-4 h-4 text-primary-500 rounded focus:ring-primary-500"
+                        />
+                        <span className="text-lg">{lang.flag}</span>
+                        <span className="text-sm font-medium">{lang.label}</span>
+                      </label>
+                    )
+                  })}
+                </div>
+                {learnerProfile.preferredLanguages?.length > 1 && (
+                  <p className="text-xs text-primary-600 mt-2">
+                    ✨ Videos from {learnerProfile.preferredLanguages.length} language communities will be suggested
+                  </p>
+                )}
+              </div>
             </div>
             
             <div className="flex gap-4">
@@ -556,12 +818,26 @@ const SkillGapAnalyzer = () => {
             </h2>
             <p className="text-gray-600 mb-8">{streamStatus}</p>
             
-            {/* Progress Bar */}
-            <div className="w-full bg-gray-200 rounded-full h-4 mb-8 overflow-hidden">
-              <div 
-                className="h-full bg-gradient-to-r from-primary-500 to-indigo-500 rounded-full transition-all duration-500"
-                style={{ width: `${streamProgress}%` }}
-              />
+            {/* Progress Bar with Percentage */}
+            <div className="mb-8">
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-sm font-medium text-gray-600">Progress</span>
+                <span className="text-lg font-bold text-primary-600">{Math.round(streamProgress)}%</span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-4 overflow-hidden relative">
+                <div 
+                  className="h-full bg-gradient-to-r from-primary-500 via-indigo-500 to-purple-500 rounded-full transition-all duration-500 ease-out"
+                  style={{ width: `${streamProgress}%` }}
+                />
+                {/* Shimmer effect on progress bar */}
+                <div 
+                  className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-shimmer"
+                  style={{ 
+                    backgroundSize: '200% 100%',
+                    animation: 'shimmer 2s infinite linear'
+                  }}
+                />
+              </div>
             </div>
             
             {/* Weeks Preview */}
@@ -623,22 +899,118 @@ const SkillGapAnalyzer = () => {
                         ))}
                       </ul>
                       
-                      {/* Resources */}
-                      {week.learn?.resources?.length > 0 && (
-                        <div className="mt-4 space-y-2">
-                          <p className="text-xs font-medium text-gray-500 uppercase">Resources</p>
-                          {week.learn.resources.slice(0, 2).map((res, j) => (
-                            <a 
-                              key={j}
-                              href={res.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="block p-2 bg-gray-50 rounded-lg text-sm hover:bg-gray-100 transition"
-                            >
-                              <span className="font-medium text-primary-600">{res.title}</span>
-                              {res.views && <span className="text-gray-400 ml-2 text-xs">{res.views} views</span>}
-                            </a>
-                          ))}
+                      {/* Resources - Handle both old array format and new object format */}
+                      {week.learn?.resources && (
+                        <div className="mt-4 space-y-3">
+                          {/* NEW FORMAT: Object with videos/docs/courses */}
+                          {week.learn.resources.videos?.length > 0 && (
+                            <div>
+                              <p className="text-xs font-medium text-gray-500 uppercase mb-2">
+                                📺 Videos ({week.learn.resources.videos.length})
+                              </p>
+                              <div className="space-y-2 max-h-48 overflow-y-auto">
+                                {week.learn.resources.videos.map((vid, j) => (
+                                  <a 
+                                    key={j}
+                                    href={vid.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="block p-2 bg-gray-50 rounded-lg text-sm hover:bg-gray-100 transition"
+                                  >
+                                    <div className="flex items-start gap-2">
+                                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                                        vid.level === 'beginner' ? 'bg-green-100 text-green-700' :
+                                        vid.level === 'intermediate' ? 'bg-yellow-100 text-yellow-700' :
+                                        'bg-red-100 text-red-700'
+                                      }`}>
+                                        {vid.level || 'video'}
+                                      </span>
+                                      <div className="flex-1 min-w-0">
+                                        <p className="font-medium text-primary-600 truncate">{vid.title}</p>
+                                        <p className="text-xs text-gray-500">
+                                          {vid.channel && `${vid.channel} • `}{vid.duration}{vid.views && ` • ${vid.views}`}
+                                        </p>
+                                      </div>
+                                    </div>
+                                  </a>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          
+                          {/* Docs & Courses Row (New Format) */}
+                          {(week.learn.resources.docs?.length > 0 || week.learn.resources.courses?.length > 0) && (
+                            <div className="flex gap-4 flex-wrap">
+                              {week.learn.resources.docs?.length > 0 && (
+                                <div className="flex-1 min-w-32">
+                                  <p className="text-xs font-medium text-gray-500 uppercase mb-1">📄 Docs</p>
+                                  {week.learn.resources.docs.slice(0, 2).map((doc, j) => (
+                                    <a 
+                                      key={j}
+                                      href={doc.url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="block text-xs text-primary-600 hover:underline truncate"
+                                    >
+                                      {doc.title}
+                                    </a>
+                                  ))}
+                                </div>
+                              )}
+                              {week.learn.resources.courses?.length > 0 && (
+                                <div className="flex-1 min-w-32">
+                                  <p className="text-xs font-medium text-gray-500 uppercase mb-1">🎓 Courses</p>
+                                  {week.learn.resources.courses.slice(0, 2).map((course, j) => (
+                                    <a 
+                                      key={j}
+                                      href={course.url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="block text-xs text-primary-600 hover:underline truncate"
+                                    >
+                                      {course.title} {course.platform && `(${course.platform})`}
+                                    </a>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          )}
+                          
+                          {/* OLD FORMAT: Array of resources */}
+                          {Array.isArray(week.learn.resources) && week.learn.resources.length > 0 && (
+                            <div>
+                              <p className="text-xs font-medium text-gray-500 uppercase mb-2">📚 Resources</p>
+                              <div className="space-y-2">
+                                {week.learn.resources.map((res, j) => (
+                                  <a 
+                                    key={j}
+                                    href={res.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="block p-2 bg-gray-50 rounded-lg text-sm hover:bg-gray-100 transition"
+                                  >
+                                    <div className="flex items-start gap-2">
+                                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                                        res.type === 'video' ? 'bg-red-100 text-red-700' :
+                                        res.type === 'docs' ? 'bg-blue-100 text-blue-700' :
+                                        'bg-purple-100 text-purple-700'
+                                      }`}>
+                                        {res.type || 'link'}
+                                      </span>
+                                      <div className="flex-1 min-w-0">
+                                        <p className="font-medium text-primary-600 truncate">{res.title}</p>
+                                        {(res.views || res.duration) && (
+                                          <p className="text-xs text-gray-500">
+                                            {res.duration}{res.views && ` • ${res.views}`}
+                                          </p>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </a>
+                                ))}
+                              </div>
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
@@ -727,6 +1099,48 @@ const SkillGapAnalyzer = () => {
           </div>
         )}
       </main>
+      
+      {/* Exit Confirmation Modal */}
+      {showExitConfirm && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 animate-fade-in">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                <FaExclamationTriangle className="text-yellow-500" />
+                Leave Analysis?
+              </h3>
+              <button 
+                onClick={cancelExit}
+                className="p-2 hover:bg-gray-100 rounded-full transition"
+              >
+                <FaTimes className="text-gray-400" />
+              </button>
+            </div>
+            
+            <p className="text-gray-600 mb-6">
+              You have unsaved progress in your skill gap analysis. If you leave now, your 
+              {gapAnalysis && ' analysis results'}
+              {roadmap && ' and generated roadmap'}
+              {' '}will be lost.
+            </p>
+            
+            <div className="flex gap-3">
+              <button
+                onClick={cancelExit}
+                className="flex-1 py-3 px-4 bg-primary-500 text-white font-bold rounded-xl hover:bg-primary-600 transition"
+              >
+                Stay & Continue
+              </button>
+              <button
+                onClick={confirmExit}
+                className="flex-1 py-3 px-4 bg-gray-200 text-gray-700 font-medium rounded-xl hover:bg-gray-300 transition"
+              >
+                Leave Anyway
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
