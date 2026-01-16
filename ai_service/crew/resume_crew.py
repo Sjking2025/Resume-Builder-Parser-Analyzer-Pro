@@ -1182,3 +1182,405 @@ RULES:
                 "colorScheme": "light"
             }
         }
+
+    # ═══════════════════════════════════════════════════════════════════════════════
+    # SKILL GAP ANALYZER & ROADMAP GENERATOR
+    # ═══════════════════════════════════════════════════════════════════════════════
+    
+    def analyze_skill_gap(self, resume_data: dict, job_description: str) -> dict:
+        """
+        Analyze skill gap between resume and job description.
+        Returns matched skills, missing skills, and gap score.
+        """
+        import time
+        start_time = time.time()
+        
+        if not self.model:
+            SystemLogger.error("System", "AI model not initialized")
+            raise ValueError("AI model not initialized.")
+        
+        SystemLogger.crew_banner()
+        SystemLogger.working_agent("SkillGapAnalyzer", "Analyzing resume vs job description")
+        
+        # Extract resume text
+        from utils.text_extraction import resume_data_to_text
+        resume_text = resume_data_to_text(resume_data)
+        
+        SystemLogger.using_tool("SkillExtractor", f"Processing JD ({len(job_description)} chars)")
+        
+        prompt = f'''
+You are an expert Career Analyst. Analyze the gap between this resume and job description.
+
+════════════════════════════════════════════════════════════════
+RESUME
+════════════════════════════════════════════════════════════════
+{resume_text}
+
+════════════════════════════════════════════════════════════════
+JOB DESCRIPTION
+════════════════════════════════════════════════════════════════
+{job_description}
+
+════════════════════════════════════════════════════════════════
+TASK
+════════════════════════════════════════════════════════════════
+1. Extract all skills required in the JD (technical, tools, frameworks, soft skills)
+2. Identify which skills the candidate has (matched)
+3. Identify which skills are missing or weak
+4. Calculate a match percentage
+5. Prioritize missing skills by importance (how often mentioned, required vs preferred)
+
+Return ONLY valid JSON:
+{{
+    "jobTitle": "extracted job title",
+    "company": "company name if mentioned",
+    "matchScore": 75,
+    "matchedSkills": [
+        {{"name": "Python", "confidence": "strong", "evidence": "3 years mentioned"}},
+        {{"name": "SQL", "confidence": "moderate", "evidence": "used in projects"}}
+    ],
+    "missingSkills": [
+        {{"name": "Kubernetes", "priority": "high", "reason": "mentioned 3 times, required", "difficulty": "medium"}},
+        {{"name": "GraphQL", "priority": "medium", "reason": "preferred skill", "difficulty": "easy"}}
+    ],
+    "weakSkills": [
+        {{"name": "React", "currentLevel": "beginner", "requiredLevel": "advanced", "gap": "significant"}}
+    ],
+    "recommendations": [
+        "Focus on Kubernetes first - most critical gap",
+        "Upgrade React skills from beginner to advanced"
+    ],
+    "estimatedPrepTime": "4-6 weeks"
+}}
+'''
+        
+        try:
+            safety_settings = [
+                {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
+                {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
+                {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"},
+                {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"},
+            ]
+            
+            response = self.model.generate_content(prompt, safety_settings=safety_settings)
+            
+            if not response.text:
+                SystemLogger.error("API", "Empty response from AI")
+                return {"error": "Empty response from AI", "matchScore": 0}
+            
+            result = self._extract_json(response.text)
+            
+            if not result:
+                SystemLogger.warn("System", "JSON extraction failed")
+                return {"error": "Failed to parse analysis", "matchScore": 0}
+            
+            total_time = time.time() - start_time
+            SystemLogger.agent_complete(f"Gap analysis complete")
+            SystemLogger.crew_finished(total_time, {
+                "Match Score": f"{result.get('matchScore', 0)}%",
+                "Matched Skills": len(result.get('matchedSkills', [])),
+                "Missing Skills": len(result.get('missingSkills', [])),
+                "Weak Skills": len(result.get('weakSkills', []))
+            })
+            
+            return result
+            
+        except Exception as e:
+            SystemLogger.error("System", f"Gap analysis failed: {str(e)}")
+            return {"error": str(e), "matchScore": 0}
+    
+    def generate_roadmap(self, gap_analysis: dict, learner_profile: dict = None) -> dict:
+        """
+        Generate a practice-focused roadmap based on skill gaps.
+        40% learning, 60% practice with curated resources.
+        """
+        import time
+        start_time = time.time()
+        
+        if not self.model:
+            SystemLogger.error("System", "AI model not initialized")
+            raise ValueError("AI model not initialized.")
+        
+        # Default learner profile
+        if not learner_profile:
+            learner_profile = {
+                "hoursPerDay": 2,
+                "learningSpeed": "moderate",
+                "targetDays": 30,
+                "preferredStyle": "mixed",
+                "existingKnowledge": []
+            }
+        
+        SystemLogger.crew_banner()
+        SystemLogger.working_agent("RoadmapGenerator", "Creating practice-focused learning path")
+        
+        missing_skills = gap_analysis.get("missingSkills", [])
+        weak_skills = gap_analysis.get("weakSkills", [])
+        
+        if not missing_skills and not weak_skills:
+            return {"message": "No skill gaps found!", "roadmap": []}
+        
+        skills_to_learn = [s["name"] for s in missing_skills] + [s["name"] for s in weak_skills]
+        
+        SystemLogger.agent_thinking(f"Planning roadmap for {len(skills_to_learn)} skills")
+        
+        prompt = f'''
+You are an expert Career Coach creating a PRACTICE-FOCUSED roadmap.
+
+════════════════════════════════════════════════════════════════
+PHILOSOPHY
+════════════════════════════════════════════════════════════════
+- 40% Learning, 60% Hands-on Practice
+- Real skills develop through trial and error
+- Build from day 1, avoid tutorial hell
+- Include EXPECTED ERRORS the learner will face
+- Industry-focused, not academic
+
+════════════════════════════════════════════════════════════════
+SKILLS TO LEARN (Priority Order)
+════════════════════════════════════════════════════════════════
+{json.dumps(missing_skills + weak_skills, indent=2)}
+
+════════════════════════════════════════════════════════════════
+LEARNER PROFILE
+════════════════════════════════════════════════════════════════
+- Available: {learner_profile.get("hoursPerDay", 2)} hours/day
+- Speed: {learner_profile.get("learningSpeed", "moderate")}
+- Target: {learner_profile.get("targetDays", 30)} days
+- Style: {learner_profile.get("preferredStyle", "mixed")}
+- Already knows: {learner_profile.get("existingKnowledge", [])}
+
+════════════════════════════════════════════════════════════════
+TASK
+════════════════════════════════════════════════════════════════
+Create a week-by-week roadmap. For EACH skill include:
+1. Learn section (40% of time) - Core concepts only
+2. Practice section (60% of time) - Real mini-projects
+3. Expected errors/challenges they will face
+4. Validation criteria
+5. CURATED resources (only top-rated, high-view YouTube videos, official docs, free courses)
+
+Return ONLY valid JSON:
+{{
+    "totalWeeks": 4,
+    "totalHours": 80,
+    "targetJob": "{gap_analysis.get('jobTitle', 'Target Role')}",
+    "weeks": [
+        {{
+            "weekNumber": 1,
+            "focus": "Kubernetes Fundamentals",
+            "skills": ["Kubernetes"],
+            "totalHours": 20,
+            "learn": {{
+                "hours": 8,
+                "topics": ["Pods", "Deployments", "Services", "ConfigMaps"],
+                "resources": [
+                    {{"type": "video", "title": "Kubernetes Tutorial for Beginners", "url": "youtube.com/...", "duration": "4hrs", "views": "2M+", "rating": "4.9"}},
+                    {{"type": "docs", "title": "Kubernetes Official Docs - Getting Started", "url": "kubernetes.io/docs/..."}}
+                ]
+            }},
+            "practice": {{
+                "hours": 12,
+                "projects": [
+                    {{
+                        "name": "Deploy Todo App to Minikube",
+                        "description": "Containerize and deploy a simple app",
+                        "estimatedHours": 3,
+                        "requirements": ["Create Dockerfile", "Write deployment.yaml", "Expose via Service"],
+                        "expectedErrors": ["ImagePullBackOff", "CrashLoopBackOff", "Service not accessible"],
+                        "successCriteria": "App accessible on localhost"
+                    }},
+                    {{
+                        "name": "Multi-container Pod",
+                        "description": "Deploy app with sidecar container",
+                        "estimatedHours": 4,
+                        "requirements": ["Multi-container pod spec", "Shared volume", "Init container"],
+                        "expectedErrors": ["Container ordering issues", "Volume mount permissions"],
+                        "successCriteria": "Both containers running and communicating"
+                    }}
+                ]
+            }},
+            "validation": [
+                "Can you deploy an app without looking at docs?",
+                "Can you debug a CrashLoopBackOff?",
+                "Can you explain pod lifecycle?"
+            ]
+        }}
+    ],
+    "bonusProjects": [
+        {{"name": "Deploy to real cloud (GKE/EKS)", "skill": "Kubernetes", "hours": 6}}
+    ]
+}}
+
+IMPORTANT: Only include REAL, working resource URLs. For YouTube, include videos with 100K+ views and high ratings. For docs, use official documentation.
+'''
+        
+        try:
+            safety_settings = [
+                {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
+                {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
+                {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"},
+                {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"},
+            ]
+            
+            response = self.model.generate_content(prompt, safety_settings=safety_settings)
+            
+            if not response.text:
+                SystemLogger.error("API", "Empty response from AI")
+                return {"error": "Empty response from AI"}
+            
+            result = self._extract_json(response.text)
+            
+            if not result:
+                SystemLogger.warn("System", "JSON extraction failed")
+                return {"error": "Failed to parse roadmap"}
+            
+            total_time = time.time() - start_time
+            SystemLogger.agent_complete("Roadmap generated!")
+            SystemLogger.crew_finished(total_time, {
+                "Total Weeks": result.get("totalWeeks", 0),
+                "Total Hours": result.get("totalHours", 0),
+                "Skills Covered": len(skills_to_learn)
+            })
+            
+            return result
+            
+        except Exception as e:
+            SystemLogger.error("System", f"Roadmap generation failed: {str(e)}")
+            return {"error": str(e)}
+    
+    def generate_roadmap_streaming(self, gap_analysis: dict, learner_profile: dict = None):
+        """
+        Stream roadmap generation week by week for real-time UI updates.
+        Yields progress events as each week is generated.
+        """
+        import time
+        
+        if not self.model:
+            yield {"error": "AI model not initialized", "progress": 0}
+            return
+        
+        # Default learner profile
+        if not learner_profile:
+            learner_profile = {
+                "hoursPerDay": 2,
+                "learningSpeed": "moderate",
+                "targetDays": 30,
+                "preferredStyle": "mixed"
+            }
+        
+        missing_skills = gap_analysis.get("missingSkills", [])
+        weak_skills = gap_analysis.get("weakSkills", [])
+        all_skills = missing_skills + weak_skills
+        
+        if not all_skills:
+            yield {"complete": True, "progress": 100, "message": "No skill gaps found!"}
+            return
+        
+        SystemLogger.crew_banner()
+        SystemLogger.working_agent("RoadmapGenerator", "Streaming roadmap generation")
+        
+        # Generate full roadmap first
+        roadmap = self.generate_roadmap(gap_analysis, learner_profile)
+        
+        if "error" in roadmap:
+            yield {"error": roadmap["error"], "progress": 0}
+            return
+        
+        weeks = roadmap.get("weeks", [])
+        total_weeks = len(weeks)
+        
+        # Stream metadata first
+        yield {
+            "section": "meta",
+            "data": {
+                "totalWeeks": roadmap.get("totalWeeks", total_weeks),
+                "totalHours": roadmap.get("totalHours", 0),
+                "targetJob": roadmap.get("targetJob", "")
+            },
+            "progress": 5,
+            "status": "Initializing roadmap..."
+        }
+        time.sleep(0.3)
+        
+        # Stream each week
+        for i, week in enumerate(weeks):
+            progress = int(10 + (i + 1) / total_weeks * 80)
+            yield {
+                "section": f"week_{week.get('weekNumber', i+1)}",
+                "data": week,
+                "progress": progress,
+                "status": f"Week {week.get('weekNumber', i+1)}: {week.get('focus', 'Skills')}..."
+            }
+            time.sleep(0.4)
+        
+        # Stream bonus projects
+        if roadmap.get("bonusProjects"):
+            yield {
+                "section": "bonus",
+                "data": roadmap.get("bonusProjects"),
+                "progress": 95,
+                "status": "Adding bonus challenges..."
+            }
+            time.sleep(0.2)
+        
+        # Complete
+        yield {
+            "complete": True,
+            "progress": 100,
+            "status": "Roadmap ready! 🚀",
+            "fullRoadmap": roadmap
+        }
+    
+    def modify_roadmap(self, current_roadmap: dict, modification_request: str) -> dict:
+        """
+        Use AI to modify an existing roadmap based on user's natural language request.
+        """
+        if not self.model:
+            raise ValueError("AI model not initialized.")
+        
+        SystemLogger.working_agent("RoadmapModifier", "Processing modification request")
+        
+        prompt = f'''
+You are modifying an existing learning roadmap based on user feedback.
+
+════════════════════════════════════════════════════════════════
+CURRENT ROADMAP
+════════════════════════════════════════════════════════════════
+{json.dumps(current_roadmap, indent=2)}
+
+════════════════════════════════════════════════════════════════
+USER REQUEST
+════════════════════════════════════════════════════════════════
+"{modification_request}"
+
+════════════════════════════════════════════════════════════════
+TASK
+════════════════════════════════════════════════════════════════
+Modify the roadmap according to the user's request. Common modifications:
+- "Push X to week Y" → Move skill to different week
+- "Skip X, I know it" → Remove that content
+- "Make X harder" → Add advanced topics
+- "I have less time" → Compress timeline
+- "Add more practice for X" → Increase practice projects
+
+Return the COMPLETE modified roadmap as valid JSON, with a "modificationSummary" field explaining what changed.
+'''
+        
+        try:
+            response = self.model.generate_content(prompt)
+            
+            if not response.text:
+                return {"error": "Empty response", "modificationSummary": "Failed to modify"}
+            
+            result = self._extract_json(response.text)
+            
+            if not result:
+                return {"error": "Failed to parse", "modificationSummary": "Parsing error"}
+            
+            SystemLogger.agent_complete(f"Roadmap modified: {result.get('modificationSummary', 'Done')}")
+            return result
+            
+        except Exception as e:
+            return {"error": str(e), "modificationSummary": f"Error: {str(e)}"}
+

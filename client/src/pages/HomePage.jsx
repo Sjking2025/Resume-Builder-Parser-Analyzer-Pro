@@ -1,6 +1,6 @@
 import React from 'react'
 import { useNavigate } from 'react-router-dom'
-import { FaFileAlt, FaRocket, FaShieldAlt, FaStar, FaArrowRight, FaGlobe } from 'react-icons/fa'
+import { FaFileAlt, FaRocket, FaShieldAlt, FaStar, FaArrowRight, FaGlobe, FaBullseye } from 'react-icons/fa'
 
 const HomePage = () => {
   const navigate = useNavigate()
@@ -62,6 +62,13 @@ const HomePage = () => {
               style={{ animationDelay: '200ms' }}
             >
               <FaGlobe /> Generate Portfolio
+            </button>
+            <button
+              onClick={() => navigate('/skill-gap')}
+              className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white text-lg px-10 py-4 rounded-xl font-semibold transition-all shadow-lg hover:shadow-xl inline-flex items-center gap-3 animate-slide-up"
+              style={{ animationDelay: '300ms' }}
+            >
+              <FaBullseye /> Skill Gap Analyzer
             </button>
           </div>
 

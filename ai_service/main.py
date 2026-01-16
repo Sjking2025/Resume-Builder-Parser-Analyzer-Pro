@@ -326,6 +326,171 @@ async def enhance_portfolio_stream(request: AnalyzeRequest):
     )
 
 
+# ═══════════════════════════════════════════════════════════════════════════════
+# SKILL GAP ANALYZER ENDPOINTS
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class SkillGapRequest(BaseModel):
+    resume_data: dict
+    job_description: str
+
+class RoadmapRequest(BaseModel):
+    gap_analysis: dict
+    learner_profile: Optional[dict] = None
+
+class ModifyRoadmapRequest(BaseModel):
+    current_roadmap: dict
+    modification_request: str
+
+
+@app.post("/skill-gap/analyze")
+async def analyze_skill_gap(request: SkillGapRequest):
+    """
+    Analyze the skill gap between a resume and job description.
+    Returns matched skills, missing skills, weak skills, and recommendations.
+    """
+    if not GOOGLE_API_KEY:
+        raise HTTPException(
+            status_code=503,
+            detail="AI service unavailable. Please set GOOGLE_API_KEY."
+        )
+    
+    if not request.resume_data:
+        raise HTTPException(status_code=400, detail="No resume data provided")
+    if not request.job_description:
+        raise HTTPException(status_code=400, detail="No job description provided")
+    
+    try:
+        from crew.resume_crew import ResumeCrew
+        crew = ResumeCrew()
+        
+        result = crew.analyze_skill_gap(request.resume_data, request.job_description)
+        
+        return {
+            "success": True,
+            "data": result
+        }
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error analyzing skill gap: {str(e)}"
+        )
+
+
+@app.post("/skill-gap/roadmap")
+async def generate_roadmap(request: RoadmapRequest):
+    """
+    Generate a practice-focused learning roadmap based on skill gap analysis.
+    40% learning, 60% practice with curated resources.
+    """
+    if not GOOGLE_API_KEY:
+        raise HTTPException(
+            status_code=503,
+            detail="AI service unavailable. Please set GOOGLE_API_KEY."
+        )
+    
+    if not request.gap_analysis:
+        raise HTTPException(status_code=400, detail="No gap analysis provided")
+    
+    try:
+        from crew.resume_crew import ResumeCrew
+        crew = ResumeCrew()
+        
+        result = crew.generate_roadmap(request.gap_analysis, request.learner_profile)
+        
+        return {
+            "success": True,
+            "data": result
+        }
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error generating roadmap: {str(e)}"
+        )
+
+
+@app.post("/skill-gap/roadmap-stream")
+async def generate_roadmap_stream(request: RoadmapRequest):
+    """
+    Stream roadmap generation using Server-Sent Events.
+    Returns real-time progress as each week is generated.
+    """
+    if not GOOGLE_API_KEY:
+        raise HTTPException(
+            status_code=503,
+            detail="AI service unavailable. Please set GOOGLE_API_KEY."
+        )
+    
+    if not request.gap_analysis:
+        raise HTTPException(status_code=400, detail="No gap analysis provided")
+    
+    async def generate():
+        from crew.resume_crew import ResumeCrew
+        import json
+        
+        try:
+            crew = ResumeCrew()
+            
+            for event in crew.generate_roadmap_streaming(request.gap_analysis, request.learner_profile):
+                yield f"data: {json.dumps(event)}\n\n"
+                
+        except Exception as e:
+            error_event = {
+                "error": str(e),
+                "progress": 0,
+                "status": "Generation failed"
+            }
+            yield f"data: {json.dumps(error_event)}\n\n"
+    
+    return StreamingResponse(
+        generate(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no"
+        }
+    )
+
+
+@app.post("/skill-gap/roadmap/modify")
+async def modify_roadmap(request: ModifyRoadmapRequest):
+    """
+    Use AI to modify an existing roadmap based on natural language request.
+    Examples: "Push Kubernetes to week 3", "Make React harder", "I have less time"
+    """
+    if not GOOGLE_API_KEY:
+        raise HTTPException(
+            status_code=503,
+            detail="AI service unavailable. Please set GOOGLE_API_KEY."
+        )
+    
+    if not request.current_roadmap:
+        raise HTTPException(status_code=400, detail="No roadmap provided")
+    if not request.modification_request:
+        raise HTTPException(status_code=400, detail="No modification request provided")
+    
+    try:
+        from crew.resume_crew import ResumeCrew
+        crew = ResumeCrew()
+        
+        result = crew.modify_roadmap(request.current_roadmap, request.modification_request)
+        
+        return {
+            "success": True,
+            "data": result
+        }
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error modifying roadmap: {str(e)}"
+        )
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
+

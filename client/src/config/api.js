@@ -14,6 +14,13 @@ export const API_ENDPOINTS = {
     importResume: `${API_BASE_URL}/api/ai/import-resume`,
     portfolioEnhance: `${API_BASE_URL}/api/ai/portfolio-enhance`,
     portfolioEnhanceStream: `${API_BASE_URL}/api/ai/portfolio-enhance-stream`,
+
+    // Skill Gap Analyzer
+    skillGapAnalyze: `${API_BASE_URL}/api/ai/skill-gap/analyze`,
+    skillGapRoadmap: `${API_BASE_URL}/api/ai/skill-gap/roadmap`,
+    skillGapRoadmapStream: `${API_BASE_URL}/api/ai/skill-gap/roadmap-stream`,
+    skillGapRoadmapModify: `${API_BASE_URL}/api/ai/skill-gap/roadmap/modify`,
+
     health: `${API_BASE_URL}/api/ai/health`,
 
     // PDF export
