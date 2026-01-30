@@ -3,6 +3,9 @@ import { useNavigate } from 'react-router-dom'
 import { FaHome, FaBullseye, FaSearch, FaRocket, FaSpinner, FaCheckCircle, FaExclamationTriangle, FaTimesCircle, FaClock, FaEdit, FaPaperPlane, FaTimes } from 'react-icons/fa'
 import useResumeStore from '../store/useResumeStore'
 import { API_ENDPOINTS } from '../config/api'
+import SquareLoader from '../components/common/SquareLoader'
+import BanterLoader from '../components/common/BanterLoader'
+import PencilLoader from '../components/common/PencilLoader'
 
 /**
  * SkillGapAnalyzer - Main page for analyzing resume vs JD and generating roadmaps
@@ -440,40 +443,13 @@ const SkillGapAnalyzer = () => {
         {/* Step: Analyzing */}
         {step === 'analyzing' && (
           <div className="flex flex-col items-center justify-center py-20">
-            {/* Circular progress with percentage */}
-            <div className="relative w-32 h-32 mb-6">
-              {/* Background circle */}
-              <svg className="w-full h-full transform -rotate-90">
-                <circle
-                  cx="64" cy="64" r="56"
-                  stroke="#e5e7eb"
-                  strokeWidth="8"
-                  fill="none"
-                />
-                {/* Progress circle */}
-                <circle
-                  cx="64" cy="64" r="56"
-                  stroke="url(#gradient)"
-                  strokeWidth="8"
-                  fill="none"
-                  strokeLinecap="round"
-                  strokeDasharray={`${2 * Math.PI * 56}`}
-                  strokeDashoffset={`${2 * Math.PI * 56 * (1 - analysisProgress / 100)}`}
-                  className="transition-all duration-500 ease-out"
-                />
-                <defs>
-                  <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                    <stop offset="0%" stopColor="#6366f1" />
-                    <stop offset="100%" stopColor="#a855f7" />
-                  </linearGradient>
-                </defs>
-              </svg>
-              {/* Percentage text */}
-              <div className="absolute inset-0 flex items-center justify-center">
-                <span className="text-3xl font-bold text-gray-800">
-                  {Math.round(analysisProgress)}%
-                </span>
-              </div>
+            {/* Pencil Loader */}
+            <div className="mb-4">
+              <PencilLoader />
+            </div>
+            {/* Percentage below loader */}
+            <div className="text-4xl font-bold text-primary-600 mb-4">
+              {Math.round(analysisProgress)}%
             </div>
             <h2 className="text-2xl font-bold text-gray-900 mb-2">Analyzing Your Skills...</h2>
             <p className="text-gray-600">Comparing resume with job requirements</p>
@@ -812,7 +788,9 @@ const SkillGapAnalyzer = () => {
         {/* Step: Generating */}
         {step === 'generating' && (
           <div className="max-w-xl mx-auto text-center py-12">
-            <div className="text-6xl mb-6 animate-bounce">🚀</div>
+            <div className="flex justify-center mb-8">
+              <BanterLoader />
+            </div>
             <h2 className="text-2xl font-bold text-gray-900 mb-2">
               Generating Your Roadmap
             </h2>
