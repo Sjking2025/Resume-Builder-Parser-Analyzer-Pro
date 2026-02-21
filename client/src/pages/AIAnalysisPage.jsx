@@ -198,22 +198,20 @@ ${analysisResult.jd_match_details || ''}
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+    <div className="relative z-10 min-h-screen">
       {/* Analysis Progress Overlay */}
       <AnalysisProgress isAnalyzing={isAnalyzing} />
       
       {/* Header */}
-      <header className="bg-white shadow-md sticky top-0 z-40">
+      <header className="sticky top-0 z-40 no-print" style={{
+        background: 'rgba(9, 9, 11, 0.9)',
+        backdropFilter: 'blur(16px)',
+        borderBottom: '1px solid rgba(255,255,255,0.04)',
+      }}>
         <div className="max-w-screen-xl mx-auto px-6 py-4">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-4">
-              <button
-                onClick={() => navigate('/')}
-                className="text-gray-600 hover:text-primary-600 transition-colors flex items-center gap-2"
-              >
-                <FaHome /> Home
-              </button>
-              <h1 className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-primary-500 bg-clip-text text-transparent flex items-center gap-2">
+              <h1 className="text-xl font-bold text-gradient-forge flex items-center gap-2" style={{ fontFamily: 'var(--font-family-display)', letterSpacing: '-0.02em' }}>
                 <FaRobot /> AI Resume Analysis
               </h1>
             </div>
@@ -230,45 +228,49 @@ ${analysisResult.jd_match_details || ''}
       {/* Main Content */}
       <main className="max-w-screen-xl mx-auto px-6 py-8">
         {/* Input Section */}
-        <div className="bg-white rounded-2xl shadow-lg p-6 mb-8">
-          <h2 className="text-xl font-bold text-gray-800 mb-4">Resume Source</h2>
+        <div className="section-card rounded-2xl p-6 mb-8">
+          <h2 className="text-xl font-bold mb-4" style={{ color: '#fafafa', fontFamily: 'var(--font-family-display)' }}>Resume Source</h2>
           
           {/* Mode Toggle */}
           <div className="flex gap-4 mb-6">
             <button
               onClick={() => setInputMode('editor')}
-              className={`flex-1 p-4 rounded-lg border-2 transition-all ${
-                inputMode === 'editor'
-                  ? 'border-primary-500 bg-primary-50'
-                  : 'border-gray-200 hover:border-gray-300'
-              }`}
+              className="flex-1 p-4 rounded-lg transition-all"
+              style={{
+                border: inputMode === 'editor' ? '2px solid rgba(249,115,22,0.4)' : '2px solid rgba(255,255,255,0.06)',
+                background: inputMode === 'editor' ? 'rgba(249,115,22,0.06)' : 'transparent',
+                cursor: 'pointer',
+              }}
             >
-              <FaFileAlt className={`text-2xl mx-auto mb-2 ${
-                inputMode === 'editor' ? 'text-primary-500' : 'text-gray-400'
-              }`} />
-              <p className={`font-medium ${
-                inputMode === 'editor' ? 'text-primary-700' : 'text-gray-600'
-              }`}>Use Current Resume</p>
-              <p className="text-sm text-gray-500 mt-1">
+              <FaFileAlt className="text-2xl mx-auto mb-2" style={{
+                color: inputMode === 'editor' ? '#f97316' : '#52525b',
+              }} />
+              <p className="font-medium" style={{
+                color: inputMode === 'editor' ? '#f97316' : '#71717a',
+                fontFamily: 'var(--font-family-display)',
+              }}>Use Current Resume</p>
+              <p className="text-sm mt-1" style={{ color: '#52525b' }}>
                 Analyze the resume from the editor
               </p>
             </button>
             
             <button
               onClick={() => setInputMode('upload')}
-              className={`flex-1 p-4 rounded-lg border-2 transition-all ${
-                inputMode === 'upload'
-                  ? 'border-primary-500 bg-primary-50'
-                  : 'border-gray-200 hover:border-gray-300'
-              }`}
+              className="flex-1 p-4 rounded-lg transition-all"
+              style={{
+                border: inputMode === 'upload' ? '2px solid rgba(249,115,22,0.4)' : '2px solid rgba(255,255,255,0.06)',
+                background: inputMode === 'upload' ? 'rgba(249,115,22,0.06)' : 'transparent',
+                cursor: 'pointer',
+              }}
             >
-              <FaUpload className={`text-2xl mx-auto mb-2 ${
-                inputMode === 'upload' ? 'text-primary-500' : 'text-gray-400'
-              }`} />
-              <p className={`font-medium ${
-                inputMode === 'upload' ? 'text-primary-700' : 'text-gray-600'
-              }`}>Upload PDF</p>
-              <p className="text-sm text-gray-500 mt-1">
+              <FaUpload className="text-2xl mx-auto mb-2" style={{
+                color: inputMode === 'upload' ? '#f97316' : '#52525b',
+              }} />
+              <p className="font-medium" style={{
+                color: inputMode === 'upload' ? '#f97316' : '#71717a',
+                fontFamily: 'var(--font-family-display)',
+              }}>Upload PDF</p>
+              <p className="text-sm mt-1" style={{ color: '#52525b' }}>
                 Analyze an external resume file
               </p>
             </button>
@@ -277,7 +279,10 @@ ${analysisResult.jd_match_details || ''}
           {/* File Upload (if upload mode) */}
           {inputMode === 'upload' && (
             <div className="mb-6">
-              <label className="block w-full p-6 border-2 border-dashed border-gray-300 rounded-lg hover:border-primary-400 transition-colors cursor-pointer text-center">
+              <label className="block w-full p-6 rounded-lg cursor-pointer text-center" style={{
+                border: '2px dashed rgba(255,255,255,0.08)',
+                transition: 'border-color 0.2s',
+              }}>
                 <input
                   type="file"
                   accept=".pdf"
@@ -286,15 +291,15 @@ ${analysisResult.jd_match_details || ''}
                 />
                 {uploadedFile ? (
                   <div>
-                    <FaFileAlt className="text-4xl mx-auto mb-2 text-green-500" />
-                    <p className="font-medium text-green-600">{uploadedFile.name}</p>
-                    <p className="text-sm text-gray-500">Click to change file</p>
+                    <FaFileAlt className="text-4xl mx-auto mb-2" style={{ color: '#22c55e' }} />
+                    <p className="font-medium" style={{ color: '#22c55e' }}>{uploadedFile.name}</p>
+                    <p className="text-sm" style={{ color: '#52525b' }}>Click to change file</p>
                   </div>
                 ) : (
                   <div>
-                    <FaUpload className="text-4xl mx-auto mb-2 text-gray-400" />
-                    <p className="text-gray-600">Click to upload PDF resume</p>
-                    <p className="text-sm text-gray-400">Maximum file size: 10MB</p>
+                    <FaUpload className="text-4xl mx-auto mb-2" style={{ color: '#52525b' }} />
+                    <p style={{ color: '#a1a1aa' }}>Click to upload PDF resume</p>
+                    <p className="text-sm" style={{ color: '#52525b' }}>Maximum file size: 10MB</p>
                   </div>
                 )}
               </label>
@@ -303,16 +308,17 @@ ${analysisResult.jd_match_details || ''}
 
           {/* Editor Resume Status (if editor mode) */}
           {inputMode === 'editor' && (
-            <div className={`mb-6 p-4 rounded-lg ${
-              hasResumeContent ? 'bg-green-50 border border-green-200' : 'bg-yellow-50 border border-yellow-200'
-            }`}>
+            <div className="mb-6 p-4 rounded-lg" style={{
+              background: hasResumeContent ? 'rgba(34,197,94,0.06)' : 'rgba(234,179,8,0.06)',
+              border: `1px solid ${hasResumeContent ? 'rgba(34,197,94,0.15)' : 'rgba(234,179,8,0.15)'}`,
+            }}>
               {hasResumeContent ? (
-                <p className="text-green-700">
+                <p style={{ color: '#22c55e' }}>
                   ✓ Resume data found: <span className="font-medium">{resume.personalInfo?.fullName || 'Unnamed'}</span>
                 </p>
               ) : (
-                <p className="text-yellow-700">
-                  ⚠ No resume data found. <a href="/editor" className="underline">Go to editor</a> to create your resume first.
+                <p style={{ color: '#eab308' }}>
+                  ⚠ No resume data found. <a href="/editor" className="underline" style={{ color: '#06b6d4' }}>Go to editor</a> to create your resume first.
                 </p>
               )}
             </div>
@@ -349,7 +355,11 @@ ${analysisResult.jd_match_details || ''}
 
           {/* Error Message */}
           {error && (
-            <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
+            <div className="mt-4 p-4 rounded-lg" style={{
+              background: 'rgba(239,68,68,0.06)',
+              border: '1px solid rgba(239,68,68,0.15)',
+              color: '#ef4444',
+            }}>
               {error}
             </div>
           )}
@@ -360,7 +370,7 @@ ${analysisResult.jd_match_details || ''}
           <div className="space-y-8">
             {/* Results Header with Export Button */}
             <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-bold text-gray-800">Analysis Results</h2>
+              <h2 className="text-2xl font-bold" style={{ color: '#fafafa', fontFamily: 'var(--font-family-display)' }}>Analysis Results</h2>
               <button
                 onClick={handleExportAnalysis}
                 className="btn-secondary flex items-center gap-2"
@@ -377,34 +387,40 @@ ${analysisResult.jd_match_details || ''}
             />
 
             {/* Skill Gap Analysis */}
-            <SkillGapAnalysis
-              matchedSkills={analysisResult.matched_keywords}
-              missingSkills={analysisResult.missing_keywords}
-              skillGaps={analysisResult.skill_gaps}
-              matchedKeywords={analysisResult.matched_keywords}
-              missingKeywords={analysisResult.missing_keywords}
-            />
+            <div className="animate-slide-up stagger-2">
+              <SkillGapAnalysis
+                matchedSkills={analysisResult.matched_keywords}
+                missingSkills={analysisResult.missing_keywords}
+                skillGaps={analysisResult.skill_gaps}
+                matchedKeywords={analysisResult.matched_keywords}
+                missingKeywords={analysisResult.missing_keywords}
+              />
+            </div>
 
             {/* Improvement Suggestions */}
-            <ImprovementSuggestions
-              improvements={analysisResult.bullet_improvements}
-              strengths={analysisResult.strengths}
-              weaknesses={analysisResult.weaknesses}
-            />
+            <div className="animate-slide-up stagger-3">
+              <ImprovementSuggestions
+                improvements={analysisResult.bullet_improvements}
+                strengths={analysisResult.strengths}
+                weaknesses={analysisResult.weaknesses}
+              />
+            </div>
 
             {/* Career Guidance */}
-            <CareerGuidance
-              careerGuidance={analysisResult.career_guidance}
-              recommendedSkills={analysisResult.recommended_skills}
-              recommendedCertifications={analysisResult.recommended_certifications}
-              projectIdeas={analysisResult.project_ideas}
-            />
+            <div className="animate-slide-up stagger-4">
+              <CareerGuidance
+                careerGuidance={analysisResult.career_guidance}
+                recommendedSkills={analysisResult.recommended_skills}
+                recommendedCertifications={analysisResult.recommended_certifications}
+                projectIdeas={analysisResult.project_ideas}
+              />
+            </div>
 
             {/* Resume Overview */}
             {analysisResult.resume_overview && (
-              <div className="bg-white rounded-2xl shadow-lg p-6">
-                <h3 className="text-xl font-bold text-gray-800 mb-4">Resume Overview</h3>
-                <div className="prose prose-sm max-w-none text-gray-600 whitespace-pre-wrap">
+              <div className="section-card rounded-2xl p-6 animate-slide-up stagger-5">
+                <h3 className="text-xl font-bold mb-4" style={{ color: '#fafafa', fontFamily: 'var(--font-family-display)' }}>Resume Overview</h3>
+                <div className="prose prose-sm max-w-none whitespace-pre-wrap" style={{ color: '#a1a1aa' }}>
                   {analysisResult.resume_overview}
                 </div>
               </div>
@@ -414,11 +430,11 @@ ${analysisResult.jd_match_details || ''}
 
         {/* Empty State */}
         {!analysisResult && !isAnalyzing && (
-          <div className="text-center py-16 text-gray-500">
-            <FaRobot className="text-6xl mx-auto mb-4 text-gray-300" />
-            <h3 className="text-xl font-medium mb-2">Ready to Analyze Your Resume</h3>
+          <div className="text-center py-16" style={{ color: '#52525b' }}>
+            <FaRobot className="text-6xl mx-auto mb-4" style={{ color: '#27272a' }} />
+            <h3 className="text-xl font-medium mb-2" style={{ color: '#a1a1aa', fontFamily: 'var(--font-family-display)' }}>Ready to Analyze Your Resume</h3>
             <p>Select your resume source and click "Analyze Resume with AI" to get started</p>
-            <div className="mt-6 text-sm text-gray-400">
+            <div className="mt-6 text-sm" style={{ color: '#3f3f46' }}>
               <p>Powered by CrewAI + Google Gemini 2.5 Flash</p>
             </div>
           </div>

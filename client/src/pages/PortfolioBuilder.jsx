@@ -619,19 +619,17 @@ const PortfolioBuilder = () => {
 
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+    <div className="relative z-10 min-h-screen">
       {/* Header */}
-      <header className="bg-white shadow-md sticky top-0 z-40">
+      <header className="sticky top-0 z-40 no-print" style={{
+        background: 'rgba(9, 9, 11, 0.9)',
+        backdropFilter: 'blur(16px)',
+        borderBottom: '1px solid rgba(255,255,255,0.04)',
+      }}>
         <div className="max-w-screen-xl mx-auto px-6 py-4">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-4">
-              <button
-                onClick={() => navigate('/')}
-                className="text-gray-600 hover:text-primary-600 transition-colors flex items-center gap-2"
-              >
-                <FaHome /> Home
-              </button>
-              <h1 className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-primary-500 bg-clip-text text-transparent flex items-center gap-2">
+              <h1 className="text-xl font-bold text-gradient-forge flex items-center gap-2" style={{ fontFamily: 'var(--font-family-display)', letterSpacing: '-0.02em' }}>
                 <FaGlobe /> Portfolio Generator
               </h1>
             </div>
@@ -661,7 +659,7 @@ const PortfolioBuilder = () => {
           {/* Sidebar */}
           <div className="lg:col-span-1 space-y-6">
             {/* Generate Button */}
-            <div className="bg-white rounded-2xl shadow-lg p-6">
+            <div className="section-card rounded-2xl p-6">
               <button
                 onClick={handleGeneratePortfolio}
                 disabled={isEnhancing || !hasResumeContent}
@@ -679,44 +677,50 @@ const PortfolioBuilder = () => {
               </button>
               
               {!hasResumeContent && (
-                <p className="text-sm text-yellow-600 mt-3 text-center">
+                <p className="text-sm mt-3 text-center" style={{ color: '#eab308' }}>
                   Add resume content first
                 </p>
               )}
               
               {enhanceError && (
-                <p className="text-sm text-red-600 mt-3 text-center">
+                <p className="text-sm mt-3 text-center" style={{ color: '#ef4444' }}>
                   {enhanceError}
                 </p>
               )}
               
               {lastGenerated && (
-                <p className="text-xs text-gray-500 mt-3 text-center">
+                <p className="text-xs mt-3 text-center" style={{ color: '#52525b' }}>
                   Last generated: {new Date(lastGenerated).toLocaleString()}
                 </p>
               )}
             </div>
 
             {/* Tabs */}
-            <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
-              <div className="flex border-b">
+            <div className="section-card rounded-2xl overflow-hidden">
+              <div className="flex" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
                 <button
                   onClick={() => setActiveTab('theme')}
-                  className={`flex-1 py-3 text-sm font-medium transition-colors ${
-                    activeTab === 'theme'
-                      ? 'bg-primary-50 text-primary-600 border-b-2 border-primary-500'
-                      : 'text-gray-600 hover:bg-gray-50'
-                  }`}
+                  className="flex-1 py-3 text-sm font-medium transition-colors"
+                  style={{
+                    background: activeTab === 'theme' ? 'rgba(249,115,22,0.08)' : 'transparent',
+                    color: activeTab === 'theme' ? '#f97316' : '#71717a',
+                    borderBottom: activeTab === 'theme' ? '2px solid #f97316' : '2px solid transparent',
+                    cursor: 'pointer', border: 'none',
+                    fontFamily: 'var(--font-family-display)',
+                  }}
                 >
                   Theme
                 </button>
                 <button
                   onClick={() => setActiveTab('settings')}
-                  className={`flex-1 py-3 text-sm font-medium transition-colors ${
-                    activeTab === 'settings'
-                      ? 'bg-primary-50 text-primary-600 border-b-2 border-primary-500'
-                      : 'text-gray-600 hover:bg-gray-50'
-                  }`}
+                  className="flex-1 py-3 text-sm font-medium transition-colors"
+                  style={{
+                    background: activeTab === 'settings' ? 'rgba(249,115,22,0.08)' : 'transparent',
+                    color: activeTab === 'settings' ? '#f97316' : '#71717a',
+                    borderBottom: activeTab === 'settings' ? '2px solid #f97316' : '2px solid transparent',
+                    cursor: 'pointer', border: 'none',
+                    fontFamily: 'var(--font-family-display)',
+                  }}
                 >
                   Settings
                 </button>
@@ -732,16 +736,17 @@ const PortfolioBuilder = () => {
                 
                 {activeTab === 'settings' && (
                   <div className="space-y-4">
-                    <h3 className="text-lg font-semibold text-gray-800">Privacy Settings</h3>
+                    <h3 className="text-lg font-semibold" style={{ color: '#fafafa', fontFamily: 'var(--font-family-display)' }}>Privacy Settings</h3>
                     
                     <label className="flex items-center gap-3">
                       <input
                         type="checkbox"
                         checked={settings.showEmail}
                         onChange={(e) => updateSettings({ showEmail: e.target.checked })}
-                        className="w-4 h-4 text-primary-600"
+                        className="w-4 h-4"
+                        style={{ accentColor: '#f97316' }}
                       />
-                      <span className="text-gray-700">Show Email</span>
+                      <span style={{ color: '#a1a1aa' }}>Show Email</span>
                     </label>
                     
                     <label className="flex items-center gap-3">
@@ -749,9 +754,10 @@ const PortfolioBuilder = () => {
                         type="checkbox"
                         checked={settings.showLocation}
                         onChange={(e) => updateSettings({ showLocation: e.target.checked })}
-                        className="w-4 h-4 text-primary-600"
+                        className="w-4 h-4"
+                        style={{ accentColor: '#f97316' }}
                       />
-                      <span className="text-gray-700">Show Location</span>
+                      <span style={{ color: '#a1a1aa' }}>Show Location</span>
                     </label>
                     
                     <label className="flex items-center gap-3">
@@ -759,9 +765,10 @@ const PortfolioBuilder = () => {
                         type="checkbox"
                         checked={settings.enableDownload}
                         onChange={(e) => updateSettings({ enableDownload: e.target.checked })}
-                        className="w-4 h-4 text-primary-600"
+                        className="w-4 h-4"
+                        style={{ accentColor: '#f97316' }}
                       />
-                      <span className="text-gray-700">Allow Resume Download</span>
+                      <span style={{ color: '#a1a1aa' }}>Allow Resume Download</span>
                     </label>
                   </div>
                 )}
@@ -772,7 +779,8 @@ const PortfolioBuilder = () => {
             {portfolioData && (
               <button
                 onClick={() => setShowPreviewModal(true)}
-                className="lg:hidden w-full bg-white rounded-xl shadow-lg p-4 flex items-center justify-center gap-2 text-primary-600 font-medium"
+                className="lg:hidden w-full section-card rounded-xl p-4 flex items-center justify-center gap-2 font-medium"
+                style={{ color: '#f97316', cursor: 'pointer' }}
               >
                 <FaEye /> View Full Preview
               </button>
@@ -781,31 +789,35 @@ const PortfolioBuilder = () => {
 
           {/* Preview Panel */}
           <div className="lg:col-span-3">
-            <div className="bg-white rounded-2xl shadow-lg p-4 min-h-[600px]">
+            <div className="section-card rounded-2xl p-4 min-h-[600px]">
               {/* Preview Header with Device Selector */}
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
                 <div className="flex items-center gap-4">
-                  <h2 className="text-lg font-semibold text-gray-800">Preview</h2>
+                  <h2 className="text-lg font-semibold" style={{ color: '#fafafa', fontFamily: 'var(--font-family-display)' }}>Preview</h2>
                   {portfolioData && (
-                    <span className="text-sm text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
+                    <span className="text-sm px-3 py-1 rounded-full" style={{
+                      background: 'rgba(249,115,22,0.08)',
+                      color: '#f97316',
+                    }}>
                       {selectedTheme.charAt(0).toUpperCase() + selectedTheme.slice(1)} Theme
                     </span>
                   )}
                 </div>
                 
                 {/* Device Selector */}
-                <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
+                <div className="flex items-center gap-1 rounded-lg p-1" style={{ background: '#27272a' }}>
                   {Object.entries(DEVICE_PRESETS).map(([device, preset]) => {
                     const Icon = preset.icon
                     return (
                       <button
                         key={device}
                         onClick={() => setSelectedDevice(device)}
-                        className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
-                          selectedDevice === device
-                            ? 'bg-white shadow-sm text-primary-600'
-                            : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
-                        }`}
+                        className="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-all duration-200"
+                        style={{
+                          background: selectedDevice === device ? 'rgba(249,115,22,0.1)' : 'transparent',
+                          color: selectedDevice === device ? '#f97316' : '#71717a',
+                          cursor: 'pointer', border: 'none',
+                        }}
                         title={preset.label}
                       >
                         <Icon className="text-lg" />
@@ -817,25 +829,29 @@ const PortfolioBuilder = () => {
               </div>
               
               {/* Device Frame Container */}
-              <div className={`bg-gray-100 rounded-xl p-4 transition-all duration-300 ${
+              <div className={`rounded-xl p-4 transition-all duration-300 ${
                 selectedDevice !== 'desktop' ? 'flex justify-center' : ''
-              }`}>
+              }`} style={{ background: '#27272a' }}>
                 {/* Device Frame */}
                 <div 
                   className={`transition-all duration-500 ease-out ${
                     selectedDevice === 'mobile' 
-                      ? 'w-[375px] rounded-[2.5rem] border-[14px] border-gray-800 shadow-2xl bg-gray-800'
+                      ? 'w-[375px] rounded-[2.5rem] border-[14px] shadow-2xl'
                       : selectedDevice === 'tablet'
-                        ? 'w-[768px] rounded-[1.5rem] border-[12px] border-gray-700 shadow-2xl bg-gray-700'
-                        : 'w-full rounded-lg border border-gray-200'
+                        ? 'w-[768px] rounded-[1.5rem] border-[12px] shadow-2xl'
+                        : 'w-full rounded-lg border'
                   }`}
-                  style={{ maxWidth: DEVICE_PRESETS[selectedDevice].width }}
+                  style={{ 
+                    maxWidth: DEVICE_PRESETS[selectedDevice].width,
+                    background: '#09090b',
+                    borderColor: '#18181b'
+                  }}
                 >
                   {/* Device Notch (Mobile) */}
                   {selectedDevice === 'mobile' && (
-                    <div className="flex justify-center py-2 bg-gray-800">
-                      <div className="w-20 h-5 bg-gray-900 rounded-full flex items-center justify-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-gray-700"></div>
+                    <div className="flex justify-center py-2" style={{ background: '#18181b' }}>
+                      <div className="w-20 h-5 rounded-full flex items-center justify-center gap-2" style={{ background: '#09090b' }}>
+                        <div className="w-2 h-2 rounded-full" style={{ background: '#27272a' }}></div>
                         <div className="w-8 h-2 rounded-full bg-gray-700"></div>
                       </div>
                     </div>
@@ -846,7 +862,7 @@ const PortfolioBuilder = () => {
                     selectedDevice === 'mobile' ? 'rounded-b-[1.5rem] max-h-[600px]' 
                     : selectedDevice === 'tablet' ? 'rounded-b-xl max-h-[700px]'
                     : 'rounded-lg max-h-[70vh]'
-                  } overflow-y-auto bg-white`}>
+                  } overflow-y-auto`} style={{ background: '#09090b' }}>
                     <PortfolioPreview
                       portfolioData={portfolioData}
                       selectedTheme={selectedTheme}
@@ -855,12 +871,10 @@ const PortfolioBuilder = () => {
                   
                   {/* Device Home Button (Mobile/Tablet) */}
                   {selectedDevice !== 'desktop' && (
-                    <div className={`flex justify-center py-2 ${
-                      selectedDevice === 'mobile' ? 'bg-gray-800' : 'bg-gray-700'
-                    }`}>
+                    <div className="flex justify-center py-2" style={{ background: '#18181b' }}>
                       <div className={`${
-                        selectedDevice === 'mobile' ? 'w-24 h-1 rounded-full bg-gray-600' : 'w-10 h-10 rounded-full border-2 border-gray-500'
-                      }`}></div>
+                        selectedDevice === 'mobile' ? 'w-24 h-1 rounded-full' : 'w-10 h-10 rounded-full border-2'
+                      }`} style={{ background: '#27272a', borderColor: '#3f3f46' }}></div>
                     </div>
                   )}
                 </div>
@@ -879,18 +893,19 @@ const PortfolioBuilder = () => {
 
       {/* Full Preview Modal (Mobile) */}
       {showPreviewModal && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
-            <div className="flex justify-between items-center p-4 border-b">
-              <h3 className="font-semibold">Full Preview</h3>
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+          <div className="section-card rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col p-0 border-obsidian-700">
+            <div className="flex justify-between items-center p-4 border-b border-obsidian-800">
+              <h3 className="font-semibold" style={{ color: '#fafafa', fontFamily: 'var(--font-family-display)' }}>Full Preview</h3>
               <button
                 onClick={() => setShowPreviewModal(false)}
-                className="text-gray-500 hover:text-gray-700"
+                className="hover:text-primary-500 transition-colors"
+                style={{ color: '#52525b', cursor: 'pointer', background: 'none', border: 'none' }}
               >
                 ✕
               </button>
             </div>
-            <div className="flex-1 overflow-auto">
+            <div className="flex-1 overflow-auto bg-obsidian-950">
               <PortfolioPreview
                 portfolioData={portfolioData}
                 selectedTheme={selectedTheme}

@@ -212,5 +212,6 @@
     transform: translate(-50%, -50%);
     font-size: 2rem;
     font-weight: 700;
-    color: #374151;
+    color: #fafafa;
+    text-shadow: 0 0 10px rgba(249, 115, 22, 0.3);
 }

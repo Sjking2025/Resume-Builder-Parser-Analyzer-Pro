@@ -17,15 +17,15 @@ const CareerGuidance = ({
   }
 
   return (
-    <div className="bg-white rounded-2xl shadow-lg p-6">
-      <h3 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
-        <FaGraduationCap className="text-purple-500" /> Career Guidance
+    <div className="section-card rounded-2xl p-6">
+      <h3 className="text-xl font-bold mb-6 flex items-center gap-2" style={{ color: '#fafafa', fontFamily: 'var(--font-family-display)' }}>
+        <FaGraduationCap style={{ color: '#06b6d4' }} /> Career Guidance
       </h3>
 
       {/* Overall Assessment */}
       {careerGuidance && (
-        <div className="mb-6 p-4 bg-gradient-to-r from-purple-50 to-indigo-50 rounded-lg border border-purple-200">
-          <p className="text-gray-700">{careerGuidance}</p>
+        <div className="mb-6 p-4 rounded-lg border" style={{ background: 'rgba(6,182,212,0.04)', borderColor: 'rgba(6,182,212,0.15)' }}>
+          <p style={{ color: '#e4e4e7' }}>{careerGuidance}</p>
         </div>
       )}
 
@@ -33,16 +33,16 @@ const CareerGuidance = ({
         {/* Recommended Skills */}
         {recommendedSkills.length > 0 && (
           <div>
-            <h4 className="font-semibold text-gray-700 mb-3 flex items-center gap-2">
-              <FaRocket className="text-blue-500" /> Skills to Learn
+            <h4 className="font-semibold mb-3 flex items-center gap-2" style={{ color: '#a1a1aa' }}>
+              <FaRocket style={{ color: '#06b6d4' }} /> Skills to Learn
             </h4>
             <ul className="space-y-2">
               {recommendedSkills.map((skill, idx) => (
                 <li key={idx} className="flex items-center gap-2">
-                  <span className="w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-xs font-bold">
+                  <span className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold" style={{ background: 'rgba(6,182,212,0.1)', color: '#06b6d4' }}>
                     {idx + 1}
                   </span>
-                  <span className="text-sm text-gray-700">{skill}</span>
+                  <span className="text-sm" style={{ color: '#a1a1aa' }}>{skill}</span>
                 </li>
               ))}
             </ul>

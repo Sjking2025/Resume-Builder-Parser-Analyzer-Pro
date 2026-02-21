@@ -72,29 +72,37 @@ const EditorPage = () => {
   const ActiveComponent = sections.find(s => s.id === activeSection)?.component
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+    <div className="relative z-10 min-h-screen">
       {/* Header */}
-      <header className="bg-white shadow-md sticky top-0 z-40">
+      <header className="sticky top-0 z-40 no-print" style={{
+        background: 'rgba(9, 9, 11, 0.9)',
+        backdropFilter: 'blur(16px)',
+        borderBottom: '1px solid rgba(255,255,255,0.04)',
+      }}>
         <div className="max-w-screen-2xl mx-auto px-6 py-3">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-4">
-              <button
-                onClick={() => navigate('/')}
-                className="text-gray-600 hover:text-primary-600 transition-colors flex items-center gap-2"
-              >
-                <FaHome /> Home
-              </button>
-              <h1 className="text-2xl font-bold bg-gradient-to-r from-primary-600 to-primary-500 bg-clip-text text-transparent">
+              <h1 className="text-xl font-bold text-gradient-forge" style={{ fontFamily: 'var(--font-family-display)', letterSpacing: '-0.02em' }}>
                 Resume Builder
               </h1>
               {isDirty && (
-                <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-1 rounded-full">
+                <span className="text-xs px-2 py-1 rounded-full" style={{
+                  background: 'rgba(234,179,8,0.1)',
+                  color: '#eab308',
+                  border: '1px solid rgba(234,179,8,0.15)',
+                }}>
                   Unsaved Changes
                 </span>
               )}
               <button
                 onClick={() => setShowImportModal(true)}
-                className="flex items-center gap-2 px-3 py-1.5 bg-green-50 text-green-700 border border-green-200 rounded-lg hover:bg-green-100 transition-colors text-sm font-medium"
+                className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-all"
+                style={{
+                  background: 'rgba(6,182,212,0.08)',
+                  color: '#06b6d4',
+                  border: '1px solid rgba(6,182,212,0.15)',
+                  cursor: 'pointer',
+                }}
               >
                 <FaFileUpload /> Import Resume
               </button>
@@ -103,7 +111,7 @@ const EditorPage = () => {
             <div className="flex items-center gap-3">
               {/* Template Selector */}
               <div className="flex items-center gap-2">
-                <FaPalette className="text-gray-600" />
+                <FaPalette style={{ color: '#71717a' }} />
                 <select
                   value={resume.templateId}
                   onChange={(e) => setTemplate(e.target.value)}
@@ -196,16 +204,23 @@ const EditorPage = () => {
           {/* Left Panel - Editor */}
           <div className="flex flex-col h-full">
             {/* Section Tabs */}
-            <div className="bg-white rounded-xl shadow-md p-2 mb-4 flex flex-wrap gap-2">
+            <div className="rounded-xl p-2 mb-4 flex flex-wrap gap-2" style={{
+              background: '#18181b',
+              border: '1px solid rgba(255,255,255,0.06)',
+            }}>
               {sections.map((section) => (
                 <button
                   key={section.id}
                   onClick={() => setActiveSection(section.id)}
-                  className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
-                    activeSection === section.id
-                      ? 'bg-gradient-to-r from-primary-600 to-primary-500 text-white shadow-lg'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
+                  className="px-4 py-2 rounded-lg font-medium transition-all duration-200"
+                  style={{
+                    background: activeSection === section.id ? 'rgba(249,115,22,0.12)' : 'transparent',
+                    color: activeSection === section.id ? '#f97316' : '#71717a',
+                    border: activeSection === section.id ? '1px solid rgba(249,115,22,0.2)' : '1px solid transparent',
+                    cursor: 'pointer',
+                    fontFamily: 'var(--font-family-display)',
+                    fontSize: '0.875rem',
+                  }}
                 >
                   {section.name}
                 </button>
@@ -219,7 +234,10 @@ const EditorPage = () => {
           </div>
 
           {/* Right Panel - Live Preview */}
-          <div className="bg-white rounded-xl shadow-lg overflow-hidden h-full">
+          <div className="rounded-xl overflow-hidden h-full" style={{
+            background: '#fff',
+            border: '1px solid rgba(255,255,255,0.06)',
+          }}>
             <LivePreview />
           </div>
         </div>

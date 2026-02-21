@@ -101,7 +101,8 @@
     height: 28px;
     margin: 2px;
     border-radius: 0px;
-    background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+    background: linear-gradient(135deg, #f97316 0%, #06b6d4 100%);
+    box-shadow: 0 0 8px rgba(249, 115, 22, 0.15);
     background-size: cover;
     background-position: center;
     background-attachment: fixed;

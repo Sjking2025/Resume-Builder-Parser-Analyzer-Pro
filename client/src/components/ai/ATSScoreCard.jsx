@@ -34,8 +34,8 @@ const ATSScoreCard = ({ score, breakdown, explanation }) => {
   ]
 
   return (
-    <div className="bg-white rounded-2xl shadow-lg p-6">
-      <h3 className="text-xl font-bold text-gray-800 mb-6">ATS Compatibility Score</h3>
+    <div className="section-card rounded-2xl p-6">
+      <h3 className="text-xl font-bold mb-6" style={{ color: '#fafafa', fontFamily: 'var(--font-family-display)' }}>ATS Compatibility Score</h3>
       
       <div className="flex flex-col md:flex-row items-center gap-8">
         {/* Circular Score */}
@@ -45,9 +45,9 @@ const ATSScoreCard = ({ score, breakdown, explanation }) => {
             text={`${score}`}
             styles={buildStyles({
               textSize: '28px',
-              pathColor: scoreColor,
-              textColor: scoreColor,
-              trailColor: '#e5e7eb',
+              pathColor: '#f97316',
+              textColor: '#f97316',
+              trailColor: 'rgba(255,255,255,0.03)',
               pathTransitionDuration: 0.5,
             })}
           />
@@ -58,23 +58,23 @@ const ATSScoreCard = ({ score, breakdown, explanation }) => {
 
         {/* Score Breakdown */}
         <div className="flex-1 w-full">
-          <h4 className="font-semibold text-gray-700 mb-3">Score Breakdown</h4>
+          <h4 className="font-semibold mb-3" style={{ color: '#a1a1aa' }}>Score Breakdown</h4>
           <div className="space-y-3">
             {scoreComponents.map((component) => (
               <div key={component.label}>
                 <div className="flex justify-between text-sm mb-1">
-                  <span className="text-gray-600">{component.label}</span>
-                  <span className="font-medium">
+                  <span style={{ color: '#71717a' }}>{component.label}</span>
+                  <span className="font-medium" style={{ color: '#e4e4e7' }}>
                     {component.value}/100 
-                    <span className="text-gray-400 text-xs ml-1">({component.weight})</span>
+                    <span className="text-xs ml-1" style={{ color: '#52525b' }}>({component.weight})</span>
                   </span>
                 </div>
-                <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                <div className="h-2 rounded-full overflow-hidden" style={{ background: '#09090b', border: '1px solid rgba(255,255,255,0.04)' }}>
                   <div
                     className="h-full rounded-full transition-all duration-500"
                     style={{
                       width: `${component.value}%`,
-                      backgroundColor: getScoreColor(component.value)
+                      background: 'linear-gradient(90deg, #f97316 0%, #06b6d4 100%)'
                     }}
                   />
                 </div>
@@ -86,8 +86,8 @@ const ATSScoreCard = ({ score, breakdown, explanation }) => {
 
       {/* Explanation */}
       {explanation && (
-        <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-          <p className="text-sm text-gray-600 whitespace-pre-line">{explanation}</p>
+        <div className="mt-6 p-4 rounded-lg" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)' }}>
+          <p className="text-sm whitespace-pre-line" style={{ color: '#a1a1aa' }}>{explanation}</p>
         </div>
       )}
     </div>

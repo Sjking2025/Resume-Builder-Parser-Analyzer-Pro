@@ -22,59 +22,63 @@ const JDMatcher = ({
   }
 
   return (
-    <div className="bg-white rounded-2xl shadow-lg p-6">
-      <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-        <FaBriefcase className="text-primary-500" /> Job Description Matching
+    <div className="section-card rounded-2xl p-6">
+      <h3 className="text-xl font-bold mb-4 flex items-center gap-2" style={{ color: '#fafafa', fontFamily: 'var(--font-family-display)' }}>
+        <FaBriefcase style={{ color: '#f97316' }} /> Job Description Matching
       </h3>
 
       {/* Job Description Input */}
       <div className="mb-4">
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <label className="block text-sm font-medium mb-2" style={{ color: '#a1a1aa' }}>
           Paste Job Description (optional)
         </label>
         <textarea
           value={jobDescription || ''}
           onChange={(e) => setJobDescription(e.target.value)}
           placeholder="Paste the job description here to see how well your resume matches the requirements..."
-          className="w-full h-40 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 resize-none text-sm"
+          className="input-field w-full h-40 p-3 resize-none text-sm"
         />
-        <p className="text-xs text-gray-500 mt-1">
+        <p className="text-xs mt-1" style={{ color: '#52525b' }}>
           Adding a job description enables keyword matching and tailored recommendations
         </p>
       </div>
 
       {/* Match Results */}
       {matchPercentage !== null && matchPercentage !== undefined && (
-        <div className="mt-6 pt-6 border-t border-gray-200">
+        <div className="mt-6 pt-6 border-t" style={{ borderTopColor: 'rgba(255,255,255,0.06)' }}>
           <div className="flex items-center justify-between mb-4">
-            <h4 className="font-semibold text-gray-700">Match Score</h4>
-            <div className={`px-4 py-2 rounded-full font-bold text-lg ${getMatchColor(matchPercentage)}`}>
+            <h4 className="font-semibold" style={{ color: '#a1a1aa' }}>Match Score</h4>
+            <div className={`px-4 py-2 rounded-full font-bold text-lg`} style={{
+              background: 'rgba(249,115,22,0.1)',
+              color: '#f97316',
+              border: '1px solid rgba(249,115,22,0.2)'
+            }}>
               {matchPercentage}%
             </div>
           </div>
 
           {/* Match Progress Bar */}
-          <div className="h-3 bg-gray-200 rounded-full overflow-hidden mb-4">
+          <div className="h-3 rounded-full overflow-hidden mb-4" style={{ background: '#09090b', border: '1px solid rgba(255,255,255,0.04)' }}>
             <div
-              className={`h-full rounded-full transition-all duration-500 ${
-                matchPercentage >= 80 ? 'bg-green-500' :
-                matchPercentage >= 60 ? 'bg-yellow-500' :
-                matchPercentage >= 40 ? 'bg-orange-500' : 'bg-red-500'
-              }`}
-              style={{ width: `${matchPercentage}%` }}
+              className={`h-full rounded-full transition-all duration-700`}
+              style={{ 
+                width: `${matchPercentage}%`,
+                background: 'linear-gradient(90deg, #f97316 0%, #06b6d4 100%)',
+                boxShadow: '0 0 10px rgba(249,115,22,0.3)'
+              }}
             />
           </div>
 
           {/* Match Details */}
           {matchDetails && (
-            <p className="text-sm text-gray-600 mb-4">{matchDetails}</p>
+            <p className="text-sm mb-4" style={{ color: '#a1a1aa' }}>{matchDetails}</p>
           )}
 
           {/* Tailored Summary Suggestion */}
           {tailoredSummary && (
-            <div className="mt-4 p-4 bg-primary-50 rounded-lg border border-primary-200">
-              <h5 className="font-semibold text-primary-700 mb-2">Suggested Summary for This Role</h5>
-              <p className="text-sm text-gray-700">{tailoredSummary}</p>
+            <div className="mt-4 p-4 rounded-lg" style={{ background: 'rgba(249,115,22,0.04)', border: '1px solid rgba(249,115,22,0.1)' }}>
+              <h5 className="font-semibold mb-2" style={{ color: '#f97316' }}>Suggested Summary for This Role</h5>
+              <p className="text-sm" style={{ color: '#e4e4e7' }}>{tailoredSummary}</p>
               <button
                 onClick={() => navigator.clipboard.writeText(tailoredSummary)}
                 className="mt-2 text-xs text-primary-600 hover:text-primary-700 underline"
