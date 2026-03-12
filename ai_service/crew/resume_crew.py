@@ -1617,3 +1617,195 @@ Return the COMPLETE modified roadmap as valid JSON, with a "modificationSummary"
         except Exception as e:
             return {"error": str(e), "modificationSummary": f"Error: {str(e)}"}
 
+    # ═══════════════════════════════════════════════════════════════════════════════
+    # AUTO-TAILOR RESUME
+    # ═══════════════════════════════════════════════════════════════════════════════
+    
+    def tailor_resume(self, resume_data: dict, job_description: str) -> dict:
+        """
+        Automatically rewrites and tailors a resume JSON to exactly match a Job Description.
+        Uses a SURGICAL MERGE strategy to ensure NO data loss (links, emails, exact fields are kept).
+        """
+        import time
+        import copy
+        start_time = time.time()
+        
+        if not self.model:
+            SystemLogger.error("System", "AI model not initialized")
+            raise ValueError("AI model not initialized.")
+            
+        SystemLogger.crew_banner()
+        SystemLogger.working_agent("ResumeTailor Agent", "Running Surgical Resume Merge")
+        
+        # 1. Create a deep copy to ensure we NEVER lose original data
+        tailored_resume = copy.deepcopy(resume_data)
+        
+        SystemLogger.agent_thinking("Extracting current resume data for AI analysis...")
+        from utils.text_extraction import resume_data_to_text
+        resume_text = resume_data_to_text(resume_data)
+        
+        SystemLogger.agent_action("Generating Action Plan & Modifications...")
+        prompt = self._get_tailor_prompt(resume_text, job_description)
+        
+        try:
+            safety_settings = [
+                {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
+                {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
+                {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"},
+                {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"},
+            ]
+            
+            response = self.model.generate_content(prompt, safety_settings=safety_settings)
+            
+            if not response.text:
+                SystemLogger.error("API", "Empty response from AI")
+                return resume_data
+                
+            action_plan = self._extract_json(response.text)
+            
+            if not action_plan:
+                SystemLogger.warn("System", "JSON extraction failed")
+                return resume_data
+                
+            SystemLogger.agent_thinking(f"Status: {action_plan.get('tailoring_strategy', 'Applying changes...')}")
+            
+            # --- SURGICAL MERGE LOGIC ---
+            
+            # 2. Merge Summary
+            if "new_summary" in action_plan and action_plan["new_summary"]:
+                if "personalInfo" not in tailored_resume:
+                    tailored_resume["personalInfo"] = {}
+                tailored_resume["personalInfo"]["summary"] = action_plan["new_summary"]
+                
+            # 3. Merge Skills
+            skills_update = action_plan.get("skills_update", {})
+            if "skills" not in tailored_resume:
+                tailored_resume["skills"] = {"technical": [], "soft": []}
+                
+            # Technical Skills (Add/Remove)
+            tech_skills = set(tailored_resume["skills"].get("technical", []))
+            for to_remove in skills_update.get("technical_skills_to_remove", []):
+                tech_skills.discard(to_remove.get("name"))
+            for to_add in skills_update.get("technical_skills_to_add", []):
+                tech_skills.add(to_add.get("name"))
+            tailored_resume["skills"]["technical"] = list(tech_skills)
+            
+            # Soft Skills (Add/Remove)
+            soft_skills = set(tailored_resume["skills"].get("soft", []))
+            for to_remove in skills_update.get("soft_skills_to_remove", []):
+                soft_skills.discard(to_remove.get("name"))
+            for to_add in skills_update.get("soft_skills_to_add", []):
+                soft_skills.add(to_add.get("name"))
+            tailored_resume["skills"]["soft"] = list(soft_skills)
+            
+            # 4. Merge Experience Descriptions
+            exp_updates = action_plan.get("experience_updates", [])
+            for update in exp_updates:
+                company_to_match = update.get("company", "").lower()
+                for i, exp in enumerate(tailored_resume.get("experience", [])):
+                    if company_to_match in exp.get("company", "").lower():
+                        tailored_resume["experience"][i]["description"] = update.get("new_description", exp.get("description"))
+
+            # 5. Merge Projects
+            projects_update = action_plan.get("projects_to_keep", [])
+            if "projects" in tailored_resume and projects_update:
+                final_projects = []
+                for orig_proj in tailored_resume["projects"]:
+                    orig_name = orig_proj.get("name", "").lower()
+                    # Find if AI mentioned this project
+                    matching_ai_instruct = next((p for p in projects_update if p.get("original_name", "").lower() == orig_name), None)
+                    
+                    if matching_ai_instruct:
+                        if matching_ai_instruct.get("action") == "remove":
+                            continue # Drop it
+                        elif matching_ai_instruct.get("action") == "modify":
+                            orig_proj["description"] = matching_ai_instruct.get("new_description", orig_proj.get("description", ""))
+                            # Add techs if suggested, without losing old ones
+                            new_techs = matching_ai_instruct.get("additional_technologies", [])
+                            if new_techs:
+                                old_techs = orig_proj.get("technologies", "")
+                                orig_proj["technologies"] = f"{old_techs}, {', '.join(new_techs)}".strip(", ")
+                                
+                    final_projects.append(orig_proj)
+                tailored_resume["projects"] = final_projects
+                
+            total_time = time.time() - start_time
+            SystemLogger.agent_complete("Surgical Merge successful!")
+            SystemLogger.crew_finished(total_time, {
+                "Added Tech Skills": len(skills_update.get("technical_skills_to_add", [])),
+                "Modified Experiences": len(exp_updates),
+                "Status": "Safe Merge Complete"
+            })
+            
+            return self._normalize_import_data(tailored_resume)
+            
+        except Exception as e:
+            SystemLogger.error("System", f"Resume tailoring failed: {str(e)}")
+            return resume_data
+
+    def _get_tailor_prompt(self, resume_text: str, job_description: str) -> str:
+        """Generate the prompt to rewrite the resume."""
+        return f'''
+You are a highly analytical ATS Optimization Expert. Your job is to surgically analyze the gap between a candidate's resume and a Job Description, and provide an EXACT "Modification Plan".
+
+Do NOT rewrite the entire resume. You are ONLY providing the specific textual changes.
+
+────────────────────────────────────────────
+1. SOURCE DATA
+────────────────────────────────────────────
+CURRENT RESUME:
+{resume_text}
+
+TARGET JOB DESCRIPTION:
+{job_description}
+
+────────────────────────────────────────────
+2. INSTRUCTIONS
+────────────────────────────────────────────
+1. **Summary:** Write a new, highly tailored profile summary directly addressing the JD's core needs.
+2. **Skills:** 
+   - Identify which technical/soft skills should be ADDED (because they are in the JD and fit the candidate's profile).
+   - Identify which skills should be REMOVED (because they are entirely irrelevant and taking up space).
+   - You MUST provide a short reasoning for every addition/removal.
+3. **Experience:** Read the current experience bullets. Return REWRITTEN bullet points that incorporate JD keywords and use the STAR method. Keep factual accuracy. Only return updates for jobs that need changing.
+4. **Projects:** Decide whether to "modify" or "remove" existing projects. Provide rewritten descriptions for those "modified" to better fit the JD.
+
+────────────────────────────────────────────
+3. OUTPUT FORMAT (Valid JSON Only)
+────────────────────────────────────────────
+{{
+  "tailoring_strategy": "A brief 2-sentence explanation of your overall strategy (e.g., 'Emphasizing React and cloud architecture skills while removing outdated PHP references.')",
+  "new_summary": "The completely rewritten, powerful, tailored profile summary.",
+  "skills_update": {{
+    "technical_skills_to_add": [{{"name": "React", "reason": "Highly requested in JD"}}],
+    "technical_skills_to_remove": [{{"name": "Cobol", "reason": "Irrelevant to this modern web role"}}],
+    "soft_skills_to_add": [{{"name": "Agile Methodology", "reason": "Required by employer"}}]
+  }},
+  "experience_updates": [
+    {{
+      "company": "Name of the Company from the Resume",
+      "new_description": "Rewritten bullet point 1.\\nRewritten bullet point 2.\\nRewritten bullet point 3."
+    }}
+  ],
+  "projects_to_keep": [
+    {{
+      "original_name": "Exact Project Name from Resume",
+      "action": "modify", 
+      "reasoning": "Why are we keeping this?",
+      "new_description": "Rewritten project description focusing on JD-relevant features.",
+      "additional_technologies": ["Redux", "AWS"]
+    }},
+    {{
+      "original_name": "Another Project Name",
+      "action": "remove", 
+      "reasoning": "This basic calculator app is irrelevant for a Senior role."
+    }}
+  ]
+}}
+
+RULES:
+1. Return ONLY valid JSON.
+2. "action" for projects MUST be either "modify" or "remove".
+3. Use \\n for bullet point line breaks in descriptions.
+4. ONLY reference companies and projects that actually exist in the CURRENT RESUME block above. Do not hallucinate new jobs.
+'''

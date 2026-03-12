@@ -113,6 +113,43 @@ router.post('/analyze', async (req, res) => {
 })
 
 /**
+ * POST /api/ai/tailor-resume
+ * Auto-tailor the resume based on a job description
+ */
+router.post('/tailor-resume', async (req, res) => {
+    try {
+        const { resume_data, job_description } = req.body
+
+        if (!resume_data || !job_description) {
+            return res.status(400).json({ error: 'Missing resume_data or job_description' })
+        }
+
+        const response = await axios.post(`${AI_SERVICE_URL}/tailor-resume`, {
+            resume_data,
+            job_description
+        })
+
+        return res.json(response.data)
+    } catch (error) {
+        console.error('Tailor Resume Error:', error.message)
+
+        if (error.code === 'ECONNREFUSED') {
+            return res.status(503).json({
+                error: 'AI service is not running',
+                message: 'Please start the Python AI service'
+            })
+        }
+
+        // Forward error from Python service
+        if (error.response) {
+            return res.status(error.response.status).json(error.response.data)
+        }
+
+        return res.status(500).json({ error: error.message })
+    }
+})
+
+/**
  * POST /api/ai/analyze-pdf
  * Analyze uploaded PDF resume with AI
  */

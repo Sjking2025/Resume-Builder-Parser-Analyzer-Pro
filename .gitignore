@@ -37,3 +37,9 @@ ai_service/test_*.py
 
 # Artifacts (local development)
 .gemini/
+
+# Project-specific ignored files
+SKILL.md
+test_tailor.py
+test_crew_direct.py
+UI-THEMES/

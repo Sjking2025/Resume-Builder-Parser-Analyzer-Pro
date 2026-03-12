@@ -178,6 +178,44 @@ async def analyze_resume_from_data(request: AnalyzeRequest):
         )
 
 
+@app.post("/tailor-resume")
+async def tailor_resume_to_jd(request: AnalyzeRequest):
+    """
+    Automatically rewrite and tailor a resume to match a specific Job Description.
+    Returns the exact same JSON schema but with customized content.
+    """
+    SystemLogger.divider()
+    SystemLogger.info("System", "Incoming Auto-Tailor request received")
+    
+    if not GOOGLE_API_KEY:
+        SystemLogger.error("System", "API key not configured")
+        raise HTTPException(
+            status_code=503,
+            detail="AI service not configured. Set GOOGLE_API_KEY."
+        )
+        
+    if not request.job_description:
+        SystemLogger.error("System", "Missing Job Description string")
+        raise HTTPException(
+            status_code=400,
+            detail="A Job Description is required to tailor a resume."
+        )
+        
+    try:
+        from crew.resume_crew import ResumeCrew
+        crew = ResumeCrew()
+        tailored_resume = crew.tailor_resume(request.resume_data, request.job_description)
+        
+        return tailored_resume
+        
+    except Exception as e:
+        SystemLogger.error("System", f"Auto-Tailor failed: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error tailoring resume: {str(e)}"
+        )
+
+
 @app.post("/analyze-pdf")
 async def analyze_resume_from_pdf(file: UploadFile = File(...), job_description: Optional[str] = None):
     """

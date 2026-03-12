@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { FaHome, FaBullseye, FaSearch, FaRocket, FaSpinner, FaCheckCircle, FaExclamationTriangle, FaTimesCircle, FaClock, FaEdit, FaPaperPlane, FaTimes } from 'react-icons/fa'
+import { FaHome, FaBullseye, FaSearch, FaRocket, FaSpinner, FaCheckCircle, FaExclamationTriangle, FaTimesCircle, FaClock, FaEdit, FaPaperPlane, FaTimes, FaMagic } from 'react-icons/fa'
 import useResumeStore from '../store/useResumeStore'
 import { API_ENDPOINTS } from '../config/api'
 import SquareLoader from '../components/common/SquareLoader'
@@ -12,7 +12,7 @@ import PencilLoader from '../components/common/PencilLoader'
  */
 const SkillGapAnalyzer = () => {
   const navigate = useNavigate()
-  const { resume } = useResumeStore()
+  const { resume, loadResume } = useResumeStore()
   
   // State
   const [step, setStep] = useState('input') // 'input', 'analyzing', 'report', 'profile', 'generating', 'roadmap'
@@ -101,6 +101,46 @@ const SkillGapAnalyzer = () => {
   // Modification
   const [modifyRequest, setModifyRequest] = useState('')
   const [isModifying, setIsModifying] = useState(false)
+
+  // Auto-Tailoring
+  const [isTailoring, setIsTailoring] = useState(false)
+
+  const handleAutoTailor = async () => {
+    if (!jobDescription || !resume) return
+
+    setIsTailoring(true)
+    setError(null)
+
+    try {
+      const response = await fetch('/api/ai/tailor-resume', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          resume_data: resume,
+          job_description: jobDescription
+        })
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || errorData.detail || 'Failed to tailor resume')
+      }
+
+      const tailoredData = await response.json()
+      
+      // Load the rewritten data directly into the Zustand store
+      loadResume(tailoredData)
+      
+      // Navigate to editor to see the changes instantly
+      navigate('/editor')
+      
+    } catch (err) {
+      console.error('Auto-Tailor Error:', err)
+      setError(err.message)
+    } finally {
+      setIsTailoring(false)
+    }
+  }
 
   /**
    * Normalize JD text to reduce token count
@@ -565,6 +605,42 @@ const SkillGapAnalyzer = () => {
               </div>
             )}
             
+            {/* Auto-Tailor Resume Button (Inserted Before Roadmap) */}
+            <div className="bg-gradient-to-r from-purple-50 to-indigo-50 border border-indigo-100 rounded-2xl p-6 shadow-sm mb-6 mt-4">
+              <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+                <div className="flex-1">
+                  <h3 className="text-xl font-bold flex items-center gap-2 text-indigo-900 mb-2">
+                    <FaMagic className="text-purple-500" />
+                    Auto-Tailor Your Resume
+                  </h3>
+                  <p className="text-gray-600 text-sm">
+                    Let our advanced AI rewrite your resume's summary and experience blurbs to perfectly align with this specific Job Description. It will seamlessly insert missing tracked skills like <span className="font-semibold text-indigo-600">{gapAnalysis.missingSkills?.[0]?.name || "those"}</span> where appropriate.
+                  </p>
+                </div>
+                <button
+                  onClick={handleAutoTailor}
+                  disabled={isTailoring}
+                  className={`py-3 px-6 rounded-xl font-bold text-white shadow-md transition-all flex items-center gap-2 flex-shrink-0 ${
+                    isTailoring
+                      ? 'bg-gray-400 cursor-not-allowed'
+                      : 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-500/30 hover:shadow-lg'
+                  }`}
+                >
+                  {isTailoring ? (
+                    <>
+                      <FaSpinner className="animate-spin" />
+                      Tailoring...
+                    </>
+                  ) : (
+                    <>
+                      <FaEdit />
+                      Apply Tailored Resume
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+
             {/* Generate Roadmap Button - Smooth satisfying animation */}
             <button
               onClick={() => setStep('profile')}

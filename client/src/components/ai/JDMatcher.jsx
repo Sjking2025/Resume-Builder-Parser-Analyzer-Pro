@@ -1,5 +1,7 @@
-import React from 'react'
-import { FaBriefcase, FaSpinner } from 'react-icons/fa'
+import React, { useState } from 'react'
+import { FaBriefcase, FaSpinner, FaMagic } from 'react-icons/fa'
+import { useNavigate } from 'react-router-dom'
+import useResumeStore from '../../store/useResumeStore'
 
 /**
  * JD Matcher Component
@@ -13,6 +15,49 @@ const JDMatcher = ({
   tailoredSummary,
   isLoading 
 }) => {
+  const navigate = useNavigate()
+  const { resume, loadResume } = useResumeStore()
+  const [isTailoring, setIsTailoring] = useState(false)
+  const [tailorError, setTailorError] = useState(null)
+
+  // Handle auto-tailoring the entire resume
+  const handleAutoTailor = async () => {
+    if (!jobDescription || !resume) return
+
+    setIsTailoring(true)
+    setTailorError(null)
+
+    try {
+      const response = await fetch('/api/ai/tailor-resume', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          resume_data: resume,
+          job_description: jobDescription
+        })
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || errorData.detail || 'Failed to tailor resume')
+      }
+
+      const tailoredData = await response.json()
+      
+      // Load the rewritten data directly into the Zustand store
+      loadResume(tailoredData)
+      
+      // Navigate to editor to see the changes instantly
+      navigate('/editor')
+      
+    } catch (err) {
+      console.error('Auto-Tailor Error:', err)
+      setTailorError(err.message)
+    } finally {
+      setIsTailoring(false)
+    }
+  }
+
   // Determine color based on match percentage
   const getMatchColor = (percentage) => {
     if (percentage >= 80) return 'text-green-600 bg-green-100'
@@ -83,6 +128,43 @@ const JDMatcher = ({
               </button>
             </div>
           )}
+
+          {/* Auto-Tailor Action */}
+          <div className="mt-6 pt-4 border-t border-gray-200">
+            <h5 className="font-semibold text-gray-800 mb-2">Want a perfect match?</h5>
+            <p className="text-sm text-gray-600 mb-4">
+              Let AI completely rewrite your resume to perfectly align with this job description.
+              This will add missing skills and rewrite your experience bullet points.
+            </p>
+            
+            {tailorError && (
+              <div className="mb-4 p-3 bg-red-50 text-red-600 rounded-lg text-sm">
+                ❌ {tailorError}
+              </div>
+            )}
+
+            <button
+              onClick={handleAutoTailor}
+              disabled={isTailoring || isLoading}
+              className={`w-full py-3 px-4 rounded-xl text-white font-bold shadow-md transition-all flex items-center justify-center gap-2 ${
+                isTailoring || isLoading
+                  ? 'bg-gray-400 cursor-not-allowed'
+                  : 'bg-gradient-to-r from-primary-600 to-indigo-600 hover:from-primary-700 hover:to-indigo-700 shadow-primary-500/30 hover:shadow-lg'
+              }`}
+            >
+              {isTailoring ? (
+                <>
+                  <FaSpinner className="animate-spin" />
+                  Auto-Tailoring Resume... (This may take a minute)
+                </>
+              ) : (
+                <>
+                  <FaMagic />
+                  Auto-Tailor Entire Resume to JD
+                </>
+              )}
+            </button>
+          </div>
         </div>
       )}
 
