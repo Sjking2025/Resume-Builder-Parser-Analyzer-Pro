@@ -172,7 +172,25 @@ const useResumeStore = create(
 
             markClean: () => set({ isDirty: false, lastSaved: new Date().toISOString() }),
 
-            loadResume: (resume) => set({ resume, isDirty: false }),
+            // Load a new resume, but preserve the current templateId, formatting, and sectionOrder
+            loadResume: (incomingResume) => {
+                const currentState = get()
+                set({ 
+                    resume: {
+                        ...incomingResume,
+                        // Preserve display settings - never let tailoring reset the user's template choice
+                        templateId: incomingResume.templateId || currentState.resume.templateId,
+                        // Ensure nested arrays and objects are always at least empty defaults
+                        personalInfo: incomingResume.personalInfo || {},
+                        education: incomingResume.education || [],
+                        experience: incomingResume.experience || [],
+                        projects: incomingResume.projects || [],
+                        skills: incomingResume.skills || { technical: [], soft: [], languages: [] },
+                        achievements: incomingResume.achievements || [],
+                    },
+                    isDirty: false 
+                })
+            },
 
             clearResume: () =>
                 set({

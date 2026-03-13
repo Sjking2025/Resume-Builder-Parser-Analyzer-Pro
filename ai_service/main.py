@@ -181,11 +181,17 @@ async def analyze_resume_from_data(request: AnalyzeRequest):
 @app.post("/tailor-resume")
 async def tailor_resume_to_jd(request: AnalyzeRequest):
     """
-    Automatically rewrite and tailor a resume to match a specific Job Description.
-    Returns the exact same JSON schema but with customized content.
+    Runs the full 5-Agent Resume Tailoring Pipeline.
+    Pipeline:
+      Agent 1 → Resume Parser (normalize + validate)
+      Agent 2 → JD Analyzer (skills, keywords, signals)
+      Agent 3 → Skill Gap Mapper (local, no LLM)
+      Agent 4 → Tailoring Agent (controlled LLM rewrite)
+      Agent 5 → Quality Checker (ATS score + integrity)
+    Returns the tailored resume + quality report.
     """
     SystemLogger.divider()
-    SystemLogger.info("System", "Incoming Auto-Tailor request received")
+    SystemLogger.info("System", "Incoming Auto-Tailor request — launching 5-agent pipeline")
     
     if not GOOGLE_API_KEY:
         SystemLogger.error("System", "API key not configured")
@@ -204,15 +210,25 @@ async def tailor_resume_to_jd(request: AnalyzeRequest):
     try:
         from crew.resume_crew import ResumeCrew
         crew = ResumeCrew()
-        tailored_resume = crew.tailor_resume(request.resume_data, request.job_description)
         
-        return tailored_resume
+        # Run the full 5-agent pipeline
+        pipeline_result = crew.run_tailoring_pipeline(
+            request.resume_data,
+            request.job_description
+        )
+        
+        # pipeline_result = { finalResume: {...}, qualityReport: {...} }
+        return {
+            "success": True,
+            "data": pipeline_result["finalResume"],
+            "qualityReport": pipeline_result["qualityReport"]
+        }
         
     except Exception as e:
-        SystemLogger.error("System", f"Auto-Tailor failed: {str(e)}")
+        SystemLogger.error("System", f"Pipeline failed: {str(e)}")
         raise HTTPException(
             status_code=500,
-            detail=f"Error tailoring resume: {str(e)}"
+            detail=f"Error running tailoring pipeline: {str(e)}"
         )
 
 

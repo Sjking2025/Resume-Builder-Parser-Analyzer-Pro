@@ -2,6 +2,7 @@ import React, { useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { FaHome, FaRobot, FaUpload, FaSpinner, FaEdit, FaFileAlt, FaDownload } from 'react-icons/fa'
 import useResumeStore from '../store/useResumeStore'
+import { API_ENDPOINTS } from '../config/api'
 import ATSScoreCard from '../components/ai/ATSScoreCard'
 import SkillGapAnalysis from '../components/ai/SkillGapAnalysis'
 import ImprovementSuggestions from '../components/ai/ImprovementSuggestions'
@@ -56,13 +57,13 @@ const AIAnalysisPage = () => {
           formData.append('job_description', jobDescription)
         }
         
-        response = await fetch('http://localhost:5000/api/ai/analyze-pdf', {
+        response = await fetch(API_ENDPOINTS.analyzePdf, {
           method: 'POST',
           body: formData
         })
       } else {
         // Use resume data from editor
-        response = await fetch('http://localhost:5000/api/ai/analyze', {
+        response = await fetch(API_ENDPOINTS.analyze, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

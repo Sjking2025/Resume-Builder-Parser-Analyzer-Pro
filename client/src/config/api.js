@@ -21,6 +21,9 @@ export const API_ENDPOINTS = {
     skillGapRoadmapStream: `${API_BASE_URL}/api/ai/skill-gap/roadmap-stream`,
     skillGapRoadmapModify: `${API_BASE_URL}/api/ai/skill-gap/roadmap/modify`,
 
+    // Auto-Tailor
+    tailorResume: `${API_BASE_URL}/api/ai/tailor-resume`,
+
     health: `${API_BASE_URL}/api/ai/health`,
 
     // PDF export

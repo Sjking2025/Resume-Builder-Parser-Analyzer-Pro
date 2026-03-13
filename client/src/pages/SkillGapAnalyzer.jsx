@@ -112,7 +112,7 @@ const SkillGapAnalyzer = () => {
     setError(null)
 
     try {
-      const response = await fetch('/api/ai/tailor-resume', {
+      const response = await fetch(API_ENDPOINTS.tailorResume, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -126,13 +126,27 @@ const SkillGapAnalyzer = () => {
         throw new Error(errorData.error || errorData.detail || 'Failed to tailor resume')
       }
 
-      const tailoredData = await response.json()
+      const result = await response.json()
       
-      // Load the rewritten data directly into the Zustand store
-      loadResume(tailoredData)
+      // The pipeline now returns { success, data: finalResume, qualityReport }
+      const finalResume = result.data || result // fallback for shape variations
+      const qualityReport = result.qualityReport || null
       
-      // Navigate to editor to see the changes instantly
-      navigate('/editor')
+      if (!finalResume || typeof finalResume !== 'object') {
+        throw new Error('Invalid response from tailoring pipeline')
+      }
+
+      // Load the rewritten data into the Zustand store
+      loadResume(finalResume)
+      
+      // Navigate to editor to see the changes, passing the quality report in state
+      navigate('/editor', {
+        state: {
+          tailored: true,
+          atsScore: qualityReport?.atsScore ?? null,
+          keywordCoverage: qualityReport?.keywordCoverage ?? null,
+        }
+      })
       
     } catch (err) {
       console.error('Auto-Tailor Error:', err)

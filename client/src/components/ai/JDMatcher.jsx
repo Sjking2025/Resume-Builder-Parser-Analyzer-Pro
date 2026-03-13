@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { FaBriefcase, FaSpinner, FaMagic } from 'react-icons/fa'
 import { useNavigate } from 'react-router-dom'
 import useResumeStore from '../../store/useResumeStore'
+import { API_ENDPOINTS } from '../../config/api'
 
 /**
  * JD Matcher Component
@@ -28,7 +29,7 @@ const JDMatcher = ({
     setTailorError(null)
 
     try {
-      const response = await fetch('/api/ai/tailor-resume', {
+      const response = await fetch(API_ENDPOINTS.tailorResume, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -42,13 +43,27 @@ const JDMatcher = ({
         throw new Error(errorData.error || errorData.detail || 'Failed to tailor resume')
       }
 
-      const tailoredData = await response.json()
+      const result = await response.json()
       
-      // Load the rewritten data directly into the Zustand store
-      loadResume(tailoredData)
+      // Pipeline returns { success, data: finalResume, qualityReport }
+      const finalResume = result.data || result
+      const qualityReport = result.qualityReport || null
+
+      if (!finalResume || typeof finalResume !== 'object') {
+        throw new Error('Invalid response from tailoring pipeline')
+      }
+
+      // Load the tailored resume into the Zustand store
+      loadResume(finalResume)
       
-      // Navigate to editor to see the changes instantly
-      navigate('/editor')
+      // Navigate to editor with quality report in state
+      navigate('/editor', {
+        state: {
+          tailored: true,
+          atsScore: qualityReport?.atsScore ?? null,
+          keywordCoverage: qualityReport?.keywordCoverage ?? null,
+        }
+      })
       
     } catch (err) {
       console.error('Auto-Tailor Error:', err)

@@ -321,7 +321,87 @@ class ResumeCrew:
             self.model = genai.GenerativeModel('models/gemini-2.5-flash')
         else:
             self.model = None
-    
+
+    # ═══════════════════════════════════════════════════════════════════════════
+    # MULTI-AGENT TAILORING PIPELINE (5-Agent Architecture)
+    # ═══════════════════════════════════════════════════════════════════════════
+
+    def run_tailoring_pipeline(self, resume_data: dict, job_description: str) -> dict:
+        """
+        Orchestrates the full 5-Agent Resume Tailoring Pipeline.
+
+        Flow:
+          Agent 1: ResumeParserAgent    → Normalize + validate resume structure
+          Agent 2: JDAnalyzerAgent      → Deep JD extraction (skills, keywords, signals)
+          Agent 3: SkillGapAgent        → Local skill gap mapping (no LLM)
+          Agent 4: TailoringAgent       → Controlled LLM-powered resume refinement
+          Agent 5: QualityCheckerAgent  → ATS scoring + final integrity check
+
+        Returns:
+          {
+            "finalResume": {...},      # The tailored, validated resume
+            "qualityReport": {         # ATS score + metadata
+              "atsScore": 85,
+              "keywordCoverage": 78,
+              "issues": [],
+              "autoFixed": []
+            }
+          }
+        """
+        from agents import ResumeParserAgent, JDAnalyzerAgent, SkillGapAgent, TailoringAgent, QualityCheckerAgent
+
+        if not self.model:
+            SystemLogger.error("Pipeline", "AI model not initialized")
+            raise ValueError("AI model not initialized. Check GOOGLE_API_KEY.")
+
+        SystemLogger.divider()
+        SystemLogger.info("Pipeline", "🚀 Starting 5-Agent Resume Tailoring Pipeline")
+        SystemLogger.divider()
+        pipeline_start = time.time()
+
+        # ── STEP 1: Resume Parser ────────────────────────────────────────────
+        SystemLogger.step_start(1, "Resume Parser Agent")
+        agent1 = ResumeParserAgent(self.model)
+        parsed_resume = agent1.run(resume_data)
+        SystemLogger.step_status("SUCCESS")
+
+        # ── STEP 2: JD Analyzer ──────────────────────────────────────────────
+        SystemLogger.step_start(2, "JD Analyzer Agent")
+        agent2 = JDAnalyzerAgent(self.model)
+        jd_analysis = agent2.run(job_description)
+        SystemLogger.step_status("SUCCESS")
+
+        # ── STEP 3: Skill Gap Mapper ─────────────────────────────────────────
+        SystemLogger.step_start(3, "Skill Gap Agent")
+        agent3 = SkillGapAgent(self.model)
+        skill_gap = agent3.run(parsed_resume, jd_analysis)
+        SystemLogger.step_status("SUCCESS")
+
+        # ── STEP 4: Resume Tailoring Agent ───────────────────────────────────
+        SystemLogger.step_start(4, "Tailoring Agent — Core Intelligence")
+        agent4 = TailoringAgent(self.model)
+        tailored_resume = agent4.run(parsed_resume, jd_analysis, skill_gap)
+        SystemLogger.step_status("SUCCESS")
+
+        # ── STEP 5: Quality Checker ──────────────────────────────────────────
+        SystemLogger.step_start(5, "Quality Checker Agent — Final Validation")
+        agent5 = QualityCheckerAgent(self.model)
+        result = agent5.run(tailored_resume, parsed_resume, jd_analysis)
+        SystemLogger.step_status("SUCCESS")
+
+        # ── Pipeline Complete ────────────────────────────────────────────────
+        total_time = time.time() - pipeline_start
+        SystemLogger.crew_finished(total_time, {
+            "Pipeline": "5-Agent Resume Tailoring",
+            "ATS Score": f"{result['qualityReport']['atsScore']}%",
+            "Keyword Coverage": f"{result['qualityReport']['keywordCoverage']}%",
+            "Issues Found": len(result['qualityReport']['issues']),
+            "Auto-Fixed": len(result['qualityReport']['autoFixed']),
+        })
+
+        return result
+
+
     def parse_resume_for_import(self, resume_text: str) -> dict:
         """Parse resume text and extract structured data."""
         SystemLogger.run("ResumeParser", "Parsing resume sections...")
@@ -1661,13 +1741,30 @@ Return the COMPLETE modified roadmap as valid JSON, with a "modificationSummary"
                 SystemLogger.error("API", "Empty response from AI")
                 return resume_data
                 
-            action_plan = self._extract_json(response.text)
+            parsed_json = self._extract_json(response.text)
             
-            if not action_plan:
+            if not parsed_json:
                 SystemLogger.warn("System", "JSON extraction failed")
                 return resume_data
                 
+            rewrite_plan = parsed_json.get("rewrite_plan", {})
+            action_plan = parsed_json.get("modifications", parsed_json) # Fallback if AI didn't nest
+                
             SystemLogger.agent_thinking(f"Status: {action_plan.get('tailoring_strategy', 'Applying changes...')}")
+            
+            if rewrite_plan:
+                gap_analysis = rewrite_plan.get("candidate_gap_analysis", "")
+                if gap_analysis:
+                    SystemLogger.info("Reasoning", f"Gap Analysis: {gap_analysis}")
+                
+                safety = rewrite_plan.get("pass_1_safety_check_passed", False)
+                justification = rewrite_plan.get("pass_2_justification_check_passed", False)
+                authenticity = rewrite_plan.get("pass_3_authenticity_check_passed", False)
+                
+                if safety and justification and authenticity:
+                    SystemLogger.ok("Verification", "Self-Checking Loop (Pass 1, 2, 3) Verified Internally")
+                else:
+                    SystemLogger.warn("Verification", "AI internally flagged safety/authenticity concerns!")
             
             # --- SURGICAL MERGE LOGIC ---
             
@@ -1729,6 +1826,22 @@ Return the COMPLETE modified roadmap as valid JSON, with a "modificationSummary"
                     final_projects.append(orig_proj)
                 tailored_resume["projects"] = final_projects
                 
+            # 6. Final Self-Verification Check (PYTHON LEVEL)
+            # Enforce Pass 1: Data Safety
+            links_safe = True
+            for field in ["linkedin", "github", "portfolio", "email", "phone", "fullName"]:
+                orig_val = resume_data.get("personalInfo", {}).get(field)
+                new_val = tailored_resume.get("personalInfo", {}).get(field)
+                if orig_val != new_val:
+                    SystemLogger.error("Verification Guard", f"Intercepted AI attempting to modify protected field '{field}'. Reverting change.")
+                    if "personalInfo" not in tailored_resume:
+                         tailored_resume["personalInfo"] = {}
+                    tailored_resume["personalInfo"][field] = orig_val
+                    links_safe = False
+                    
+            if links_safe:
+                SystemLogger.ok("Verification Guard", "Pass 1: Data Safety Confirmed. All protected info untouched.")
+                
             total_time = time.time() - start_time
             SystemLogger.agent_complete("Surgical Merge successful!")
             SystemLogger.crew_finished(total_time, {
@@ -1746,9 +1859,12 @@ Return the COMPLETE modified roadmap as valid JSON, with a "modificationSummary"
     def _get_tailor_prompt(self, resume_text: str, job_description: str) -> str:
         """Generate the prompt to rewrite the resume."""
         return f'''
-You are a highly analytical ATS Optimization Expert. Your job is to surgically analyze the gap between a candidate's resume and a Job Description, and provide an EXACT "Modification Plan".
+You are a Senior AI Software Architect, Agentic System Engineer, AI Resume Architect, and Career Strategist. 
+Your responsibility is to design and execute a highly safe, controlled, and intelligent resume optimization system that aligns a user's resume with a target Job Role and Job Description (JD).
 
-Do NOT rewrite the entire resume. You are ONLY providing the specific textual changes.
+You must behave like a careful resume editor. Your goal is JD alignment, NOT content fabrication.
+Always prefer minimal, intelligent edits over aggressive rewriting. 
+NEVER fabricate experience, projects, or achievements.
 
 ────────────────────────────────────────────
 1. SOURCE DATA
@@ -1760,52 +1876,80 @@ TARGET JOB DESCRIPTION:
 {job_description}
 
 ────────────────────────────────────────────
-2. INSTRUCTIONS
+2. REQUIRED REASONING LOOP
 ────────────────────────────────────────────
-1. **Summary:** Write a new, highly tailored profile summary directly addressing the JD's core needs.
-2. **Skills:** 
-   - Identify which technical/soft skills should be ADDED (because they are in the JD and fit the candidate's profile).
-   - Identify which skills should be REMOVED (because they are entirely irrelevant and taking up space).
-   - You MUST provide a short reasoning for every addition/removal.
-3. **Experience:** Read the current experience bullets. Return REWRITTEN bullet points that incorporate JD keywords and use the STAR method. Keep factual accuracy. Only return updates for jobs that need changing.
-4. **Projects:** Decide whether to "modify" or "remove" existing projects. Provide rewritten descriptions for those "modified" to better fit the JD.
+Before outputting any modifications, you MUST internally loop through the following 3 passes and explicitly confirm them in your "rewrite_plan".
+
+PASS 1 — DATA SAFETY CHECK
+Ensure Name, Phone, Email, LinkedIn, GitHub, and Portfolio URLs are untouched.
+
+PASS 2 — MODIFICATION JUSTIFICATION CHECK
+For every planned change, ask: Why is this necessary?
+Each modification MUST: Match a JD requirement, Address a skill gap, Improve clarity, or Improve keyword alignment.
+If a change does not satisfy these conditions, discard it.
+
+PASS 3 — AUTHENTICITY CHECK
+Does this invent new experience? Break tech stacks? Add technologies the candidate never used?
+If yes, CANCEL the change.
 
 ────────────────────────────────────────────
-3. OUTPUT FORMAT (Valid JSON Only)
+3. REWRITE RULES
+────────────────────────────────────────────
+1. **Summary:** Improve clarity, align wording and tone with the target job role naturally. Do NOT fabricate.
+2. **Skills:** 
+   - Add missing skills identified by your internal skill gap analysis ONLY IF supported by the JD and the candidate can reasonably claim them. 
+   - Remove irrelevant skills ONLY if they clearly do not match the role.
+   - You MUST provide a short reasoning for every addition/removal.
+3. **Experience:** Read the current experience bullets. Return REWRITTEN bullet points that incorporate JD keywords and use the STAR method. Keep factual accuracy.
+4. **Projects:** Decide whether to "modify" or "remove" projects. The action MUST be "modify" or "remove". Highlight/Modify descriptions to emphasize problem solving and JD relevance.
+
+────────────────────────────────────────────
+4. EXACT OUTPUT FORMAT (VALID JSON ONLY)
 ────────────────────────────────────────────
 {{
-  "tailoring_strategy": "A brief 2-sentence explanation of your overall strategy (e.g., 'Emphasizing React and cloud architecture skills while removing outdated PHP references.')",
-  "new_summary": "The completely rewritten, powerful, tailored profile summary.",
-  "skills_update": {{
-    "technical_skills_to_add": [{{"name": "React", "reason": "Highly requested in JD"}}],
-    "technical_skills_to_remove": [{{"name": "Cobol", "reason": "Irrelevant to this modern web role"}}],
-    "soft_skills_to_add": [{{"name": "Agile Methodology", "reason": "Required by employer"}}]
+  "rewrite_plan": {{
+    "jd_core_requirements": ["A", "B", "C"],
+    "candidate_gap_analysis": "What is missing vs strong",
+    "pass_1_safety_check_passed": true,
+    "pass_2_justification_check_passed": true,
+    "pass_3_authenticity_check_passed": true,
+    "sections_to_modify": ["Summary", "Skills"],
+    "sections_to_keep": ["Education", "Certifications"]
   }},
-  "experience_updates": [
-    {{
-      "company": "Name of the Company from the Resume",
-      "new_description": "Rewritten bullet point 1.\\nRewritten bullet point 2.\\nRewritten bullet point 3."
-    }}
-  ],
-  "projects_to_keep": [
-    {{
-      "original_name": "Exact Project Name from Resume",
-      "action": "modify", 
-      "reasoning": "Why are we keeping this?",
-      "new_description": "Rewritten project description focusing on JD-relevant features.",
-      "additional_technologies": ["Redux", "AWS"]
+  "modifications": {{
+    "tailoring_strategy": "A brief explanation",
+    "new_summary": "The rewritten, powerful, tailored profile summary.",
+    "skills_update": {{
+      "technical_skills_to_add": [{{"name": "React", "reason": "Highly requested in JD"}}],
+      "technical_skills_to_remove": [{{"name": "Cobol", "reason": "Irrelevant to this role"}}],
+      "soft_skills_to_add": [{{"name": "Agile", "reason": "Required by employer"}}]
     }},
-    {{
-      "original_name": "Another Project Name",
-      "action": "remove", 
-      "reasoning": "This basic calculator app is irrelevant for a Senior role."
-    }}
-  ]
+    "experience_updates": [
+      {{
+        "company": "Company Name from Resume",
+        "new_description": "Rewritten bullet point 1.\\nRewritten bullet point 2."
+      }}
+    ],
+    "projects_to_keep": [
+      {{
+        "original_name": "Project Name from Resume",
+        "action": "modify", 
+        "reasoning": "Why are we keeping this?",
+        "new_description": "Rewritten description focusing on JD-relevant features.",
+        "additional_technologies": ["Redux"]
+      }},
+      {{
+        "original_name": "Calculator App",
+        "action": "remove", 
+        "reasoning": "Irrelevant for a Senior role."
+      }}
+    ]
+  }}
 }}
 
 RULES:
-1. Return ONLY valid JSON.
+1. Return ONLY valid JSON matching the exact schema above.
 2. "action" for projects MUST be either "modify" or "remove".
 3. Use \\n for bullet point line breaks in descriptions.
-4. ONLY reference companies and projects that actually exist in the CURRENT RESUME block above. Do not hallucinate new jobs.
+4. ONLY reference companies and projects that exist in the CURRENT RESUME block. Do not hallucinate.
 '''
