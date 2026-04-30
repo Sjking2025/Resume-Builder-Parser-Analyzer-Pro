@@ -20,7 +20,7 @@ if env_path.exists():
     load_dotenv(dotenv_path=env_path)
 
 # Check for API key
-GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
+API_KEY = os.getenv("OPENROUTER_API_KEY") or os.getenv("GOOGLE_API_KEY")
 
 
 class HealthResponse(BaseModel):
@@ -51,7 +51,7 @@ async def lifespan(app: FastAPI):
     SystemLogger.info("System", "Loading environment configuration")
     SystemLogger.init("System", "Initializing AI agents...")
     
-    if GOOGLE_API_KEY:
+    if API_KEY:
         # Agent initialization logs per spec
         SystemLogger.ok("ResumeParser", "Resume Parser ready")
         SystemLogger.ok("ATSEngine", "ATS Engine online")
@@ -63,7 +63,7 @@ async def lifespan(app: FastAPI):
         # Ready footer
         SystemLogger.ready_footer()
     else:
-        SystemLogger.warn("System", "GOOGLE_API_KEY not set - AI features disabled")
+        SystemLogger.warn("System", "API key not set - AI features disabled")
     
     yield
 
@@ -91,7 +91,7 @@ async def health_check() -> HealthResponse:
     """Health check endpoint"""
     return HealthResponse(
         status="healthy",
-        api_key_set=bool(GOOGLE_API_KEY)
+        api_key_set=bool(API_KEY)
     )
 
 
@@ -100,10 +100,10 @@ async def import_resume(file: UploadFile = File(...)) -> ImportResponse:
     """
     Parse an uploaded resume PDF and extract structured data.
     """
-    if not GOOGLE_API_KEY:
+    if not API_KEY:
         raise HTTPException(
             status_code=503,
-            detail="AI service not configured. Set GOOGLE_API_KEY."
+            detail="AI service not configured. Set OPENROUTER_API_KEY or GOOGLE_API_KEY."
         )
     
     # Validate file type
@@ -156,11 +156,11 @@ async def analyze_resume_from_data(request: AnalyzeRequest):
     SystemLogger.divider()
     SystemLogger.info("System", "Incoming analysis request received")
     
-    if not GOOGLE_API_KEY:
+    if not API_KEY:
         SystemLogger.error("System", "API key not configured")
         raise HTTPException(
             status_code=503,
-            detail="AI service not configured. Set GOOGLE_API_KEY."
+            detail="AI service not configured. Set OPENROUTER_API_KEY or GOOGLE_API_KEY."
         )
     
     try:
@@ -193,11 +193,11 @@ async def tailor_resume_to_jd(request: AnalyzeRequest):
     SystemLogger.divider()
     SystemLogger.info("System", "Incoming Auto-Tailor request — launching 5-agent pipeline")
     
-    if not GOOGLE_API_KEY:
+    if not API_KEY:
         SystemLogger.error("System", "API key not configured")
         raise HTTPException(
             status_code=503,
-            detail="AI service not configured. Set GOOGLE_API_KEY."
+            detail="AI service not configured. Set OPENROUTER_API_KEY or GOOGLE_API_KEY."
         )
         
     if not request.job_description:
@@ -241,11 +241,11 @@ async def analyze_resume_from_pdf(file: UploadFile = File(...), job_description:
     SystemLogger.divider()
     SystemLogger.info("System", f"Incoming PDF analysis request: {file.filename}")
     
-    if not GOOGLE_API_KEY:
+    if not API_KEY:
         SystemLogger.error("System", "API key not configured")
         raise HTTPException(
             status_code=503,
-            detail="AI service not configured. Set GOOGLE_API_KEY."
+            detail="AI service not configured. Set OPENROUTER_API_KEY or GOOGLE_API_KEY."
         )
     
     # Validate file type
@@ -296,10 +296,10 @@ async def enhance_portfolio(request: AnalyzeRequest):
     Transform resume data into web-optimized portfolio content.
     Returns enhanced content for portfolio generation.
     """
-    if not GOOGLE_API_KEY:
+    if not API_KEY:
         raise HTTPException(
             status_code=503,
-            detail="AI service unavailable. Please set GOOGLE_API_KEY."
+            detail="AI service unavailable. Please set OPENROUTER_API_KEY or GOOGLE_API_KEY."
         )
     
     resume_data = request.resume_data
@@ -334,10 +334,10 @@ async def enhance_portfolio_stream(request: AnalyzeRequest):
     Stream portfolio generation section-by-section using Server-Sent Events.
     Returns real-time progress updates as portfolio is generated.
     """
-    if not GOOGLE_API_KEY:
+    if not API_KEY:
         raise HTTPException(
             status_code=503,
-            detail="AI service unavailable. Please set GOOGLE_API_KEY."
+            detail="AI service unavailable. Please set OPENROUTER_API_KEY or GOOGLE_API_KEY."
         )
     
     resume_data = request.resume_data
@@ -403,10 +403,10 @@ async def analyze_skill_gap(request: SkillGapRequest):
     Analyze the skill gap between a resume and job description.
     Returns matched skills, missing skills, weak skills, and recommendations.
     """
-    if not GOOGLE_API_KEY:
+    if not API_KEY:
         raise HTTPException(
             status_code=503,
-            detail="AI service unavailable. Please set GOOGLE_API_KEY."
+            detail="AI service unavailable. Please set OPENROUTER_API_KEY or GOOGLE_API_KEY."
         )
     
     if not request.resume_data:
@@ -438,10 +438,10 @@ async def generate_roadmap(request: RoadmapRequest):
     Generate a practice-focused learning roadmap based on skill gap analysis.
     40% learning, 60% practice with curated resources.
     """
-    if not GOOGLE_API_KEY:
+    if not API_KEY:
         raise HTTPException(
             status_code=503,
-            detail="AI service unavailable. Please set GOOGLE_API_KEY."
+            detail="AI service unavailable. Please set OPENROUTER_API_KEY or GOOGLE_API_KEY."
         )
     
     if not request.gap_analysis:
@@ -471,10 +471,10 @@ async def generate_roadmap_stream(request: RoadmapRequest):
     Stream roadmap generation using Server-Sent Events.
     Returns real-time progress as each week is generated.
     """
-    if not GOOGLE_API_KEY:
+    if not API_KEY:
         raise HTTPException(
             status_code=503,
-            detail="AI service unavailable. Please set GOOGLE_API_KEY."
+            detail="AI service unavailable. Please set OPENROUTER_API_KEY or GOOGLE_API_KEY."
         )
     
     if not request.gap_analysis:
@@ -515,10 +515,10 @@ async def modify_roadmap(request: ModifyRoadmapRequest):
     Use AI to modify an existing roadmap based on natural language request.
     Examples: "Push Kubernetes to week 3", "Make React harder", "I have less time"
     """
-    if not GOOGLE_API_KEY:
+    if not API_KEY:
         raise HTTPException(
             status_code=503,
-            detail="AI service unavailable. Please set GOOGLE_API_KEY."
+            detail="AI service unavailable. Please set OPENROUTER_API_KEY or GOOGLE_API_KEY."
         )
     
     if not request.current_roadmap:

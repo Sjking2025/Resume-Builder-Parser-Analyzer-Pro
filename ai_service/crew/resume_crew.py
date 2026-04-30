@@ -16,6 +16,37 @@ except ImportError:
     GEMINI_AVAILABLE = False
     print("Warning: google-generativeai not installed")
 
+try:
+    from openai import OpenAI
+    OPENAI_AVAILABLE = True
+except ImportError:
+    OPENAI_AVAILABLE = False
+    print("Warning: openai not installed")
+
+class OpenRouterWrapper:
+    def __init__(self, api_key: str, model_name: str = "google/gemini-2.5-flash:free"):
+        self.client = OpenAI(
+            base_url="https://openrouter.ai/api/v1",
+            api_key=api_key,
+        )
+        self.model_name = model_name
+
+    def generate_content(self, prompt: str, safety_settings=None):
+        # We ignore safety_settings since OpenRouter uses OpenAI's API schema
+        try:
+            completion = self.client.chat.completions.create(
+                model=self.model_name,
+                messages=[{"role": "user", "content": prompt}],
+            )
+            class Response:
+                def __init__(self, text):
+                    self.text = text
+            return Response(completion.choices[0].message.content)
+        except Exception as e:
+            if "quota" in str(e).lower() or "429" in str(e):
+                raise ValueError("OpenRouter API Quota Exceeded. Please try again later.")
+            raise e
+
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # CREWAI-STYLE SYSTEM LOGGER (Premium Agent Telemetry)
@@ -315,9 +346,13 @@ class ResumeCrew:
     
     def __init__(self):
         """Initialize the AI model. Boot logging is handled by main.py lifespan."""
-        self.api_key = os.getenv("GOOGLE_API_KEY")
-        if self.api_key and GEMINI_AVAILABLE:
-            genai.configure(api_key=self.api_key)
+        openrouter_key = os.getenv("OPENROUTER_API_KEY")
+        google_key = os.getenv("GOOGLE_API_KEY")
+        
+        if openrouter_key and OPENAI_AVAILABLE:
+            self.model = OpenRouterWrapper(openrouter_key, "google/gemini-2.5-flash:free")
+        elif google_key and GEMINI_AVAILABLE:
+            genai.configure(api_key=google_key)
             self.model = genai.GenerativeModel('models/gemini-2.5-flash')
         else:
             self.model = None
