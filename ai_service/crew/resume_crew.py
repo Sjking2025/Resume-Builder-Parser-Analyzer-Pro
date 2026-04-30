@@ -451,6 +451,8 @@ class ResumeCrew:
             SystemLogger.error("ResumeParser", f"Parsing failed: {str(e)}")
             import traceback
             traceback.print_exc()
+            if "quota" in str(e).lower() or "429" in str(e):
+                raise ValueError("Gemini API Quota Exceeded. Please check your plan or try again later.")
             return self._get_empty_template()
     
     def _get_parsing_prompt(self, resume_text: str) -> str:
@@ -756,6 +758,8 @@ RULES:
 
         except Exception as e:
             SystemLogger.error("System", f"Analysis failed: {str(e)}")
+            if "quota" in str(e).lower() or "429" in str(e):
+                raise ValueError("Gemini API Quota Exceeded. Please check your plan or try again later.")
             return self._get_empty_analysis()
     
     def _get_analysis_prompt(self, resume_text: str, job_description: Optional[str] = None) -> str:
