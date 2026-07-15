@@ -8,7 +8,7 @@ from typing import Optional
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException, UploadFile, File
+from fastapi import FastAPI, HTTPException, UploadFile, Header, File
 from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -39,7 +39,7 @@ class AnalyzeRequest(BaseModel):
     job_description: Optional[str] = None
 
 
-from crew.resume_crew import SystemLogger
+from crew.logger import SystemLogger
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -96,26 +96,33 @@ async def health_check() -> HealthResponse:
 
 
 @app.post("/import-resume")
-async def import_resume(file: UploadFile = File(...)) -> ImportResponse:
+async def import_resume(file: UploadFile = File(...), x_ai_api_key: Optional[str] = Header(None)) -> ImportResponse:
     """
     Parse an uploaded resume PDF and extract structured data.
     """
-    if not API_KEY:
+    active_key = x_ai_api_key or API_KEY
+    if not active_key:
         raise HTTPException(
             status_code=503,
             detail="AI service not configured. Set OPENROUTER_API_KEY or GOOGLE_API_KEY."
         )
     
-    # Validate file type
-    if not file.filename.lower().endswith('.pdf'):
+    # Validate file type (MIME + extension)
+    MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
+    if file.content_type != 'application/pdf' or not file.filename.lower().endswith('.pdf'):
         raise HTTPException(
             status_code=400,
             detail="Only PDF files are supported"
         )
     
     try:
-        # Read file content
+        # Read file content with size limit
         file_content = await file.read()
+        if len(file_content) > MAX_FILE_SIZE:
+            raise HTTPException(
+                status_code=400,
+                detail="File size exceeds 10MB limit"
+            )
         
         # Extract text from PDF
         from utils.text_extraction import extract_text_from_pdf
@@ -129,7 +136,7 @@ async def import_resume(file: UploadFile = File(...)) -> ImportResponse:
         
         # Parse using AI
         from crew.resume_crew import ResumeCrew
-        crew = ResumeCrew()
+        crew = ResumeCrew(api_key=x_ai_api_key)
         parsed_data = crew.parse_resume_for_import(resume_text)
         
         return ImportResponse(
@@ -148,7 +155,7 @@ async def import_resume(file: UploadFile = File(...)) -> ImportResponse:
 
 
 @app.post("/analyze")
-async def analyze_resume_from_data(request: AnalyzeRequest):
+async def analyze_resume_from_data(request: AnalyzeRequest, x_ai_api_key: Optional[str] = Header(None)):
     """
     Analyze resume data and provide comprehensive feedback.
     """
@@ -156,7 +163,8 @@ async def analyze_resume_from_data(request: AnalyzeRequest):
     SystemLogger.divider()
     SystemLogger.info("System", "Incoming analysis request received")
     
-    if not API_KEY:
+    active_key = x_ai_api_key or API_KEY
+    if not active_key:
         SystemLogger.error("System", "API key not configured")
         raise HTTPException(
             status_code=503,
@@ -165,7 +173,7 @@ async def analyze_resume_from_data(request: AnalyzeRequest):
     
     try:
         from crew.resume_crew import ResumeCrew
-        crew = ResumeCrew()
+        crew = ResumeCrew(api_key=x_ai_api_key)
         analysis = crew.analyze_resume(request.resume_data, request.job_description)
         
         return analysis
@@ -179,7 +187,7 @@ async def analyze_resume_from_data(request: AnalyzeRequest):
 
 
 @app.post("/tailor-resume")
-async def tailor_resume_to_jd(request: AnalyzeRequest):
+async def tailor_resume_to_jd(request: AnalyzeRequest, x_ai_api_key: Optional[str] = Header(None)):
     """
     Runs the full 5-Agent Resume Tailoring Pipeline.
     Pipeline:
@@ -193,7 +201,8 @@ async def tailor_resume_to_jd(request: AnalyzeRequest):
     SystemLogger.divider()
     SystemLogger.info("System", "Incoming Auto-Tailor request — launching 5-agent pipeline")
     
-    if not API_KEY:
+    active_key = x_ai_api_key or API_KEY
+    if not active_key:
         SystemLogger.error("System", "API key not configured")
         raise HTTPException(
             status_code=503,
@@ -209,7 +218,7 @@ async def tailor_resume_to_jd(request: AnalyzeRequest):
         
     try:
         from crew.resume_crew import ResumeCrew
-        crew = ResumeCrew()
+        crew = ResumeCrew(api_key=x_ai_api_key)
         
         # Run the full 5-agent pipeline
         pipeline_result = crew.run_tailoring_pipeline(
@@ -233,7 +242,7 @@ async def tailor_resume_to_jd(request: AnalyzeRequest):
 
 
 @app.post("/analyze-pdf")
-async def analyze_resume_from_pdf(file: UploadFile = File(...), job_description: Optional[str] = None):
+async def analyze_resume_from_pdf(file: UploadFile = File(...), job_description: Optional[str] = None, x_ai_api_key: Optional[str] = Header(None)):
     """
     Analyze an uploaded resume PDF and provide comprehensive feedback.
     """
@@ -241,15 +250,17 @@ async def analyze_resume_from_pdf(file: UploadFile = File(...), job_description:
     SystemLogger.divider()
     SystemLogger.info("System", f"Incoming PDF analysis request: {file.filename}")
     
-    if not API_KEY:
+    active_key = x_ai_api_key or API_KEY
+    if not active_key:
         SystemLogger.error("System", "API key not configured")
         raise HTTPException(
             status_code=503,
             detail="AI service not configured. Set OPENROUTER_API_KEY or GOOGLE_API_KEY."
         )
     
-    # Validate file type
-    if not file.filename.lower().endswith('.pdf'):
+    # Validate file type (MIME + extension)
+    MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
+    if file.content_type != 'application/pdf' or not file.filename.lower().endswith('.pdf'):
         SystemLogger.warn("System", "Invalid file type uploaded")
         raise HTTPException(
             status_code=400,
@@ -257,8 +268,13 @@ async def analyze_resume_from_pdf(file: UploadFile = File(...), job_description:
         )
     
     try:
-        # Read file content
+        # Read file content with size limit
         file_content = await file.read()
+        if len(file_content) > MAX_FILE_SIZE:
+            raise HTTPException(
+                status_code=400,
+                detail="File size exceeds 10MB limit"
+            )
         
         # Extract text from PDF
         from utils.text_extraction import extract_text_from_pdf
@@ -273,7 +289,7 @@ async def analyze_resume_from_pdf(file: UploadFile = File(...), job_description:
         
         # First parse to get structured data
         from crew.resume_crew import ResumeCrew
-        crew = ResumeCrew()
+        crew = ResumeCrew(api_key=x_ai_api_key)
         parsed_data = crew.parse_resume_for_import(resume_text)
         
         # Then analyze
@@ -291,12 +307,13 @@ async def analyze_resume_from_pdf(file: UploadFile = File(...), job_description:
 
 
 @app.post("/portfolio-enhance")
-async def enhance_portfolio(request: AnalyzeRequest):
+async def enhance_portfolio(request: AnalyzeRequest, x_ai_api_key: Optional[str] = Header(None)):
     """
     Transform resume data into web-optimized portfolio content.
     Returns enhanced content for portfolio generation.
     """
-    if not API_KEY:
+    active_key = x_ai_api_key or API_KEY
+    if not active_key:
         raise HTTPException(
             status_code=503,
             detail="AI service unavailable. Please set OPENROUTER_API_KEY or GOOGLE_API_KEY."
@@ -311,7 +328,7 @@ async def enhance_portfolio(request: AnalyzeRequest):
     
     try:
         from crew.resume_crew import ResumeCrew
-        crew = ResumeCrew()
+        crew = ResumeCrew(api_key=x_ai_api_key)
         
         # Transform resume to portfolio content
         portfolio_data = crew.enhance_for_portfolio(resume_data)
@@ -329,12 +346,13 @@ async def enhance_portfolio(request: AnalyzeRequest):
 
 
 @app.post("/portfolio-enhance-stream")
-async def enhance_portfolio_stream(request: AnalyzeRequest):
+async def enhance_portfolio_stream(request: AnalyzeRequest, x_ai_api_key: Optional[str] = Header(None)):
     """
     Stream portfolio generation section-by-section using Server-Sent Events.
     Returns real-time progress updates as portfolio is generated.
     """
-    if not API_KEY:
+    active_key = x_ai_api_key or API_KEY
+    if not active_key:
         raise HTTPException(
             status_code=503,
             detail="AI service unavailable. Please set OPENROUTER_API_KEY or GOOGLE_API_KEY."
@@ -353,7 +371,7 @@ async def enhance_portfolio_stream(request: AnalyzeRequest):
         import json
         
         try:
-            crew = ResumeCrew()
+            crew = ResumeCrew(api_key=x_ai_api_key)
             
             # Stream portfolio generation
             for event in crew.enhance_for_portfolio_streaming(resume_data):
@@ -398,12 +416,13 @@ class ModifyRoadmapRequest(BaseModel):
 
 
 @app.post("/skill-gap/analyze")
-async def analyze_skill_gap(request: SkillGapRequest):
+async def analyze_skill_gap(request: SkillGapRequest, x_ai_api_key: Optional[str] = Header(None)):
     """
     Analyze the skill gap between a resume and job description.
     Returns matched skills, missing skills, weak skills, and recommendations.
     """
-    if not API_KEY:
+    active_key = x_ai_api_key or API_KEY
+    if not active_key:
         raise HTTPException(
             status_code=503,
             detail="AI service unavailable. Please set OPENROUTER_API_KEY or GOOGLE_API_KEY."
@@ -416,7 +435,7 @@ async def analyze_skill_gap(request: SkillGapRequest):
     
     try:
         from crew.resume_crew import ResumeCrew
-        crew = ResumeCrew()
+        crew = ResumeCrew(api_key=x_ai_api_key)
         
         result = crew.analyze_skill_gap(request.resume_data, request.job_description)
         
@@ -433,12 +452,13 @@ async def analyze_skill_gap(request: SkillGapRequest):
 
 
 @app.post("/skill-gap/roadmap")
-async def generate_roadmap(request: RoadmapRequest):
+async def generate_roadmap(request: RoadmapRequest, x_ai_api_key: Optional[str] = Header(None)):
     """
     Generate a practice-focused learning roadmap based on skill gap analysis.
     40% learning, 60% practice with curated resources.
     """
-    if not API_KEY:
+    active_key = x_ai_api_key or API_KEY
+    if not active_key:
         raise HTTPException(
             status_code=503,
             detail="AI service unavailable. Please set OPENROUTER_API_KEY or GOOGLE_API_KEY."
@@ -449,7 +469,7 @@ async def generate_roadmap(request: RoadmapRequest):
     
     try:
         from crew.resume_crew import ResumeCrew
-        crew = ResumeCrew()
+        crew = ResumeCrew(api_key=x_ai_api_key)
         
         result = crew.generate_roadmap(request.gap_analysis, request.learner_profile)
         
@@ -466,12 +486,13 @@ async def generate_roadmap(request: RoadmapRequest):
 
 
 @app.post("/skill-gap/roadmap-stream")
-async def generate_roadmap_stream(request: RoadmapRequest):
+async def generate_roadmap_stream(request: RoadmapRequest, x_ai_api_key: Optional[str] = Header(None)):
     """
     Stream roadmap generation using Server-Sent Events.
     Returns real-time progress as each week is generated.
     """
-    if not API_KEY:
+    active_key = x_ai_api_key or API_KEY
+    if not active_key:
         raise HTTPException(
             status_code=503,
             detail="AI service unavailable. Please set OPENROUTER_API_KEY or GOOGLE_API_KEY."
@@ -485,7 +506,7 @@ async def generate_roadmap_stream(request: RoadmapRequest):
         import json
         
         try:
-            crew = ResumeCrew()
+            crew = ResumeCrew(api_key=x_ai_api_key)
             
             for event in crew.generate_roadmap_streaming(request.gap_analysis, request.learner_profile):
                 yield f"data: {json.dumps(event)}\n\n"
@@ -510,12 +531,13 @@ async def generate_roadmap_stream(request: RoadmapRequest):
 
 
 @app.post("/skill-gap/roadmap/modify")
-async def modify_roadmap(request: ModifyRoadmapRequest):
+async def modify_roadmap(request: ModifyRoadmapRequest, x_ai_api_key: Optional[str] = Header(None)):
     """
     Use AI to modify an existing roadmap based on natural language request.
     Examples: "Push Kubernetes to week 3", "Make React harder", "I have less time"
     """
-    if not API_KEY:
+    active_key = x_ai_api_key or API_KEY
+    if not active_key:
         raise HTTPException(
             status_code=503,
             detail="AI service unavailable. Please set OPENROUTER_API_KEY or GOOGLE_API_KEY."
@@ -528,7 +550,7 @@ async def modify_roadmap(request: ModifyRoadmapRequest):
     
     try:
         from crew.resume_crew import ResumeCrew
-        crew = ResumeCrew()
+        crew = ResumeCrew(api_key=x_ai_api_key)
         
         result = crew.modify_roadmap(request.current_roadmap, request.modification_request)
         
