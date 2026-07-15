@@ -6,12 +6,32 @@
 require('dotenv').config()
 const express = require('express')
 const cors = require('cors')
+const helmet = require('helmet')
+const rateLimit = require('express-rate-limit')
 
 const app = express()
 const PORT = process.env.PORT || 5000
 
-// Middleware
-app.use(cors())
+// Security headers
+app.use(helmet())
+
+// CORS — explicit origin only
+const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173'
+app.use(cors({
+    origin: CLIENT_URL,
+    credentials: true
+}))
+
+// Global rate limiter: 100 requests per 15 minutes per IP
+const globalLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 100,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: 'Too many requests, please try again later' }
+})
+app.use(globalLimiter)
+
 app.use(express.json({ limit: '10mb' }))
 
 // AI Service URL (from environment or default)
@@ -42,9 +62,11 @@ app.get('/', (req, res) => {
     })
 })
 
-// Start server
-app.listen(PORT, () => {
-    console.log(`🚀 Server running on port ${PORT}`)
-})
+// Start server (skip during tests)
+if (process.env.NODE_ENV !== 'test') {
+    app.listen(PORT, () => {
+        console.log(`🚀 Server running on port ${PORT}`)
+    })
+}
 
 module.exports = app

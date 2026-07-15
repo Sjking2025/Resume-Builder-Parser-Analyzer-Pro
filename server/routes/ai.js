@@ -1,12 +1,64 @@
 /**
  * AI Service Routes - Proxy to Python AI service
+ *
+ * SECURITY MODEL (Ephemeral API Key Override)
+ * ─────────────────────────────────────────────
+ * Users can provide their own AI API key via the frontend.
+ * The key is stored ONLY in sessionStorage (cleared on tab close)
+ * and injected into every request as the 'x-ai-api-key' header.
+ *
+ * This gateway MUST:
+ *  1. Forward the header to the Python AI service via getHeaders(req)
+ *  2. NEVER log raw API keys (use safeLogError instead)
+ *  3. NEVER persist the key to disk, database, or cookies
  */
 
 const express = require('express')
+const rateLimit = require('express-rate-limit')
 const multer = require('multer')
 const FormData = require('form-data')
 const axios = require('axios')
+const CircuitBreaker = require('../utils/circuit-breaker')
 const router = express.Router()
+
+// AI routes rate limiter: 20 requests per 15 minutes
+const aiLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 20,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: 'AI rate limit exceeded, please try again later' }
+})
+router.use(aiLimiter)
+
+// Circuit breaker for AI service calls
+const aiCircuitBreaker = new CircuitBreaker(3, 30000)
+
+const aiPost = (url, data, config) => {
+    return aiCircuitBreaker.call(() => axios.post(url, data, config))
+}
+
+/**
+ * Extract the optional user-provided AI API key from the request.
+ * Returns a headers object safe to spread into axios calls.
+ */
+const getHeaders = (req) => {
+    const aiApiKey = req.headers['x-ai-api-key'];
+    return aiApiKey ? { 'x-ai-api-key': aiApiKey } : {};
+};
+
+/**
+ * Safely log errors without leaking API keys.
+ * Redacts any key-like strings from error messages.
+ */
+const safeLogError = (context, error) => {
+    let msg = error.message || String(error);
+    // Redact OpenRouter keys (sk-or-...)
+    msg = msg.replace(/sk-or-[\w-]+/gi, 'sk-or-***REDACTED***');
+    // Redact Google AI keys (AIza...)
+    msg = msg.replace(/AIza[\w-]+/gi, 'AIza***REDACTED***');
+    console.error(`${context}:`, msg);
+};
 
 // Configure multer for file uploads
 const upload = multer({
@@ -51,9 +103,10 @@ router.post('/import-resume', upload.single('file'), async (req, res) => {
             contentType: 'application/pdf'
         })
 
-        const response = await axios.post(`${AI_SERVICE_URL}/import-resume`, formData, {
+        const response = await aiPost(`${AI_SERVICE_URL}/import-resume`, formData, {
             headers: {
-                ...formData.getHeaders()
+                ...formData.getHeaders(),
+                ...getHeaders(req)
             },
             maxContentLength: Infinity,
             maxBodyLength: Infinity
@@ -61,7 +114,7 @@ router.post('/import-resume', upload.single('file'), async (req, res) => {
 
         return res.json(response.data)
     } catch (error) {
-        console.error('Import Resume Error:', error.message)
+        safeLogError('Import Resume Error', error)
 
         if (error.code === 'ECONNREFUSED') {
             return res.status(503).json({
@@ -87,14 +140,16 @@ router.post('/analyze', async (req, res) => {
     try {
         const { resume_data, job_description } = req.body
 
-        const response = await axios.post(`${AI_SERVICE_URL}/analyze`, {
+        const response = await aiPost(`${AI_SERVICE_URL}/analyze`, {
             resume_data,
             job_description
+        }, {
+            headers: getHeaders(req)
         })
 
         return res.json(response.data)
     } catch (error) {
-        console.error('Analyze Resume Error:', error.message)
+        safeLogError('Analyze Resume Error', error)
 
         if (error.code === 'ECONNREFUSED') {
             return res.status(503).json({
@@ -124,14 +179,16 @@ router.post('/tailor-resume', async (req, res) => {
             return res.status(400).json({ error: 'Missing resume_data or job_description' })
         }
 
-        const response = await axios.post(`${AI_SERVICE_URL}/tailor-resume`, {
+        const response = await aiPost(`${AI_SERVICE_URL}/tailor-resume`, {
             resume_data,
             job_description
+        }, {
+            headers: getHeaders(req)
         })
 
         return res.json(response.data)
     } catch (error) {
-        console.error('Tailor Resume Error:', error.message)
+        safeLogError('Tailor Resume Error', error)
 
         if (error.code === 'ECONNREFUSED') {
             return res.status(503).json({
@@ -171,9 +228,10 @@ router.post('/analyze-pdf', upload.single('file'), async (req, res) => {
             formData.append('job_description', req.body.job_description)
         }
 
-        const response = await axios.post(`${AI_SERVICE_URL}/analyze-pdf`, formData, {
+        const response = await aiPost(`${AI_SERVICE_URL}/analyze-pdf`, formData, {
             headers: {
-                ...formData.getHeaders()
+                ...formData.getHeaders(),
+                ...getHeaders(req)
             },
             maxContentLength: Infinity,
             maxBodyLength: Infinity
@@ -181,7 +239,7 @@ router.post('/analyze-pdf', upload.single('file'), async (req, res) => {
 
         return res.json(response.data)
     } catch (error) {
-        console.error('Analyze PDF Error:', error.message)
+        safeLogError('Analyze PDF Error', error)
 
         if (error.code === 'ECONNREFUSED') {
             return res.status(503).json({
@@ -211,13 +269,15 @@ router.post('/portfolio-enhance', async (req, res) => {
             return res.status(400).json({ error: 'No resume data provided' })
         }
 
-        const response = await axios.post(`${AI_SERVICE_URL}/portfolio-enhance`, {
+        const response = await aiPost(`${AI_SERVICE_URL}/portfolio-enhance`, {
             resume_data
+        }, {
+            headers: getHeaders(req)
         })
 
         return res.json(response.data)
     } catch (error) {
-        console.error('Portfolio Enhance Error:', error.message)
+        safeLogError('Portfolio Enhance Error', error)
 
         if (error.code === 'ECONNREFUSED') {
             return res.status(503).json({
@@ -255,9 +315,10 @@ router.post('/portfolio-enhance-stream', async (req, res) => {
         res.flushHeaders()
 
         // Make streaming request to Python service
-        const response = await axios.post(`${AI_SERVICE_URL}/portfolio-enhance-stream`, {
+        const response = await aiPost(`${AI_SERVICE_URL}/portfolio-enhance-stream`, {
             resume_data
         }, {
+            headers: getHeaders(req),
             responseType: 'stream'
         })
 
@@ -277,7 +338,7 @@ router.post('/portfolio-enhance-stream', async (req, res) => {
         })
 
     } catch (error) {
-        console.error('Portfolio Stream Error:', error.message)
+        safeLogError('Portfolio Stream Error', error)
 
         // Send error as SSE event
         res.setHeader('Content-Type', 'text/event-stream')
@@ -319,14 +380,16 @@ router.post('/skill-gap/analyze', async (req, res) => {
             return res.status(400).json({ error: 'No job description provided' })
         }
 
-        const response = await axios.post(`${AI_SERVICE_URL}/skill-gap/analyze`, {
+        const response = await aiPost(`${AI_SERVICE_URL}/skill-gap/analyze`, {
             resume_data,
             job_description
+        }, {
+            headers: getHeaders(req)
         })
 
         return res.json(response.data)
     } catch (error) {
-        console.error('Skill Gap Analysis Error:', error.message)
+        safeLogError('Skill Gap Analysis Error', error)
 
         if (error.code === 'ECONNREFUSED') {
             return res.status(503).json({
@@ -355,14 +418,16 @@ router.post('/skill-gap/roadmap', async (req, res) => {
             return res.status(400).json({ error: 'No gap analysis provided' })
         }
 
-        const response = await axios.post(`${AI_SERVICE_URL}/skill-gap/roadmap`, {
+        const response = await aiPost(`${AI_SERVICE_URL}/skill-gap/roadmap`, {
             gap_analysis,
             learner_profile
+        }, {
+            headers: getHeaders(req)
         })
 
         return res.json(response.data)
     } catch (error) {
-        console.error('Roadmap Generation Error:', error.message)
+        safeLogError('Roadmap Generation Error', error)
 
         if (error.code === 'ECONNREFUSED') {
             return res.status(503).json({
@@ -398,10 +463,11 @@ router.post('/skill-gap/roadmap-stream', async (req, res) => {
         res.setHeader('X-Accel-Buffering', 'no')
         res.flushHeaders()
 
-        const response = await axios.post(`${AI_SERVICE_URL}/skill-gap/roadmap-stream`, {
+        const response = await aiPost(`${AI_SERVICE_URL}/skill-gap/roadmap-stream`, {
             gap_analysis,
             learner_profile
         }, {
+            headers: getHeaders(req),
             responseType: 'stream'
         })
 
@@ -420,7 +486,7 @@ router.post('/skill-gap/roadmap-stream', async (req, res) => {
         })
 
     } catch (error) {
-        console.error('Roadmap Stream Error:', error.message)
+        safeLogError('Roadmap Stream Error', error)
 
         res.setHeader('Content-Type', 'text/event-stream')
         res.flushHeaders()
@@ -449,14 +515,16 @@ router.post('/skill-gap/roadmap/modify', async (req, res) => {
             return res.status(400).json({ error: 'No modification request provided' })
         }
 
-        const response = await axios.post(`${AI_SERVICE_URL}/skill-gap/roadmap/modify`, {
+        const response = await aiPost(`${AI_SERVICE_URL}/skill-gap/roadmap/modify`, {
             current_roadmap,
             modification_request
+        }, {
+            headers: getHeaders(req)
         })
 
         return res.json(response.data)
     } catch (error) {
-        console.error('Roadmap Modify Error:', error.message)
+        safeLogError('Roadmap Modify Error', error)
 
         if (error.code === 'ECONNREFUSED') {
             return res.status(503).json({
