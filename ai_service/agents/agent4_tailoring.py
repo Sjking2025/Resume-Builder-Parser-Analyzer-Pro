@@ -18,7 +18,7 @@ Output:
 import copy
 import json
 import re
-from crew.resume_crew import SystemLogger
+from crew.logger import SystemLogger
 
 
 # ─── PROTECTED PERSONAL FIELDS — NEVER MODIFY ────────────────────────────────

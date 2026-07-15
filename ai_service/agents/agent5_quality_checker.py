@@ -23,7 +23,7 @@ Output:
 """
 
 import copy
-from crew.resume_crew import SystemLogger
+from crew.logger import SystemLogger
 
 
 class QualityCheckerAgent:

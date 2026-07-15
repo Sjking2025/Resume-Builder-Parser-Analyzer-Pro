@@ -27,7 +27,7 @@ Output:
 """
 
 import json
-from crew.resume_crew import SystemLogger
+from crew.logger import SystemLogger
 
 
 JD_ANALYSIS_PROMPT = """
