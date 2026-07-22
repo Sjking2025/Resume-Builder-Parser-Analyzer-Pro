@@ -1,6 +1,4 @@
 import React, { useState, useRef } from 'react'
-import html2canvas from 'html2canvas'
-import { jsPDF } from 'jspdf'
 import useResumeStore from '../../store/useResumeStore'
 // Existing templates
 import ATSTemplate from '../templates/ATSTemplate'
@@ -57,53 +55,161 @@ const LivePreview = () => {
     if (!resumeRef.current) return
     
     setIsExporting(true)
-
+    
     try {
-      const element = resumeRef.current
+      // Get the resume HTML with inline styles
+      const resumeHTML = resumeRef.current.innerHTML
       
-      // Attempt high-definition canvas capture
-      const canvas = await html2canvas(element, {
-        scale: 2,
-        useCORS: true,
-        allowTaint: true,
-        logging: false,
-        backgroundColor: '#ffffff'
-      })
-
-      const imgData = canvas.toDataURL('image/png')
+      // Create a new window with print-optimized content
+      const printWindow = window.open('', '_blank', 'width=800,height=600')
       
-      const pdf = new jsPDF({
-        orientation: 'portrait',
-        unit: 'mm',
-        format: 'a4'
-      })
-
-      const pdfWidth = pdf.internal.pageSize.getWidth()
-      const pageHeight = pdf.internal.pageSize.getHeight()
-      const imgHeight = (canvas.height * pdfWidth) / canvas.width
-      
-      let heightLeft = imgHeight
-      let position = 0
-
-      pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, imgHeight)
-      heightLeft -= pageHeight
-
-      while (heightLeft > 0) {
-        position = heightLeft - imgHeight
-        pdf.addPage()
-        pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, imgHeight)
-        heightLeft -= pageHeight
+      if (!printWindow) {
+        alert('Please allow popups to export the PDF.')
+        setIsExporting(false)
+        return
       }
 
-      const fullName = resume.personalInfo?.fullName || 'Resume'
-      const cleanFileName = `${fullName.replace(/[^a-zA-Z0-9]/g, '_')}_Resume.pdf`
+      // Write the complete HTML document with print styles
+      printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="UTF-8">
+          <title>${resume.personalInfo.fullName || 'Resume'} - Resume</title>
+          <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Georgia&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+          <style>
+            /* Reset and base styles */
+            * {
+              margin: 0;
+              padding: 0;
+              box-sizing: border-box;
+            }
+            
+            html, body {
+              font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+              font-size: 14px;
+              line-height: 1.5;
+              color: #111827;
+              background: white;
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+            }
+            
+            /* Container for the resume */
+            .resume-wrapper {
+              max-width: 210mm;
+              margin: 0 auto;
+              background: white;
+            }
+            
+            /* Ensure colors print correctly */
+            * {
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+              color-adjust: exact !important;
+            }
+            
+            /* Handle page breaks - never break inside these elements */
+            h1, h2, h3, h4, h5, h6 {
+              page-break-after: avoid;
+              break-after: avoid;
+            }
+            
+            /* Keep sections together */
+            .section, [style*="marginBottom"] {
+              page-break-inside: avoid;
+              break-inside: avoid;
+            }
+            
+            /* Keep experience/education entries together */
+            .entry, [style*="paddingLeft"] {
+              page-break-inside: avoid;
+              break-inside: avoid;
+            }
+            
+            /* Print-specific styles */
+            @media print {
+              @page {
+                size: A4;
+                margin: 8mm 8mm 8mm 8mm;
+              }
+              
+              html, body {
+                width: 210mm;
+                min-height: 297mm;
+              }
+              
+              .resume-wrapper {
+                width: 100%;
+                max-width: none;
+                margin: 0;
+                padding: 0;
+              }
+              
+              /* Ensure gradients and backgrounds print */
+              [style*="gradient"], [style*="background"] {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+              }
+              
+              /* Keep list items with their content */
+              li {
+                page-break-inside: avoid;
+                break-inside: avoid;
+              }
+              
+              /* Keep section headers with content */
+              h2 {
+                page-break-after: avoid;
+                break-after: avoid;
+                margin-top: 0 !important;
+              }
+              
+              /* Add some space between pages if needed */
+              .page-break {
+                page-break-before: always;
+              }
+            }
+            
+            /* Screen preview styles */
+            @media screen {
+              body {
+                padding: 20px;
+                background: #f3f4f6;
+              }
+              
+              .resume-wrapper {
+                box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+              }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="resume-wrapper">
+            ${resumeHTML}
+          </div>
+          <script>
+            // Wait for fonts and content to load
+            window.onload = function() {
+              // Small delay to ensure styles are applied
+              setTimeout(function() {
+                window.print();
+                // Close window after print dialog
+                window.onafterprint = function() {
+                  window.close();
+                };
+              }, 500);
+            };
+          </script>
+        </body>
+        </html>
+      `)
       
-      pdf.save(cleanFileName)
+      printWindow.document.close()
       
     } catch (error) {
-      console.warn('Canvas export fallback to native browser print:', error)
-      // Ultimate fail-safe: Native browser print dialog on current tab
-      window.print()
+      console.error('Error exporting PDF:', error)
+      alert('Failed to export PDF. Please try again.')
     } finally {
       setIsExporting(false)
     }
@@ -138,7 +244,7 @@ const LivePreview = () => {
 
       {/* Resume Preview */}
       <div className="flex-1 overflow-auto bg-gray-100 p-8">
-        <div ref={resumeRef} id="printable-resume" className="animate-fade-in">
+        <div ref={resumeRef} className="animate-fade-in">
           <Template resume={resume} formatting={formatting} />
         </div>
       </div>
