@@ -257,23 +257,15 @@ const ProfessionalTemplate = ({ resume, formatting }) => {
         <div style={styles.section}>
           <h2 style={styles.sectionTitle}>Skills</h2>
           {skills.technical.length > 0 && (
-            <div>
+            <div style={{ marginBottom: '8px' }}>
               <div style={{ fontSize: '11px', fontWeight: '600', color: colors.gray700, marginBottom: '4px' }}>Technical</div>
-              <div style={styles.skillsRow}>
-                {skills.technical.map((skill, index) => (
-                  <span key={index} style={styles.skillTagPrimary}>{skill}</span>
-                ))}
-              </div>
+              {renderSkillsList(skills.technical, formatting?.skillsLayout, styles.skillTagPrimary)}
             </div>
           )}
           {skills.soft.length > 0 && (
-            <div>
+            <div style={{ marginBottom: '8px' }}>
               <div style={{ fontSize: '11px', fontWeight: '600', color: colors.gray700, marginBottom: '4px' }}>Soft Skills</div>
-              <div style={styles.skillsRow}>
-                {skills.soft.map((skill, index) => (
-                  <span key={index} style={styles.skillTag}>{skill}</span>
-                ))}
-              </div>
+              {renderSkillsList(skills.soft, formatting?.skillsLayout, styles.skillTag)}
             </div>
           )}
           {skills.languages.length > 0 && (
