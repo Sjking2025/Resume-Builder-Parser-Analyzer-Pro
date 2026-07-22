@@ -81,3 +81,42 @@ test_tailor.py
 test_crew_direct.py
 UI-THEMES/
 ai_service/test_*.py
+
+# ============================================
+# DOCUMENTS — NEVER COMMIT
+# ============================================
+*.pdf
+*.PDF
+*.docx
+*.doc
+*.xlsx
+*.xls
+*.pptx
+*.ppt
+
+# ============================================
+# TEST FILES & REPORTS — NEVER COMMIT
+# ============================================
+test_*.py
+*_report.txt
+*_report.md
+verify_*.py
+
+# ============================================
+# PROJECT MEMORY & INTERNAL DOCS
+# ============================================
+.project-memory/
+.opencode/
+.zencoder/
+.zenflow/
+.audit/
+
+# ============================================
+# BACKUP FILES — NEVER COMMIT
+# ============================================
+*_backup.py
+*_backup.js
+*_backup.jsx
+temp_*.jsx
+temp_*.js
+temp_*.py

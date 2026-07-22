@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { FaHome, FaGlobe, FaSpinner, FaDownload, FaEdit, FaRocket, FaCog, FaEye, FaDesktop, FaTabletAlt, FaMobileAlt } from 'react-icons/fa'
 import useResumeStore from '../store/useResumeStore'
 import usePortfolioStore from '../store/usePortfolioStore'
-import { API_ENDPOINTS } from '../config/api'
+import { API_ENDPOINTS, apiFetch } from '../config/api'
 import ThemeSelector from '../components/portfolio/ThemeSelector'
 import PortfolioPreview from '../components/portfolio/PortfolioPreview'
 import GenerationProgress from '../components/portfolio/GenerationProgress'
@@ -76,7 +76,7 @@ const PortfolioBuilder = () => {
     }
 
     try {
-      const response = await fetch(API_ENDPOINTS.portfolioEnhanceStream, {
+      const response = await apiFetch(API_ENDPOINTS.portfolioEnhanceStream, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ resume_data: resume })

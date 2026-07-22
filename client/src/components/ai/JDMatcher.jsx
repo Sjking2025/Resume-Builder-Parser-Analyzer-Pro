@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { FaBriefcase, FaSpinner, FaMagic } from 'react-icons/fa'
 import { useNavigate } from 'react-router-dom'
 import useResumeStore from '../../store/useResumeStore'
-import { API_ENDPOINTS } from '../../config/api'
+import { API_ENDPOINTS, apiFetch } from '../../config/api'
 
 /**
  * JD Matcher Component
@@ -29,7 +29,7 @@ const JDMatcher = ({
     setTailorError(null)
 
     try {
-      const response = await fetch(API_ENDPOINTS.tailorResume, {
+      const response = await apiFetch(API_ENDPOINTS.tailorResume, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

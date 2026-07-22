@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react'
 import { FaUpload, FaSpinner, FaCheck, FaTimes, FaFileAlt } from 'react-icons/fa'
-import { API_ENDPOINTS } from '../../config/api'
+import { API_ENDPOINTS, apiFetch } from '../../config/api'
 
 /**
  * ResumeImportModal - Upload and parse existing resume PDF to auto-fill form
@@ -66,7 +66,7 @@ const ResumeImportModal = ({ isOpen, onClose, onImport }) => {
       const formData = new FormData()
       formData.append('file', file)
 
-      const response = await fetch(API_ENDPOINTS.importResume, {
+      const response = await apiFetch(API_ENDPOINTS.importResume, {
         method: 'POST',
         body: formData
       })

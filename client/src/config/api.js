@@ -30,4 +30,16 @@ export const API_ENDPOINTS = {
     exportPdf: `${API_BASE_URL}/api/pdf/export`,
 }
 
+/**
+ * Wrapper around native fetch to automatically attach custom API keys
+ */
+export const apiFetch = async (url, options = {}) => {
+  const apiKey = sessionStorage.getItem('customApiKey')
+  const headers = {
+    ...options.headers,
+    ...(apiKey ? { 'x-ai-api-key': apiKey } : {})
+  }
+  return fetch(url, { ...options, headers })
+}
+
 export default API_BASE_URL

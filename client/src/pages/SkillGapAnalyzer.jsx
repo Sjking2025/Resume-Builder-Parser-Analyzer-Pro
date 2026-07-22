@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { FaHome, FaBullseye, FaSearch, FaRocket, FaSpinner, FaCheckCircle, FaExclamationTriangle, FaTimesCircle, FaClock, FaEdit, FaPaperPlane, FaTimes, FaMagic } from 'react-icons/fa'
 import useResumeStore from '../store/useResumeStore'
-import { API_ENDPOINTS } from '../config/api'
+import { API_ENDPOINTS, apiFetch } from '../config/api'
 import SquareLoader from '../components/common/SquareLoader'
 import BanterLoader from '../components/common/BanterLoader'
 import PencilLoader from '../components/common/PencilLoader'
@@ -112,7 +112,7 @@ const SkillGapAnalyzer = () => {
     setError(null)
 
     try {
-      const response = await fetch(API_ENDPOINTS.tailorResume, {
+      const response = await apiFetch(API_ENDPOINTS.tailorResume, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -223,7 +223,7 @@ const SkillGapAnalyzer = () => {
     }, 500)
     
     try {
-      const response = await fetch(API_ENDPOINTS.skillGapAnalyze, {
+      const response = await apiFetch(API_ENDPOINTS.skillGapAnalyze, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
@@ -284,7 +284,7 @@ const SkillGapAnalyzer = () => {
     setWeeks([])
     
     try {
-      const response = await fetch(API_ENDPOINTS.skillGapRoadmapStream, {
+      const response = await apiFetch(API_ENDPOINTS.skillGapRoadmapStream, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
@@ -354,7 +354,7 @@ const SkillGapAnalyzer = () => {
     setIsModifying(true)
     
     try {
-      const response = await fetch(API_ENDPOINTS.skillGapRoadmapModify, {
+      const response = await apiFetch(API_ENDPOINTS.skillGapRoadmapModify, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -605,19 +605,26 @@ const SkillGapAnalyzer = () => {
             </div>
             
             {/* Recommendations */}
-            {gapAnalysis.recommendations?.length > 0 && (
-              <div className="bg-blue-50 rounded-2xl p-6 border border-blue-200">
-                <h3 className="font-bold text-blue-800 mb-3">💡 Recommendations</h3>
-                <ul className="space-y-2">
-                  {gapAnalysis.recommendations.map((rec, i) => (
-                    <li key={i} className="flex items-start gap-2 text-sm text-blue-700">
-                      <span className="mt-1">•</span>
-                      <span>{rec}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
+            {(() => {
+              const recs = Array.isArray(gapAnalysis.recommendations)
+                ? gapAnalysis.recommendations
+                : typeof gapAnalysis.recommendations === 'string'
+                  ? [gapAnalysis.recommendations]
+                  : [];
+              return recs.length > 0 ? (
+                <div className="bg-blue-50 rounded-2xl p-6 border border-blue-200">
+                  <h3 className="font-bold text-blue-800 mb-3">💡 Recommendations</h3>
+                  <ul className="space-y-2">
+                    {recs.map((rec, i) => (
+                      <li key={i} className="flex items-start gap-2 text-sm text-blue-700">
+                        <span className="mt-1">•</span>
+                        <span>{typeof rec === 'string' ? rec : rec.text || JSON.stringify(rec)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null;
+            })()}
             
             {/* Auto-Tailor Resume Button (Inserted Before Roadmap) */}
             <div className="bg-gradient-to-r from-purple-50 to-indigo-50 border border-indigo-100 rounded-2xl p-6 shadow-sm mb-6 mt-4">
