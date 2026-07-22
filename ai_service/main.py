@@ -39,6 +39,18 @@ class AnalyzeRequest(BaseModel):
     job_description: Optional[str] = None
 
 
+class ConvertCVRequest(BaseModel):
+    cv_data: dict
+    config: dict
+
+
+class DocumentImportResponse(BaseModel):
+    success: bool
+    message: str
+    data: dict
+    documentDetection: dict
+
+
 from crew.logger import SystemLogger
 
 @asynccontextmanager
@@ -153,6 +165,116 @@ async def import_resume(file: UploadFile = File(...), x_ai_api_key: Optional[str
             detail=f"Error parsing resume: {str(e)}"
         )
 
+
+@app.post("/import-document")
+async def import_document(file: UploadFile = File(...), x_ai_api_key: Optional[str] = Header(None)) -> DocumentImportResponse:
+    """
+    Parse an uploaded CV or Resume PDF/DOCX and extract structured data with type detection.
+    """
+    active_key = x_ai_api_key or API_KEY
+    if not active_key:
+        raise HTTPException(
+            status_code=503,
+            detail="AI service not configured. Set OPENROUTER_API_KEY or GOOGLE_API_KEY."
+        )
+    
+    # Validate file type (MIME + extension)
+    MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
+    filename = file.filename.lower()
+    
+    is_pdf = file.content_type == 'application/pdf' or filename.endswith('.pdf')
+    is_docx = file.content_type == 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' or filename.endswith('.docx')
+    
+    if not (is_pdf or is_docx):
+        raise HTTPException(
+            status_code=400,
+            detail="Only PDF and DOCX files are supported"
+        )
+    
+    try:
+        file_content = await file.read()
+        if len(file_content) > MAX_FILE_SIZE:
+            raise HTTPException(
+                status_code=400,
+                detail="File size exceeds 10MB limit"
+            )
+        
+        from utils.text_extraction import extract_text_from_pdf, extract_text_from_docx
+        
+        if is_pdf:
+            document_text = extract_text_from_pdf(file_content)
+        else:
+            document_text = extract_text_from_docx(file_content)
+            
+        if not document_text or len(document_text.strip()) < 50:
+            raise HTTPException(
+                status_code=400,
+                detail="Could not extract text from document."
+            )
+        
+        # Parse using AI
+        from crew.resume_crew import ResumeCrew
+        crew = ResumeCrew(api_key=x_ai_api_key)
+        parsed_data = crew.parse_document(document_text)
+        
+        document_detection = parsed_data.pop("documentDetection", {
+            "type": "resume",
+            "confidence": 50,
+            "signals": ["fallback"]
+        })
+        
+        return DocumentImportResponse(
+            success=True,
+            message="Document parsed successfully",
+            data=parsed_data,
+            documentDetection=document_detection
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error parsing document: {str(e)}"
+        )
+
+
+@app.post("/convert-cv-to-resume")
+async def convert_cv_to_resume(request: ConvertCVRequest, x_ai_api_key: Optional[str] = Header(None)):
+    """
+    Convert a parsed CV into a concise Resume.
+    """
+    active_key = x_ai_api_key or API_KEY
+    if not active_key:
+        raise HTTPException(
+            status_code=503,
+            detail="AI service not configured. Set OPENROUTER_API_KEY or GOOGLE_API_KEY."
+        )
+        
+    try:
+        from crew.resume_crew import ResumeCrew
+        crew = ResumeCrew(api_key=x_ai_api_key)
+        
+        result = crew.convert_cv_to_resume(
+            request.cv_data,
+            request.config
+        )
+        
+        if not result["success"]:
+            raise HTTPException(
+                status_code=500,
+                detail=result.get("error", "Conversion failed")
+            )
+            
+        return result
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error converting CV to Resume: {str(e)}"
+        )
 
 @app.post("/analyze")
 async def analyze_resume_from_data(request: AnalyzeRequest, x_ai_api_key: Optional[str] = Header(None)):

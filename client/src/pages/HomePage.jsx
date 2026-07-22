@@ -64,6 +64,13 @@ const HomePage = () => {
               <FaGlobe /> Generate Portfolio
             </button>
             <button
+              onClick={() => navigate('/convert')}
+              className="bg-gradient-to-r from-indigo-500 to-blue-500 hover:from-indigo-600 hover:to-blue-600 text-white text-lg px-10 py-4 rounded-xl font-semibold transition-all shadow-lg hover:shadow-xl inline-flex items-center gap-3 animate-slide-up"
+              style={{ animationDelay: '250ms' }}
+            >
+              <FaFileAlt /> Convert CV to Resume
+            </button>
+            <button
               onClick={() => navigate('/skill-gap')}
               className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white text-lg px-10 py-4 rounded-xl font-semibold transition-all shadow-lg hover:shadow-xl inline-flex items-center gap-3 animate-slide-up"
               style={{ animationDelay: '300ms' }}

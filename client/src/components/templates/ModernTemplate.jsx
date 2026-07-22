@@ -1,4 +1,5 @@
 import React from 'react'
+import GenericSection from './GenericSection'
 import { FaEnvelope, FaPhone, FaMapMarkerAlt, FaLinkedin, FaGithub, FaGlobe, FaBriefcase, FaGraduationCap, FaCode, FaTrophy } from 'react-icons/fa'
 
 const ModernTemplate = ({ resume, formatting }) => {
@@ -304,6 +305,20 @@ const ModernTemplate = ({ resume, formatting }) => {
           </div>
         )}
       </div>
+
+      {/* CV Sections */}
+      {resume.documentType === 'cv' && [
+        "publications", "research", "certifications", "awards", "patents",
+        "conferences", "workshops", "internships", "leadership", "volunteer",
+        "interests", "references"
+      ].map(key => (
+        <GenericSection key={key} title={key} items={resume[key]} />
+      ))}
+
+      {/* Custom Sections */}
+      {resume.customSections && resume.customSections.map((section, idx) => (
+        <GenericSection key={idx} title={section.title} items={section.items} />
+      ))}
     </div>
   )
 }

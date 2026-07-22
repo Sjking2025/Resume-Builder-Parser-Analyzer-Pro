@@ -35,7 +35,21 @@ def normalize_import_data(data: dict) -> dict:
         "experience": [],
         "projects": [],
         "skills": {"technical": [], "soft": [], "languages": []},
-        "achievements": []
+        "achievements": [],
+        # CV Extensions
+        "publications": [],
+        "research": [],
+        "certifications": [],
+        "awards": [],
+        "patents": [],
+        "conferences": [],
+        "workshops": [],
+        "internships": [],
+        "leadership": [],
+        "volunteer": [],
+        "interests": [],
+        "references": [],
+        "customSections": []
     }
 
     if not data:
@@ -46,7 +60,14 @@ def normalize_import_data(data: dict) -> dict:
             if k in template["personalInfo"]:
                 template["personalInfo"][k] = v
 
-    for list_field in ["education", "experience", "projects", "achievements"]:
+    list_fields = [
+        "education", "experience", "projects", "achievements",
+        "publications", "research", "certifications", "awards", "patents",
+        "conferences", "workshops", "internships", "leadership", "volunteer",
+        "interests", "references", "customSections"
+    ]
+    
+    for list_field in list_fields:
         if list_field in data and isinstance(data[list_field], list):
             template[list_field] = data[list_field]
 
@@ -126,6 +147,167 @@ RULES:
 3. Mark "current": true if job says Present/Current
 4. Respond with ONLY valid JSON, no other text'''
 
+
+def get_cv_parsing_prompt(document_text: str) -> str:
+    """Generate the prompt for parsing CV and Resume text with type detection."""
+    return f'''Analyze this document and extract ALL information into JSON format.
+Detect if it is a "resume" (typically 1-2 pages, focused on jobs) or a "cv" (often longer, includes academic/research/publications/conferences).
+
+DOCUMENT TEXT:
+{document_text}
+
+OUTPUT FORMAT (valid JSON only):
+{{
+  "documentDetection": {{
+    "type": "cv or resume",
+    "confidence": 0-100,
+    "signals": ["signal1", "signal2"]
+  }},
+  "personalInfo": {{
+    "fullName": "name",
+    "email": "email",
+    "phone": "phone",
+    "location": "city, state",
+    "linkedin": "linkedin url or empty",
+    "github": "github url or empty",
+    "portfolio": "website url or empty",
+    "summary": "professional summary"
+  }},
+  "education": [
+    {{
+      "degree": "degree name",
+      "field": "field of study",
+      "institution": "school name",
+      "location": "school location",
+      "graduationDate": "date",
+      "gpa": "gpa or empty"
+    }}
+  ],
+  "experience": [
+    {{
+      "title": "job title",
+      "company": "company name",
+      "location": "job location",
+      "startDate": "start date",
+      "endDate": "end date or empty if current",
+      "current": false,
+      "description": "bullet points as text"
+    }}
+  ],
+  "projects": [
+    {{
+      "name": "project name",
+      "technologies": "comma-separated tech",
+      "description": "description",
+      "link": "url or empty"
+    }}
+  ],
+  "skills": {{
+    "technical": ["skill1", "skill2"],
+    "soft": ["skill1", "skill2"],
+    "languages": ["language1"]
+  }},
+  "achievements": [
+    {{
+      "title": "achievement title",
+      "date": "date or empty",
+      "description": "description or empty"
+    }}
+  ],
+  "publications": [
+    {{ "title": "title", "authors": "authors", "journal": "journal/conference", "year": "year", "url": "url" }}
+  ],
+  "research": [
+    {{ "title": "title", "institution": "institution", "description": "description", "startDate": "start", "endDate": "end" }}
+  ],
+  "certifications": [
+    {{ "name": "name", "issuer": "issuer", "date": "date", "url": "url" }}
+  ],
+  "awards": [
+    {{ "title": "title", "issuer": "issuer", "date": "date", "description": "description" }}
+  ],
+  "patents": [
+    {{ "title": "title", "number": "number", "date": "date", "url": "url" }}
+  ],
+  "conferences": [
+    {{ "title": "title", "role": "speaker/attendee", "date": "date", "location": "location" }}
+  ],
+  "workshops": [
+    {{ "title": "title", "role": "instructor/attendee", "date": "date", "location": "location" }}
+  ],
+  "internships": [
+    {{ "title": "title", "company": "company", "description": "description", "startDate": "start", "endDate": "end" }}
+  ],
+  "leadership": [
+    {{ "title": "title", "organization": "organization", "description": "description", "startDate": "start", "endDate": "end" }}
+  ],
+  "volunteer": [
+    {{ "title": "title", "organization": "organization", "description": "description", "startDate": "start", "endDate": "end" }}
+  ],
+  "interests": [
+    {{ "name": "interest name" }}
+  ],
+  "references": [
+    {{ "name": "name", "title": "title", "company": "company", "contact": "email/phone" }}
+  ],
+  "customSections": [
+    {{ "title": "section title", "items": [ {{ "title": "item title", "description": "description", "date": "date" }} ] }}
+  ]
+}}
+
+RULES:
+1. Extract ALL information found, assigning to the closest matching section.
+2. Use empty string "" if not found.
+3. Mark "current": true if experience/research says Present/Current.
+4. Respond with ONLY valid JSON, no other text.'''
+
+
+def get_cv_to_resume_prompt(cv_data: dict, config: dict) -> str:
+    """Generate the prompt to convert a parsed CV into a concise Resume."""
+    return f'''
+You are an expert Executive Recruiter and Resume Writer. 
+Your task is to take a comprehensive Curriculum Vitae (CV) and distill it into a concise, high-impact Resume based on the provided configuration.
+
+────────────────────────────────────────────
+CV DATA:
+{json.dumps(cv_data, indent=2)}
+
+CONFIGURATION:
+Target Pages: {config.get('targetPages', '1')}
+Style: {config.get('style', 'ats')}
+Experience Level: {config.get('experienceLevel', 'mid')}
+Industry Focus: {config.get('industryFocus', 'general')}
+────────────────────────────────────────────
+
+TASK:
+1. Intelligently compress and prioritize the CV data to fit the target length and industry focus.
+2. Retain the most impactful experiences, projects, and skills.
+3. Merge relevant academic/research achievements into "experience" or "projects" if they fit the industry focus.
+4. DO NOT fabricate or hallucinate any information. Preserve factual accuracy.
+5. Provide a conversion report explaining what was removed or compressed.
+
+OUTPUT FORMAT (valid JSON only):
+{{
+  "conversionReport": {{
+    "strategy": "Brief explanation of the conversion strategy",
+    "sectionsRemoved": ["publications", "conferences"],
+    "itemsCompressed": 3
+  }},
+  "resumeData": {{
+    "personalInfo": {{ ... }},
+    "education": [ ... ],
+    "experience": [ ... ],
+    "projects": [ ... ],
+    "skills": {{ "technical": [], "soft": [], "languages": [] }},
+    "achievements": [ ... ]
+  }}
+}}
+
+RULES:
+1. Return ONLY valid JSON matching the exact schema above.
+2. Do not use markdown code blocks. Just the raw JSON.
+3. The `resumeData` MUST strictly use the 6 core resume sections (personalInfo, education, experience, projects, skills, achievements).
+'''
 
 def get_empty_template() -> dict:
     """Return empty template structure."""

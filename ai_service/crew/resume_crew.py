@@ -19,8 +19,9 @@ from .prompts import (
     get_portfolio_prompt,
     get_empty_portfolio,
     get_tailor_prompt,
+    get_cv_parsing_prompt,
+    get_cv_to_resume_prompt,
 )
-
 
 class ResumeCrew:
     """Orchestrates AI agents for resume analysis"""
@@ -178,9 +179,114 @@ class ResumeCrew:
             SystemLogger.error("ResumeParser", f"Parsing failed: {str(e)}")
             import traceback
             traceback.print_exc()
+            if "429" in str(e):
+                raise ValueError("Gemini API Quota Exceeded. Please check your plan or try again later.")
+            return get_empty_template()
+    
+    def parse_document(self, document_text: str) -> dict:
+        """Parse CV or Resume text with document type detection."""
+        SystemLogger.run("DocumentParser", "Parsing document sections...")
+        
+        if not self.model:
+            SystemLogger.error("DocumentParser", "AI Service unavailable")
+            raise ValueError("AI model not initialized.")
+        
+        SystemLogger.info("DocumentParser", f"Processing {len(document_text)} characters...")
+        prompt = get_cv_parsing_prompt(document_text)
+        
+        try:
+            safety_settings = [
+                {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
+                {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
+                {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"},
+                {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"},
+            ]
+            
+            response = self.model.generate_content(
+                prompt,
+                safety_settings=safety_settings
+            )
+            
+            if not response.text:
+                SystemLogger.error("DocumentParser", "Empty response from AI Core")
+                return get_empty_template()
+            
+            parsed_data = extract_json(response.text)
+            
+            if not parsed_data:
+                SystemLogger.warn("DocumentParser", "Enhanced extraction failed, falling back to basic parser")
+                return self.parse_resume_for_import(document_text)
+            
+            # Default missing documentDetection if the AI forgot it
+            if "documentDetection" not in parsed_data:
+                parsed_data["documentDetection"] = {
+                    "type": "resume",
+                    "confidence": 50,
+                    "signals": ["fallback detection"]
+                }
+                
+            doc_type = parsed_data["documentDetection"].get("type", "resume")
+            conf = parsed_data["documentDetection"].get("confidence", 0)
+            
+            SystemLogger.done("DocumentParser", f"Document parsed successfully ({doc_type} detected with {conf}% confidence)")
+            return normalize_import_data(parsed_data)
+            
+        except Exception as e:
+            SystemLogger.error("DocumentParser", f"Parsing failed: {str(e)}")
+            import traceback
+            traceback.print_exc()
             if "quota" in str(e).lower() or "429" in str(e):
                 raise ValueError("Gemini API Quota Exceeded. Please check your plan or try again later.")
             return get_empty_template()
+
+    def convert_cv_to_resume(self, cv_data: dict, config: dict) -> dict:
+        """Convert a parsed CV into a concise Resume based on configuration."""
+        SystemLogger.run("CVConverter", f"Converting CV to Resume (Target: {config.get('targetPages', '1')} pages)")
+        
+        if not self.model:
+            SystemLogger.error("CVConverter", "AI Service unavailable")
+            raise ValueError("AI model not initialized.")
+            
+        prompt = get_cv_to_resume_prompt(cv_data, config)
+        
+        try:
+            safety_settings = [
+                {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
+                {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
+                {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"},
+                {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"},
+            ]
+            
+            response = self.model.generate_content(prompt, safety_settings=safety_settings)
+            
+            if not response.text:
+                SystemLogger.error("CVConverter", "Empty response from AI Core")
+                raise ValueError("AI returned empty response")
+                
+            parsed_data = extract_json(response.text)
+            
+            if not parsed_data or "resumeData" not in parsed_data:
+                SystemLogger.error("CVConverter", "Failed to extract valid resume data from response")
+                raise ValueError("Failed to parse AI response into valid JSON")
+                
+            report = parsed_data.get("conversionReport", {})
+            SystemLogger.done("CVConverter", f"Conversion complete. Strategy: {report.get('strategy', 'Unknown')}")
+            
+            # Return both the data and the report so the frontend can show it
+            return {
+                "success": True,
+                "resumeData": normalize_import_data(parsed_data["resumeData"]),
+                "conversionReport": report
+            }
+            
+        except Exception as e:
+            SystemLogger.error("CVConverter", f"Conversion failed: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return {
+                "success": False,
+                "error": str(e)
+            }
     
     def analyze_resume(self, resume_data: dict, job_description: Optional[str] = None) -> dict:
         """Analyze resume using 5 specialized AI agents with CrewAI-style logging."""

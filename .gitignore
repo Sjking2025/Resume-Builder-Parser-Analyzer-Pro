@@ -120,3 +120,8 @@ verify_*.py
 temp_*.jsx
 temp_*.js
 temp_*.py
+
+# Local Scripts & Docs
+*.cjs
+*.mjs
+CV_*.md

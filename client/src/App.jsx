@@ -6,6 +6,7 @@ import HomePage from './pages/HomePage'
 import AIAnalysisPage from './pages/AIAnalysisPage'
 import PortfolioBuilder from './pages/PortfolioBuilder'
 import SkillGapAnalyzer from './pages/SkillGapAnalyzer'
+import CVConversionPage from './pages/CVConversionPage'
 import ApiKeyModal from './components/common/ApiKeyModal'
 import './App.css'
 
@@ -19,6 +20,7 @@ function App() {
           <Route path="/analyze" element={<AIAnalysisPage />} />
           <Route path="/portfolio" element={<PortfolioBuilder />} />
           <Route path="/skill-gap" element={<SkillGapAnalyzer />} />
+          <Route path="/convert" element={<CVConversionPage />} />
         </Routes>
         <ApiKeyModal />
       </div>

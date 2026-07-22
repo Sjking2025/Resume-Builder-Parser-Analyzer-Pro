@@ -12,6 +12,8 @@ export const API_ENDPOINTS = {
     improve: `${API_BASE_URL}/api/ai/improve`,
     careerAdvice: `${API_BASE_URL}/api/ai/career-advice`,
     importResume: `${API_BASE_URL}/api/ai/import-resume`,
+    importDocument: `${API_BASE_URL}/api/ai/import-document`,
+    convertCvToResume: `${API_BASE_URL}/api/ai/convert-cv-to-resume`,
     portfolioEnhance: `${API_BASE_URL}/api/ai/portfolio-enhance`,
     portfolioEnhanceStream: `${API_BASE_URL}/api/ai/portfolio-enhance-stream`,
 

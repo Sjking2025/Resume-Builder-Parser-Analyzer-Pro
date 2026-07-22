@@ -133,6 +133,88 @@ router.post('/import-resume', upload.single('file'), async (req, res) => {
 })
 
 /**
+ * POST /api/ai/import-document
+ * Parse a PDF or DOCX CV/Resume and extract structured data
+ */
+router.post('/import-document', upload.single('file'), async (req, res) => {
+    if (!req.file) {
+        return res.status(400).json({ error: 'No file uploaded' })
+    }
+
+    try {
+        const formData = new FormData()
+        formData.append('file', req.file.buffer, {
+            filename: req.file.originalname,
+            contentType: req.file.mimetype || 'application/pdf'
+        })
+
+        const response = await aiPost(`${AI_SERVICE_URL}/import-document`, formData, {
+            headers: {
+                ...formData.getHeaders(),
+                ...getHeaders(req)
+            },
+            maxContentLength: Infinity,
+            maxBodyLength: Infinity
+        })
+
+        return res.json(response.data)
+    } catch (error) {
+        safeLogError('Import Document Error', error)
+
+        if (error.code === 'ECONNREFUSED') {
+            return res.status(503).json({
+                error: 'AI service is not running',
+                message: 'Please start the Python AI service'
+            })
+        }
+
+        if (error.response) {
+            return res.status(error.response.status).json(error.response.data)
+        }
+
+        return res.status(500).json({ error: error.message })
+    }
+})
+
+/**
+ * POST /api/ai/convert-cv-to-resume
+ * Convert a parsed CV into a concise Resume
+ */
+router.post('/convert-cv-to-resume', async (req, res) => {
+    try {
+        const { cv_data, config } = req.body
+
+        if (!cv_data || !config) {
+            return res.status(400).json({ error: 'Missing cv_data or config' })
+        }
+
+        const response = await aiPost(`${AI_SERVICE_URL}/convert-cv-to-resume`, {
+            cv_data,
+            config
+        }, {
+            headers: getHeaders(req)
+        })
+
+        return res.json(response.data)
+    } catch (error) {
+        safeLogError('Convert CV Error', error)
+
+        if (error.code === 'ECONNREFUSED') {
+            return res.status(503).json({
+                error: 'AI service is not running',
+                message: 'Please start the Python AI service'
+            })
+        }
+
+        if (error.response) {
+            return res.status(error.response.status).json(error.response.data)
+        }
+
+        return res.status(500).json({ error: error.message })
+    }
+})
+
+/**
  * POST /api/ai/analyze
  * Analyze resume data with AI (from editor)
  */

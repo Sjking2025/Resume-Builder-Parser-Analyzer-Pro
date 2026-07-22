@@ -1,17 +1,23 @@
 import React, { useState, useCallback } from 'react'
-import { FaUpload, FaSpinner, FaCheck, FaTimes, FaFileAlt } from 'react-icons/fa'
+import { FaUpload, FaSpinner, FaCheck, FaTimes, FaFileAlt, FaMagic, FaExchangeAlt, FaRobot } from 'react-icons/fa'
 import { API_ENDPOINTS, apiFetch } from '../../config/api'
 
 /**
- * ResumeImportModal - Upload and parse existing resume PDF to auto-fill form
+ * ResumeImportModal - Upload and parse existing resume/CV PDF/DOCX
  */
-const ResumeImportModal = ({ isOpen, onClose, onImport }) => {
+const ResumeImportModal = ({ isOpen, onClose, onImport, onNavigateToConversion }) => {
   const [file, setFile] = useState(null)
   const [isDragging, setIsDragging] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState(null)
+  
   const [parsedData, setParsedData] = useState(null)
+  const [documentDetection, setDocumentDetection] = useState(null)
   const [progress, setProgress] = useState(0)
+  
+  // Steps: 'upload' -> 'parsing' -> 'detection' -> 'preview'
+  // Conversion config happens on a dedicated page as per Phase 6 of the plan.
+  const [step, setStep] = useState('upload')
 
   // Handle file drop
   const handleDrop = useCallback((e) => {
@@ -19,22 +25,27 @@ const ResumeImportModal = ({ isOpen, onClose, onImport }) => {
     setIsDragging(false)
     
     const droppedFile = e.dataTransfer.files[0]
-    if (droppedFile?.type === 'application/pdf') {
-      setFile(droppedFile)
-      setError(null)
-    } else {
-      setError('Please upload a PDF file')
-    }
+    validateAndSetFile(droppedFile)
   }, [])
 
   // Handle file selection
   const handleFileSelect = (e) => {
     const selectedFile = e.target.files[0]
-    if (selectedFile?.type === 'application/pdf') {
+    validateAndSetFile(selectedFile)
+  }
+
+  const validateAndSetFile = (selectedFile) => {
+    if (!selectedFile) return
+    const validTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']
+    const validExtensions = ['.pdf', '.docx']
+    const isDocx = selectedFile.name.toLowerCase().endsWith('.docx')
+    const isPdf = selectedFile.name.toLowerCase().endsWith('.pdf')
+    
+    if (validTypes.includes(selectedFile.type) || isDocx || isPdf) {
       setFile(selectedFile)
       setError(null)
     } else {
-      setError('Please upload a PDF file')
+      setError('Please upload a PDF or DOCX file')
     }
   }
 
@@ -55,35 +66,37 @@ const ResumeImportModal = ({ isOpen, onClose, onImport }) => {
     return () => clearInterval(interval)
   }, [isLoading])
 
-  // Parse resume using AI
+  // Parse document using AI
   const handleParse = async () => {
     if (!file) return
 
     setIsLoading(true)
     setError(null)
+    setStep('parsing')
 
     try {
       const formData = new FormData()
       formData.append('file', file)
 
-      const response = await apiFetch(API_ENDPOINTS.importResume, {
+      const response = await apiFetch(API_ENDPOINTS.importDocument, {
         method: 'POST',
         body: formData
       })
 
       if (!response.ok) {
         const errData = await response.json().catch(() => ({}))
-        throw new Error(errData.detail || errData.error || 'Failed to parse resume')
+        throw new Error(errData.detail || errData.error || 'Failed to parse document')
       }
 
       const result = await response.json()
       
       if (result.success && result.data) {
         setProgress(100)
-        // Small delay to show completion before switching view
         setTimeout(() => {
           setParsedData(result.data)
+          setDocumentDetection(result.documentDetection || { type: 'resume', confidence: 100 })
           setIsLoading(false)
+          setStep('detection')
         }, 300)
       } else {
         throw new Error('Invalid response from server')
@@ -91,13 +104,24 @@ const ResumeImportModal = ({ isOpen, onClose, onImport }) => {
     } catch (err) {
       setError(err.message)
       setIsLoading(false)
+      setStep('upload')
     }
   }
 
-  // Confirm import
-  const handleConfirmImport = () => {
+  // Edit directly
+  const handleEditDirectly = () => {
     if (parsedData) {
-      onImport(parsedData)
+      // Mark document type based on selection if confidence was low and they picked
+      const dataToImport = { ...parsedData, documentType: documentDetection.type }
+      onImport(dataToImport)
+      handleClose()
+    }
+  }
+  
+  // Go to convert CV page
+  const handleConvertToResume = () => {
+    if (parsedData && onNavigateToConversion) {
+      onNavigateToConversion(parsedData)
       handleClose()
     }
   }
@@ -107,8 +131,10 @@ const ResumeImportModal = ({ isOpen, onClose, onImport }) => {
     setFile(null)
     setError(null)
     setParsedData(null)
+    setDocumentDetection(null)
     setIsLoading(false)
     setProgress(0)
+    setStep('upload')
     onClose()
   }
 
@@ -119,7 +145,9 @@ const ResumeImportModal = ({ isOpen, onClose, onImport }) => {
       <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-auto">
         {/* Header */}
         <div className="flex justify-between items-center p-6 border-b">
-          <h2 className="text-xl font-bold text-gray-800">Import Resume</h2>
+          <h2 className="text-xl font-bold text-gray-800">
+            {step === 'upload' ? 'Import Document' : step === 'parsing' ? 'Extracting...' : 'Review Document'}
+          </h2>
           <button
             onClick={handleClose}
             className="text-gray-400 hover:text-gray-600 transition-colors"
@@ -130,14 +158,14 @@ const ResumeImportModal = ({ isOpen, onClose, onImport }) => {
 
         {/* Content */}
         <div className="p-6">
-          {!parsedData ? (
+          {step === 'upload' || step === 'parsing' ? (
             <>
               {/* Upload Area */}
               <div
-                onDrop={handleDrop}
+                onDrop={step === 'upload' ? handleDrop : undefined}
                 onDragOver={(e) => {
                   e.preventDefault()
-                  setIsDragging(true)
+                  if (step === 'upload') setIsDragging(true)
                 }}
                 onDragLeave={() => setIsDragging(false)}
                 className={`border-2 border-dashed rounded-xl p-8 text-center transition-all ${
@@ -155,24 +183,26 @@ const ResumeImportModal = ({ isOpen, onClose, onImport }) => {
                     <p className="text-sm text-gray-500">
                       {(file.size / 1024).toFixed(1)} KB
                     </p>
-                    <button
-                      onClick={() => setFile(null)}
-                      className="text-sm text-red-500 hover:text-red-700"
-                    >
-                      Remove
-                    </button>
+                    {step === 'upload' && (
+                      <button
+                        onClick={() => setFile(null)}
+                        className="text-sm text-red-500 hover:text-red-700"
+                      >
+                        Remove
+                      </button>
+                    )}
                   </div>
                 ) : (
                   <>
                     <FaUpload className="text-4xl text-gray-400 mx-auto mb-4" />
                     <p className="text-gray-600 mb-2">
-                      Drag & drop your resume PDF here
+                      Drag & drop your Resume or CV (PDF/DOCX)
                     </p>
                     <p className="text-sm text-gray-400 mb-4">or</p>
                     <label className="inline-block">
                       <input
                         type="file"
-                        accept=".pdf,application/pdf"
+                        accept=".pdf,application/pdf,.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                         onChange={handleFileSelect}
                         className="hidden"
                       />
@@ -205,12 +235,12 @@ const ResumeImportModal = ({ isOpen, onClose, onImport }) => {
                   {isLoading ? (
                     <>
                       <FaSpinner className="animate-spin" />
-                      Parsing Resume...
+                      Parsing Document...
                     </>
                   ) : (
                     <>
-                      <FaUpload />
-                      Extract Data
+                      <FaRobot />
+                      AI Extract Data
                     </>
                   )}
                 </div>
@@ -224,63 +254,98 @@ const ResumeImportModal = ({ isOpen, onClose, onImport }) => {
               </button>
 
               <p className="mt-4 text-xs text-gray-400 text-center">
-                AI will extract your resume data and auto-fill the form fields
+                AI will detect if this is a CV or Resume and extract all sections
               </p>
             </>
-          ) : (
-            /* Preview Parsed Data */
+          ) : step === 'detection' ? (
             <>
-              <div className="flex items-center gap-2 mb-4 text-green-600">
-                <FaCheck />
-                <span className="font-semibold">Resume parsed successfully!</span>
+              {/* Detection Step */}
+              <div className="text-center mb-6">
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-100 text-blue-600 mb-4">
+                  <FaMagic size={28} />
+                </div>
+                <h3 className="text-2xl font-bold text-gray-800">
+                  {documentDetection?.type === 'cv' ? 'Curriculum Vitae Detected' : 'Resume Detected'}
+                </h3>
+                <p className="text-gray-600 mt-2">
+                  Confidence: <span className="font-semibold text-blue-600">{documentDetection?.confidence}%</span>
+                </p>
+                
+                {documentDetection?.confidence < 75 && (
+                  <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg text-left">
+                    <p className="text-sm text-yellow-800 font-medium mb-2">We're not entirely sure. Please confirm:</p>
+                    <div className="flex gap-4">
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input type="radio" name="docType" checked={documentDetection.type === 'resume'} onChange={() => setDocumentDetection({...documentDetection, type: 'resume'})} />
+                        Resume
+                      </label>
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input type="radio" name="docType" checked={documentDetection.type === 'cv'} onChange={() => setDocumentDetection({...documentDetection, type: 'cv'})} />
+                        CV
+                      </label>
+                    </div>
+                  </div>
+                )}
               </div>
 
-              <div className="bg-gray-50 rounded-lg p-4 max-h-60 overflow-auto text-sm">
-                <div className="mb-2">
-                  <span className="font-semibold">Name:</span>{' '}
-                  {parsedData.personalInfo?.fullName || 'Not found'}
+              {/* Preview Stats */}
+              <div className="bg-gray-50 rounded-xl p-4 mb-6 text-sm grid grid-cols-2 gap-4">
+                <div>
+                  <span className="text-gray-500">Education:</span> <span className="font-semibold">{parsedData?.education?.length || 0}</span>
                 </div>
-                <div className="mb-2">
-                  <span className="font-semibold">Email:</span>{' '}
-                  {parsedData.personalInfo?.email || 'Not found'}
+                <div>
+                  <span className="text-gray-500">Experience:</span> <span className="font-semibold">{parsedData?.experience?.length || 0}</span>
                 </div>
-                <div className="mb-2">
-                  <span className="font-semibold">Education:</span>{' '}
-                  {parsedData.education?.length || 0} entries
-                </div>
-                <div className="mb-2">
-                  <span className="font-semibold">Experience:</span>{' '}
-                  {parsedData.experience?.length || 0} entries
-                </div>
-                <div className="mb-2">
-                  <span className="font-semibold">Projects:</span>{' '}
-                  {parsedData.projects?.length || 0} entries
-                </div>
-                <div className="mb-2">
-                  <span className="font-semibold">Skills:</span>{' '}
-                  {(parsedData.skills?.technical?.length || 0) +
-                    (parsedData.skills?.soft?.length || 0)}{' '}
-                  total
-                </div>
+                {documentDetection?.type === 'cv' && (
+                  <>
+                    <div>
+                      <span className="text-gray-500">Publications:</span> <span className="font-semibold">{parsedData?.publications?.length || 0}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-500">Research:</span> <span className="font-semibold">{parsedData?.research?.length || 0}</span>
+                    </div>
+                  </>
+                )}
               </div>
 
-              <div className="flex gap-3 mt-6">
+              {/* Actions */}
+              <div className="space-y-3">
+                {documentDetection?.type === 'cv' ? (
+                  <>
+                    <button
+                      onClick={handleConvertToResume}
+                      className="w-full py-4 rounded-xl font-semibold text-white bg-gradient-to-r from-purple-600 to-indigo-600 hover:shadow-lg transition-all flex items-center justify-center gap-2"
+                    >
+                      <FaExchangeAlt />
+                      Convert CV to Resume (AI)
+                    </button>
+                    <button
+                      onClick={handleEditDirectly}
+                      className="w-full py-4 rounded-xl font-semibold border-2 border-gray-200 text-gray-700 hover:border-gray-300 hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
+                    >
+                      <FaCheck />
+                      Edit as full CV
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    onClick={handleEditDirectly}
+                    className="w-full py-4 rounded-xl font-semibold text-white bg-gradient-to-r from-green-600 to-green-500 hover:shadow-lg transition-all flex items-center justify-center gap-2"
+                  >
+                    <FaCheck />
+                    Import to Editor
+                  </button>
+                )}
+                
                 <button
-                  onClick={() => setParsedData(null)}
-                  className="flex-1 py-3 rounded-xl font-semibold border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors"
+                  onClick={() => setStep('upload')}
+                  className="w-full py-2 text-gray-500 hover:text-gray-700 text-sm font-medium"
                 >
-                  Try Another
-                </button>
-                <button
-                  onClick={handleConfirmImport}
-                  className="flex-1 py-3 rounded-xl font-semibold text-white bg-gradient-to-r from-green-600 to-green-500 hover:shadow-lg transition-all flex items-center justify-center gap-2"
-                >
-                  <FaCheck />
-                  Import to Editor
+                  Try a different file
                 </button>
               </div>
             </>
-          )}
+          ) : null}
         </div>
       </div>
     </div>

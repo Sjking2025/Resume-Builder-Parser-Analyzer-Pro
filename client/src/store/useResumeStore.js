@@ -1,33 +1,90 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
+// All CV-extended section keys (beyond the original 6 resume sections)
+export const CV_SECTION_KEYS = [
+    'publications',
+    'research',
+    'certifications',
+    'awards',
+    'patents',
+    'conferences',
+    'workshops',
+    'internships',
+    'leadership',
+    'volunteer',
+    'interests',
+    'references',
+]
+
+// Human-readable labels for CV sections
+export const CV_SECTION_LABELS = {
+    publications: 'Publications',
+    research: 'Research',
+    certifications: 'Certifications',
+    awards: 'Awards',
+    patents: 'Patents',
+    conferences: 'Conferences',
+    workshops: 'Workshops',
+    internships: 'Internships',
+    leadership: 'Leadership',
+    volunteer: 'Volunteer Work',
+    interests: 'Interests',
+    references: 'References',
+}
+
+// Default empty state for the resume/document object
+const getDefaultResume = () => ({
+    id: null,
+    templateId: 'ats', // 'ats' or 'modern'
+    documentType: 'resume', // 'resume' | 'cv'
+    documentMeta: {
+        detectedType: null,
+        confidence: null,
+        pageCount: null,
+        originalFileName: null,
+    },
+    personalInfo: {
+        fullName: '',
+        email: '',
+        phone: '',
+        location: '',
+        linkedin: '',
+        github: '',
+        portfolio: '',
+        summary: '',
+    },
+    education: [],
+    skills: {
+        technical: [],
+        soft: [],
+        languages: [],
+    },
+    projects: [],
+    experience: [],
+    achievements: [],
+    // CV-extended sections (empty by default, backward compatible)
+    publications: [],
+    research: [],
+    certifications: [],
+    awards: [],
+    patents: [],
+    conferences: [],
+    workshops: [],
+    internships: [],
+    leadership: [],
+    volunteer: [],
+    interests: [],
+    references: [],
+    // Catch-all for unknown/custom sections
+    customSections: [],
+})
+
 const useResumeStore = create(
     persist(
         (set, get) => ({
             // Current resume data
-            resume: {
-                id: null,
-                templateId: 'ats', // 'ats' or 'modern'
-                personalInfo: {
-                    fullName: '',
-                    email: '',
-                    phone: '',
-                    location: '',
-                    linkedin: '',
-                    github: '',
-                    portfolio: '',
-                    summary: '',
-                },
-                education: [],
-                skills: {
-                    technical: [],
-                    soft: [],
-                    languages: [],
-                },
-                projects: [],
-                experience: [],
-                achievements: [],
-            },
+            resume: getDefaultResume(),
 
             // Section order for drag-and-drop
             sectionOrder: [
@@ -53,6 +110,10 @@ const useResumeStore = create(
                 colorScheme: 'blue', // for modern template
                 exportMode: 'digital', // 'digital' (shows URLs) or 'print' (shows labels)
             },
+
+            // ═══════════════════════════════════════════════════════════════════
+            // EXISTING RESUME ACTIONS (unchanged, backward compatible)
+            // ═══════════════════════════════════════════════════════════════════
 
             // Actions
             setTemplate: (templateId) => set({ resume: { ...get().resume, templateId }, isDirty: true }),
@@ -172,7 +233,142 @@ const useResumeStore = create(
 
             markClean: () => set({ isDirty: false, lastSaved: new Date().toISOString() }),
 
-            // Load a new resume, but preserve the current templateId, formatting, and sectionOrder
+            // ═══════════════════════════════════════════════════════════════════
+            // NEW CV-SUPPORT ACTIONS
+            // ═══════════════════════════════════════════════════════════════════
+
+            // Set document type: 'resume' or 'cv'
+            setDocumentType: (type) =>
+                set({
+                    resume: { ...get().resume, documentType: type },
+                    isDirty: true,
+                }),
+
+            // Update document metadata (detection results, page count, etc.)
+            updateDocumentMeta: (meta) =>
+                set({
+                    resume: {
+                        ...get().resume,
+                        documentMeta: { ...get().resume.documentMeta, ...meta },
+                    },
+                }),
+
+            // Generic section CRUD — works for any array section key
+            // (publications, research, certifications, awards, patents,
+            //  conferences, workshops, internships, leadership, volunteer,
+            //  interests, references)
+            addSectionItem: (sectionKey, item) => {
+                const current = get().resume[sectionKey]
+                if (!Array.isArray(current)) return
+                set({
+                    resume: { ...get().resume, [sectionKey]: [...current, item] },
+                    isDirty: true,
+                })
+            },
+
+            updateSectionItem: (sectionKey, index, data) => {
+                const current = get().resume[sectionKey]
+                if (!Array.isArray(current)) return
+                set({
+                    resume: {
+                        ...get().resume,
+                        [sectionKey]: current.map((item, i) => (i === index ? { ...item, ...data } : item)),
+                    },
+                    isDirty: true,
+                })
+            },
+
+            removeSectionItem: (sectionKey, index) => {
+                const current = get().resume[sectionKey]
+                if (!Array.isArray(current)) return
+                set({
+                    resume: {
+                        ...get().resume,
+                        [sectionKey]: current.filter((_, i) => i !== index),
+                    },
+                    isDirty: true,
+                })
+            },
+
+            // Custom sections — catch-all for unknown section types
+            addCustomSection: (title) =>
+                set({
+                    resume: {
+                        ...get().resume,
+                        customSections: [
+                            ...get().resume.customSections,
+                            { id: Date.now().toString(), title, items: [] },
+                        ],
+                    },
+                    isDirty: true,
+                }),
+
+            updateCustomSection: (index, data) =>
+                set({
+                    resume: {
+                        ...get().resume,
+                        customSections: get().resume.customSections.map((sec, i) =>
+                            i === index ? { ...sec, ...data } : sec
+                        ),
+                    },
+                    isDirty: true,
+                }),
+
+            removeCustomSection: (index) =>
+                set({
+                    resume: {
+                        ...get().resume,
+                        customSections: get().resume.customSections.filter((_, i) => i !== index),
+                    },
+                    isDirty: true,
+                }),
+
+            addCustomSectionItem: (sectionIndex, item) => {
+                const sections = [...get().resume.customSections]
+                if (!sections[sectionIndex]) return
+                sections[sectionIndex] = {
+                    ...sections[sectionIndex],
+                    items: [...sections[sectionIndex].items, item],
+                }
+                set({
+                    resume: { ...get().resume, customSections: sections },
+                    isDirty: true,
+                })
+            },
+
+            updateCustomSectionItem: (sectionIndex, itemIndex, data) => {
+                const sections = [...get().resume.customSections]
+                if (!sections[sectionIndex]) return
+                sections[sectionIndex] = {
+                    ...sections[sectionIndex],
+                    items: sections[sectionIndex].items.map((item, i) =>
+                        i === itemIndex ? { ...item, ...data } : item
+                    ),
+                }
+                set({
+                    resume: { ...get().resume, customSections: sections },
+                    isDirty: true,
+                })
+            },
+
+            removeCustomSectionItem: (sectionIndex, itemIndex) => {
+                const sections = [...get().resume.customSections]
+                if (!sections[sectionIndex]) return
+                sections[sectionIndex] = {
+                    ...sections[sectionIndex],
+                    items: sections[sectionIndex].items.filter((_, i) => i !== itemIndex),
+                }
+                set({
+                    resume: { ...get().resume, customSections: sections },
+                    isDirty: true,
+                })
+            },
+
+            // ═══════════════════════════════════════════════════════════════════
+            // LOAD & CLEAR (extended for CV support)
+            // ═══════════════════════════════════════════════════════════════════
+
+            // Load a new resume/CV, but preserve the current templateId, formatting, and sectionOrder
             loadResume: (incomingResume) => {
                 const currentState = get()
                 set({ 
@@ -180,6 +376,9 @@ const useResumeStore = create(
                         ...incomingResume,
                         // Preserve display settings - never let tailoring reset the user's template choice
                         templateId: incomingResume.templateId || currentState.resume.templateId,
+                        // Document type awareness
+                        documentType: incomingResume.documentType || 'resume',
+                        documentMeta: incomingResume.documentMeta || currentState.resume.documentMeta,
                         // Ensure nested arrays and objects are always at least empty defaults
                         personalInfo: incomingResume.personalInfo || {},
                         education: incomingResume.education || [],
@@ -187,6 +386,20 @@ const useResumeStore = create(
                         projects: incomingResume.projects || [],
                         skills: incomingResume.skills || { technical: [], soft: [], languages: [] },
                         achievements: incomingResume.achievements || [],
+                        // CV-extended sections (safe defaults for backward compat)
+                        publications: incomingResume.publications || [],
+                        research: incomingResume.research || [],
+                        certifications: incomingResume.certifications || [],
+                        awards: incomingResume.awards || [],
+                        patents: incomingResume.patents || [],
+                        conferences: incomingResume.conferences || [],
+                        workshops: incomingResume.workshops || [],
+                        internships: incomingResume.internships || [],
+                        leadership: incomingResume.leadership || [],
+                        volunteer: incomingResume.volunteer || [],
+                        interests: incomingResume.interests || [],
+                        references: incomingResume.references || [],
+                        customSections: incomingResume.customSections || [],
                     },
                     isDirty: false 
                 })
@@ -194,25 +407,7 @@ const useResumeStore = create(
 
             clearResume: () =>
                 set({
-                    resume: {
-                        id: null,
-                        templateId: 'ats',
-                        personalInfo: {
-                            fullName: '',
-                            email: '',
-                            phone: '',
-                            location: '',
-                            linkedin: '',
-                            github: '',
-                            portfolio: '',
-                            summary: '',
-                        },
-                        education: [],
-                        skills: { technical: [], soft: [], languages: [] },
-                        projects: [],
-                        experience: [],
-                        achievements: [],
-                    },
+                    resume: getDefaultResume(),
                     isDirty: false,
                     lastSaved: null,
                 }),

@@ -1,4 +1,5 @@
 import React from 'react'
+import GenericSection from './GenericSection'
 import { colors, printStyles, getFontSize, getLineHeight, getMargins } from './PrintStyles'
 
 // Blue Accent template - Single column with blue section headers and categorized skills
@@ -343,6 +344,20 @@ const BlueAccentTemplate = ({ resume, formatting }) => {
           </div>
         </section>
       )}
+
+      {/* CV Sections */}
+      {resume.documentType === 'cv' && [
+        "publications", "research", "certifications", "awards", "patents",
+        "conferences", "workshops", "internships", "leadership", "volunteer",
+        "interests", "references"
+      ].map(key => (
+        <GenericSection key={key} title={key} items={resume[key]} />
+      ))}
+
+      {/* Custom Sections */}
+      {resume.customSections && resume.customSections.map((section, idx) => (
+        <GenericSection key={idx} title={section.title} items={section.items} />
+      ))}
     </div>
   )
 }

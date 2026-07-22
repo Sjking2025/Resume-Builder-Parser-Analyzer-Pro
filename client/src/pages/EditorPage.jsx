@@ -6,10 +6,13 @@ import SkillsForm from '../components/editor/SkillsForm'
 import ExperienceForm from '../components/editor/ExperienceForm'
 import ProjectsForm from '../components/editor/ProjectsForm'
 import AchievementsForm from '../components/editor/AchievementsForm'
+import GenericSectionForm from '../components/editor/GenericSectionForm'
+import CustomSectionForm from '../components/editor/CustomSectionForm'
 import LivePreview from '../components/preview/LivePreview'
 import ResumeImportModal from '../components/import/ResumeImportModal'
-import { FaPalette, FaHome, FaFileUpload } from 'react-icons/fa'
+import { FaPalette, FaHome, FaFileUpload, FaExchangeAlt } from 'react-icons/fa'
 import { useNavigate } from 'react-router-dom'
+import { CV_SECTION_LABELS, CV_SECTION_KEYS } from '../store/useResumeStore'
 
 const EditorPage = () => {
   const { setTemplate, resume, formatting, updateFormatting, isDirty, loadResume } = useResumeStore()
@@ -41,10 +44,15 @@ const EditorPage = () => {
       projects: parsedData.projects || [],
       skills: parsedData.skills || { technical: [], soft: [], languages: [] },
       achievements: parsedData.achievements || [],
+      // Ensure CV sections are retained if present
+      documentType: parsedData.documentType || 'resume',
+      ...CV_SECTION_KEYS.reduce((acc, key) => ({ ...acc, [key]: parsedData[key] || [] }), {}),
+      customSections: parsedData.customSections || [],
     })
   }
 
-  const sections = [
+  // Base resume sections
+  const baseSections = [
     { id: 'personal', name: 'Personal Info', component: PersonalInfoForm },
     { id: 'experience', name: 'Experience', component: ExperienceForm },
     { id: 'education', name: 'Education', component: EducationForm },
@@ -52,6 +60,26 @@ const EditorPage = () => {
     { id: 'skills', name: 'Skills', component: SkillsForm },
     { id: 'achievements', name: 'Achievements', component: AchievementsForm },
   ]
+
+  // Add CV sections dynamically if they have data or if in CV mode
+  const cvSections = resume.documentType === 'cv' ? CV_SECTION_KEYS.map(key => ({
+    id: key,
+    name: CV_SECTION_LABELS[key],
+    component: () => <GenericSectionForm sectionKey={key} fields={[
+      { name: 'title', label: 'Title / Name', placeholder: 'Enter title' },
+      { name: 'description', label: 'Description', type: 'textarea', placeholder: 'Details...' },
+      { name: 'date', label: 'Date / Year', placeholder: 'e.g. 2024' },
+      // Optional fields for certain sections
+      ...(key === 'publications' ? [{ name: 'url', label: 'URL / DOI', placeholder: 'https://...' }] : [])
+    ]} />
+  })) : []
+
+  // Custom sections tab
+  const customSectionTab = resume.documentType === 'cv' || (resume.customSections && resume.customSections.length > 0)
+    ? [{ id: 'custom', name: 'Custom Sections', component: CustomSectionForm }]
+    : []
+
+  const sections = [...baseSections, ...cvSections, ...customSectionTab]
 
   // All 12 templates (2 original + 10 new)
   const templates = [
@@ -92,11 +120,19 @@ const EditorPage = () => {
                   Unsaved Changes
                 </span>
               )}
+              {resume.documentType === 'cv' && (
+                <button
+                  onClick={() => navigate('/convert')}
+                  className="flex items-center gap-2 px-3 py-1.5 bg-purple-50 text-purple-700 border border-purple-200 rounded-lg hover:bg-purple-100 transition-colors text-sm font-medium"
+                >
+                  <FaExchangeAlt /> Convert to Resume
+                </button>
+              )}
               <button
                 onClick={() => setShowImportModal(true)}
                 className="flex items-center gap-2 px-3 py-1.5 bg-green-50 text-green-700 border border-green-200 rounded-lg hover:bg-green-100 transition-colors text-sm font-medium"
               >
-                <FaFileUpload /> Import Resume
+                <FaFileUpload /> {resume.documentType === 'cv' ? 'Import Document' : 'Import Resume'}
               </button>
             </div>
 
@@ -230,6 +266,11 @@ const EditorPage = () => {
         isOpen={showImportModal}
         onClose={() => setShowImportModal(false)}
         onImport={handleImport}
+        onNavigateToConversion={(data) => {
+          // Pre-load data into store before navigating
+          handleImport({ ...data, documentType: 'cv' })
+          navigate('/convert')
+        }}
       />
     </div>
   )
