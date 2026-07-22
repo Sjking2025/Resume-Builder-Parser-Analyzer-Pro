@@ -83,18 +83,18 @@ const EditorPage = () => {
 
   // All 12 templates (2 original + 10 new)
   const templates = [
-    { id: 'ats', name: 'ATS Friendly', category: 'Standard' },
-    { id: 'modern', name: 'Modern', category: 'Standard' },
-    { id: 'classic', name: 'Classic', category: 'Traditional' },
-    { id: 'executive', name: 'Executive', category: 'Professional' },
-    { id: 'minimal', name: 'Minimal', category: 'Clean' },
-    { id: 'compact', name: 'Compact', category: 'Dense' },
-    { id: 'creative', name: 'Creative', category: 'Modern' },
-    { id: 'corporate', name: 'Corporate', category: 'Professional' },
-    { id: 'academic', name: 'Academic', category: 'Education' },
-    { id: 'technical', name: 'Technical', category: 'Tech' },
-    { id: 'elegant', name: 'Elegant', category: 'Premium' },
-    { id: 'professional', name: 'Professional', category: 'Universal' },
+    { id: 'ats', name: 'ATS Friendly', category: 'Standard', supportsPhoto: false },
+    { id: 'modern', name: 'Modern', category: 'Standard', supportsPhoto: true },
+    { id: 'classic', name: 'Classic', category: 'Traditional', supportsPhoto: false },
+    { id: 'executive', name: 'Executive', category: 'Professional', supportsPhoto: true },
+    { id: 'minimal', name: 'Minimal', category: 'Clean', supportsPhoto: false },
+    { id: 'compact', name: 'Compact', category: 'Dense', supportsPhoto: false },
+    { id: 'creative', name: 'Creative', category: 'Modern', supportsPhoto: true },
+    { id: 'corporate', name: 'Corporate', category: 'Professional', supportsPhoto: true },
+    { id: 'academic', name: 'Academic', category: 'Education', supportsPhoto: false },
+    { id: 'technical', name: 'Technical', category: 'Tech', supportsPhoto: false },
+    { id: 'elegant', name: 'Elegant', category: 'Premium', supportsPhoto: true },
+    { id: 'professional', name: 'Professional', category: 'Universal', supportsPhoto: true },
   ]
 
   const ActiveComponent = sections.find(s => s.id === activeSection)?.component

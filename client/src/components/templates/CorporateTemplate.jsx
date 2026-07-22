@@ -123,13 +123,32 @@ const CorporateTemplate = ({ resume, formatting }) => {
     <div style={styles.container} className="resume-page">
       {/* Header Bar */}
       <div style={styles.headerBar}>
-        <h1 style={styles.name}>{personalInfo.fullName || 'Your Name'}</h1>
-        <div style={styles.contactRow}>
-          {personalInfo.email && <span>{personalInfo.email}</span>}
-          {personalInfo.phone && <span>{personalInfo.phone}</span>}
-          {personalInfo.location && <span>{personalInfo.location}</span>}
-          {personalInfo.linkedin && <a href={personalInfo.linkedin} style={styles.link}>{exportMode === 'digital' ? personalInfo.linkedin : 'LinkedIn'}</a>}
-          {personalInfo.github && <a href={personalInfo.github} style={styles.link}>{exportMode === 'digital' ? personalInfo.github : 'GitHub'}</a>}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <div style={{ flex: 1 }}>
+            <h1 style={styles.name}>{personalInfo.fullName || 'Your Name'}</h1>
+            <div style={styles.contactRow}>
+              {personalInfo.email && <span>{personalInfo.email}</span>}
+              {personalInfo.phone && <span>{personalInfo.phone}</span>}
+              {personalInfo.location && <span>{personalInfo.location}</span>}
+              {personalInfo.linkedin && <a href={personalInfo.linkedin} style={styles.link}>{exportMode === 'digital' ? personalInfo.linkedin : 'LinkedIn'}</a>}
+              {personalInfo.github && <a href={personalInfo.github} style={styles.link}>{exportMode === 'digital' ? personalInfo.github : 'GitHub'}</a>}
+            </div>
+          </div>
+          {resume.photo?.enabled && resume.photo?.croppedImage && (
+            <div style={{ marginLeft: '24px', flexShrink: 0 }}>
+              <img 
+                src={resume.photo.croppedImage} 
+                alt="Profile" 
+                style={{ 
+                  width: '80px', 
+                  height: '80px', 
+                  objectFit: 'cover',
+                  borderRadius: resume.photo.shape === 'round' ? '50%' : '4px',
+                  border: `2px solid ${colors.white}`
+                }}
+              />
+            </div>
+          )}
         </div>
       </div>
 

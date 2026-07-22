@@ -78,6 +78,16 @@ const getDefaultResume = () => ({
     references: [],
     // Catch-all for unknown/custom sections
     customSections: [],
+    // Optional passport photo
+    photo: {
+        enabled: false,
+        originalImage: null,
+        croppedImage: null,
+        crop: { x: 0, y: 0 },
+        zoom: 1,
+        shape: 'circle',
+        aspectRatio: 1, // 1 for circle/square, 3/4 for portrait
+    },
 })
 
 const useResumeStore = create(
@@ -365,6 +375,28 @@ const useResumeStore = create(
             },
 
             // ═══════════════════════════════════════════════════════════════════
+            // PHOTO SUPPORT ACTIONS
+            // ═══════════════════════════════════════════════════════════════════
+
+            togglePhoto: (enabled) =>
+                set({
+                    resume: {
+                        ...get().resume,
+                        photo: { ...get().resume.photo, enabled },
+                    },
+                    isDirty: true,
+                }),
+
+            updatePhoto: (data) =>
+                set({
+                    resume: {
+                        ...get().resume,
+                        photo: { ...get().resume.photo, ...data },
+                    },
+                    isDirty: true,
+                }),
+
+            // ═══════════════════════════════════════════════════════════════════
             // LOAD & CLEAR (extended for CV support)
             // ═══════════════════════════════════════════════════════════════════
 
@@ -400,6 +432,8 @@ const useResumeStore = create(
                         interests: incomingResume.interests || [],
                         references: incomingResume.references || [],
                         customSections: incomingResume.customSections || [],
+                        // Photo support
+                        photo: incomingResume.photo || currentState.resume.photo || getDefaultResume().photo,
                     },
                     isDirty: false 
                 })

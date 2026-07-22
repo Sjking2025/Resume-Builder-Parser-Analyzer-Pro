@@ -139,9 +139,25 @@ const ProfessionalTemplate = ({ resume, formatting }) => {
     <div style={styles.container} className="resume-page">
       {/* Header */}
       <div style={styles.header}>
-        <div style={styles.nameSection}>
-          <h1 style={styles.name}>{personalInfo.fullName || 'Your Name'}</h1>
-          {personalInfo.location && <div style={styles.location}>📍 {personalInfo.location}</div>}
+        <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+          {resume.photo?.enabled && resume.photo?.croppedImage && (
+            <div style={{ flexShrink: 0 }}>
+              <img 
+                src={resume.photo.croppedImage} 
+                alt="Profile" 
+                style={{ 
+                  width: '72px', 
+                  height: '72px', 
+                  objectFit: 'cover',
+                  borderRadius: resume.photo.shape === 'round' ? '50%' : '4px',
+                }}
+              />
+            </div>
+          )}
+          <div style={styles.nameSection}>
+            <h1 style={styles.name}>{personalInfo.fullName || 'Your Name'}</h1>
+            {personalInfo.location && <div style={styles.location}>📍 {personalInfo.location}</div>}
+          </div>
         </div>
         <div style={styles.contactSection}>
           {personalInfo.email && <div style={styles.contactItem}>✉️ {personalInfo.email}</div>}

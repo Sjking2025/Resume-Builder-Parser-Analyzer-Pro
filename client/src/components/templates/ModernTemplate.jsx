@@ -80,47 +80,68 @@ const ModernTemplate = ({ resume, formatting }) => {
     >
       {/* Header with gradient */}
       <div style={{ background: scheme.gradient, color: colors.white, padding: '32px' }}>
-        <h1 style={{ fontSize: '32px', fontWeight: '700', marginBottom: '12px', margin: 0 }}>
-          {personalInfo.fullName || 'Your Name'}
-        </h1>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', opacity: '0.9' }}>
-          {personalInfo.email && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <FaEnvelope />
-              <span>{personalInfo.email}</span>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <div style={{ flex: 1 }}>
+            <h1 style={{ fontSize: '32px', fontWeight: '700', marginBottom: '12px', margin: 0 }}>
+              {personalInfo.fullName || 'Your Name'}
+            </h1>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', opacity: '0.9' }}>
+              {personalInfo.email && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <FaEnvelope />
+                  <span>{personalInfo.email}</span>
+                </div>
+              )}
+              {personalInfo.phone && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <FaPhone />
+                  <span>{personalInfo.phone}</span>
+                </div>
+              )}
+              {personalInfo.location && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <FaMapMarkerAlt />
+                  <span>{personalInfo.location}</span>
+                </div>
+              )}
             </div>
-          )}
-          {personalInfo.phone && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <FaPhone />
-              <span>{personalInfo.phone}</span>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', marginTop: '8px' }}>
+              {personalInfo.linkedin && (
+                <a href={personalInfo.linkedin} style={{ display: 'flex', alignItems: 'center', gap: '4px', color: colors.white, textDecoration: 'none' }}>
+                  <FaLinkedin />
+                  <span>{exportMode === 'digital' ? personalInfo.linkedin : 'LinkedIn'}</span>
+                </a>
+              )}
+              {personalInfo.github && (
+                <a href={personalInfo.github} style={{ display: 'flex', alignItems: 'center', gap: '4px', color: colors.white, textDecoration: 'none' }}>
+                  <FaGithub />
+                  <span>{exportMode === 'digital' ? personalInfo.github : 'GitHub'}</span>
+                </a>
+              )}
+              {personalInfo.portfolio && (
+                <a href={personalInfo.portfolio} style={{ display: 'flex', alignItems: 'center', gap: '4px', color: colors.white, textDecoration: 'none' }}>
+                  <FaGlobe />
+                  <span>{exportMode === 'digital' ? personalInfo.portfolio : 'Portfolio'}</span>
+                </a>
+              )}
             </div>
-          )}
-          {personalInfo.location && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <FaMapMarkerAlt />
-              <span>{personalInfo.location}</span>
+          </div>
+          
+          {resume.photo?.enabled && resume.photo?.croppedImage && (
+            <div style={{ marginLeft: '24px', flexShrink: 0 }}>
+              <img 
+                src={resume.photo.croppedImage} 
+                alt="Profile" 
+                style={{ 
+                  width: '100px', 
+                  height: '100px', 
+                  objectFit: 'cover',
+                  borderRadius: resume.photo.shape === 'round' ? '50%' : '8px',
+                  border: '3px solid rgba(255, 255, 255, 0.3)',
+                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                }}
+              />
             </div>
-          )}
-        </div>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', marginTop: '8px' }}>
-          {personalInfo.linkedin && (
-            <a href={personalInfo.linkedin} style={{ display: 'flex', alignItems: 'center', gap: '4px', color: colors.white, textDecoration: 'none' }}>
-              <FaLinkedin />
-              <span>{exportMode === 'digital' ? personalInfo.linkedin : 'LinkedIn'}</span>
-            </a>
-          )}
-          {personalInfo.github && (
-            <a href={personalInfo.github} style={{ display: 'flex', alignItems: 'center', gap: '4px', color: colors.white, textDecoration: 'none' }}>
-              <FaGithub />
-              <span>{exportMode === 'digital' ? personalInfo.github : 'GitHub'}</span>
-            </a>
-          )}
-          {personalInfo.portfolio && (
-            <a href={personalInfo.portfolio} style={{ display: 'flex', alignItems: 'center', gap: '4px', color: colors.white, textDecoration: 'none' }}>
-              <FaGlobe />
-              <span>{exportMode === 'digital' ? personalInfo.portfolio : 'Portfolio'}</span>
-            </a>
           )}
         </div>
       </div>

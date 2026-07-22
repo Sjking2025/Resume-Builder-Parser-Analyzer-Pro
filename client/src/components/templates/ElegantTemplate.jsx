@@ -134,6 +134,22 @@ const ElegantTemplate = ({ resume, formatting }) => {
     <div style={styles.container} className="resume-page">
       {/* Header */}
       <div style={styles.header}>
+        {resume.photo?.enabled && resume.photo?.croppedImage && (
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
+            <img 
+              src={resume.photo.croppedImage} 
+              alt="Profile" 
+              style={{ 
+                width: '96px', 
+                height: '96px', 
+                objectFit: 'cover',
+                borderRadius: resume.photo.shape === 'round' ? '50%' : '8px',
+                border: `3px solid ${elegantColors.goldLight}`,
+                padding: '4px'
+              }}
+            />
+          </div>
+        )}
         <h1 style={styles.name}>{personalInfo.fullName || 'Your Name'}</h1>
         <div style={styles.contactRow}>
           {personalInfo.email && <span>{personalInfo.email}</span>}
