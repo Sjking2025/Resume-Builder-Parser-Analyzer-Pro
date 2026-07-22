@@ -4,11 +4,15 @@ import { FaCog, FaKey, FaTimes } from 'react-icons/fa';
 const ApiKeyModal = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [apiKey, setApiKey] = useState('');
+  const [model, setModel] = useState('gemini-1.5-pro');
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
     const stored = sessionStorage.getItem('customApiKey');
     if (stored) setApiKey(stored);
+    
+    const storedModel = sessionStorage.getItem('customAiModel');
+    if (storedModel) setModel(storedModel);
   }, []);
 
   const handleSave = () => {
@@ -17,6 +21,9 @@ const ApiKeyModal = () => {
     } else {
       sessionStorage.removeItem('customApiKey');
     }
+    
+    sessionStorage.setItem('customAiModel', model);
+    
     setSaved(true);
     setTimeout(() => {
       setSaved(false);
@@ -68,6 +75,30 @@ const ApiKeyModal = () => {
                   </p>
                 </div>
                 
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">
+                    AI Model
+                  </label>
+                  <select
+                    value={model}
+                    onChange={(e) => setModel(e.target.value)}
+                    className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors text-sm bg-white"
+                  >
+                    <optgroup label="Google Gemini">
+                      <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
+                      <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
+                    </optgroup>
+                    <optgroup label="OpenAI (via OpenRouter)">
+                      <option value="openai/gpt-4o">GPT-4o</option>
+                      <option value="openai/gpt-4o-mini">GPT-4o Mini</option>
+                    </optgroup>
+                    <optgroup label="Anthropic (via OpenRouter)">
+                      <option value="anthropic/claude-3.5-sonnet">Claude 3.5 Sonnet</option>
+                      <option value="anthropic/claude-3-haiku">Claude 3 Haiku</option>
+                    </optgroup>
+                  </select>
+                </div>
+                
                 <button
                   onClick={handleSave}
                   className={`w-full py-3 rounded-xl font-bold text-white transition-all ${
@@ -83,7 +114,9 @@ const ApiKeyModal = () => {
                   <button
                     onClick={() => {
                       setApiKey('');
+                      setModel('gemini-1.5-pro');
                       sessionStorage.removeItem('customApiKey');
+                      sessionStorage.removeItem('customAiModel');
                       setSaved(true);
                       setTimeout(() => { setSaved(false); setIsOpen(false); }, 1000);
                     }}
