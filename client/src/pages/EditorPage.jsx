@@ -221,6 +221,18 @@ const EditorPage = () => {
                 <option value="digital">Digital/ATS</option>
                 <option value="print">Print Copy</option>
               </select>
+
+              {/* Skills Layout */}
+              <select
+                value={formatting.skillsLayout || 'tags'}
+                onChange={(e) => updateFormatting({ skillsLayout: e.target.value })}
+                className="input-field text-sm py-1.5"
+                title="Format of the skills section"
+              >
+                <option value="tags">Pill Tags</option>
+                <option value="bullets">Bullets</option>
+                <option value="comma">Comma Separated</option>
+              </select>
             </div>
           </div>
         </div>

@@ -1,4 +1,5 @@
 import React from 'react'
+import { renderSkillsList } from '../../utils/renderSkills'
 import GenericSection from './GenericSection'
 import { FaEnvelope, FaPhone, FaMapMarkerAlt, FaLinkedin, FaGithub, FaGlobe, FaBriefcase, FaGraduationCap, FaCode, FaTrophy } from 'react-icons/fa'
 
@@ -299,7 +300,7 @@ const ModernTemplate = ({ resume, formatting }) => {
               {skills.languages.length > 0 && (
                 <div>
                   <span style={{ fontWeight: '600', color: colors.text }}>Languages: </span>
-                  <span style={{ color: colors.textSecondary }}>{skills.languages.join(' • ')}</span>
+                  <span style={{ color: colors.textSecondary }}>{renderSkillsList(skills.languages, formatting?.skillsLayout)}</span>
                 </div>
               )}
             </div>

@@ -1,4 +1,5 @@
 import React from 'react'
+import { renderSkillsList } from '../../utils/renderSkills'
 import GenericSection from './GenericSection'
 import { colors, fonts, printStyles, getFontSize, getLineHeight, getMargins } from './PrintStyles'
 
@@ -198,13 +199,13 @@ const AcademicTemplate = ({ resume, formatting }) => {
           <h2 style={styles.sectionTitle}>Skills & Competencies</h2>
           <div style={styles.skillsSection}>
             {skills.technical.length > 0 && (
-              <p style={{ margin: '0 0 6px 0' }}><strong>Technical Skills:</strong> {skills.technical.join(', ')}</p>
+              <p style={{ margin: '0 0 6px 0' }}><strong>Technical Skills:</strong> {renderSkillsList(skills.technical, formatting?.skillsLayout)}</p>
             )}
             {skills.soft.length > 0 && (
-              <p style={{ margin: '0 0 6px 0' }}><strong>Soft Skills:</strong> {skills.soft.join(', ')}</p>
+              <p style={{ margin: '0 0 6px 0' }}><strong>Soft Skills:</strong> {renderSkillsList(skills.soft, formatting?.skillsLayout)}</p>
             )}
             {skills.languages.length > 0 && (
-              <p style={{ margin: 0 }}><strong>Languages:</strong> {skills.languages.join(', ')}</p>
+              <p style={{ margin: 0 }}><strong>Languages:</strong> {renderSkillsList(skills.languages, formatting?.skillsLayout)}</p>
             )}
           </div>
         </div>

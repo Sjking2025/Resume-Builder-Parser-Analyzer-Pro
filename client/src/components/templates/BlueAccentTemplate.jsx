@@ -1,4 +1,5 @@
 import React from 'react'
+import { renderSkillsList } from '../../utils/renderSkills'
 import GenericSection from './GenericSection'
 import { colors, printStyles, getFontSize, getLineHeight, getMargins } from './PrintStyles'
 
@@ -277,31 +278,31 @@ const BlueAccentTemplate = ({ resume, formatting }) => {
             {categorizedSkills.programmingLanguages.length > 0 && (
               <div style={styles.skillRow}>
                 <span style={styles.skillLabel}>Programming Languages: </span>
-                {categorizedSkills.programmingLanguages.join(', ')}
+                {renderSkillsList(categorizedSkills.programmingLanguages, formatting?.skillsLayout)}
               </div>
             )}
             {categorizedSkills.webDevelopment.length > 0 && (
               <div style={styles.skillRow}>
                 <span style={styles.skillLabel}>Web Development: </span>
-                {categorizedSkills.webDevelopment.join(', ')}
+                {renderSkillsList(categorizedSkills.webDevelopment, formatting?.skillsLayout)}
               </div>
             )}
             {categorizedSkills.databases.length > 0 && (
               <div style={styles.skillRow}>
                 <span style={styles.skillLabel}>Databases: </span>
-                {categorizedSkills.databases.join(', ')}
+                {renderSkillsList(categorizedSkills.databases, formatting?.skillsLayout)}
               </div>
             )}
             {categorizedSkills.tools.length > 0 && (
               <div style={styles.skillRow}>
                 <span style={styles.skillLabel}>Tools: </span>
-                {categorizedSkills.tools.join(', ')}
+                {renderSkillsList(categorizedSkills.tools, formatting?.skillsLayout)}
               </div>
             )}
             {categorizedSkills.other.length > 0 && (
               <div style={styles.skillRow}>
                 <span style={styles.skillLabel}>Other: </span>
-                {categorizedSkills.other.join(', ')}
+                {renderSkillsList(categorizedSkills.other, formatting?.skillsLayout)}
               </div>
             )}
           </div>
@@ -312,11 +313,7 @@ const BlueAccentTemplate = ({ resume, formatting }) => {
       {skills.soft.length > 0 && (
         <section style={styles.section}>
           <h2 style={styles.sectionTitle}>Soft Skills</h2>
-          <ul style={styles.softSkillsList}>
-            {skills.soft.map((skill, idx) => (
-              <li key={idx} style={styles.listItem}>{skill}</li>
-            ))}
-          </ul>
+          {renderSkillsList(skills.soft, formatting?.skillsLayout)}
         </section>
       )}
 
@@ -340,7 +337,7 @@ const BlueAccentTemplate = ({ resume, formatting }) => {
           <h2 style={styles.sectionTitle}>Additional Information</h2>
           <div style={{ fontSize: '12px', color: '#374151' }}>
             <span style={styles.skillLabel}>Languages Known: </span>
-            {skills.languages.join(', ')}
+            {renderSkillsList(skills.languages, formatting?.skillsLayout)}
           </div>
         </section>
       )}

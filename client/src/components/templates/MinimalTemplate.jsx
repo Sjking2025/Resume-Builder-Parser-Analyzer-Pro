@@ -1,4 +1,5 @@
 import React from 'react'
+import { renderSkillsList } from '../../utils/renderSkills'
 import GenericSection from './GenericSection'
 import { colors, fonts, printStyles, getFontSize, getLineHeight, getMargins } from './PrintStyles'
 
@@ -200,13 +201,13 @@ const MinimalTemplate = ({ resume, formatting }) => {
         <div style={styles.section}>
           <h2 style={styles.sectionTitle}>Skills</h2>
           {skills.technical.length > 0 && (
-            <div style={styles.skillLine}>{skills.technical.join(' · ')}</div>
+            <div style={styles.skillLine}>{renderSkillsList(skills.technical, formatting?.skillsLayout)}</div>
           )}
           {skills.soft.length > 0 && (
-            <div style={styles.skillLine}>{skills.soft.join(' · ')}</div>
+            <div style={styles.skillLine}>{renderSkillsList(skills.soft, formatting?.skillsLayout)}</div>
           )}
           {skills.languages.length > 0 && (
-            <div style={styles.skillLine}>{skills.languages.join(' · ')}</div>
+            <div style={styles.skillLine}>{renderSkillsList(skills.languages, formatting?.skillsLayout)}</div>
           )}
         </div>
       )}

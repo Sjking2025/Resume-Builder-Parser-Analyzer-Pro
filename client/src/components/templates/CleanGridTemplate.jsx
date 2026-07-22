@@ -1,4 +1,5 @@
 import React from 'react'
+import { renderSkillsList } from '../../utils/renderSkills'
 import GenericSection from './GenericSection'
 import { colors, printStyles, getFontSize, getLineHeight } from './PrintStyles'
 
@@ -236,17 +237,17 @@ const CleanGridTemplate = ({ resume, formatting }) => {
               <h2 style={styles.sectionTitle}>Technical Skills</h2>
               {skills.technical.length > 0 && (
                 <p style={styles.paragraph}>
-                  <span style={styles.label}>Technical:</span> {skills.technical.join(', ')}
+                  <span style={styles.label}>Technical:</span> {renderSkillsList(skills.technical, formatting?.skillsLayout)}
                 </p>
               )}
               {skills.soft.length > 0 && (
                 <p style={styles.paragraph}>
-                  <span style={styles.label}>Soft Skills:</span> {skills.soft.join(', ')}
+                  <span style={styles.label}>Soft Skills:</span> {renderSkillsList(skills.soft, formatting?.skillsLayout)}
                 </p>
               )}
               {skills.languages.length > 0 && (
                 <p style={styles.paragraph}>
-                  <span style={styles.label}>Languages:</span> {skills.languages.join(', ')}
+                  <span style={styles.label}>Languages:</span> {renderSkillsList(skills.languages, formatting?.skillsLayout)}
                 </p>
               )}
             </section>

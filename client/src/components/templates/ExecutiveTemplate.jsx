@@ -1,4 +1,5 @@
 import React from 'react'
+import { renderSkillsList } from '../../utils/renderSkills'
 import GenericSection from './GenericSection'
 import { colors, fonts, printStyles, getFontSize, getLineHeight, getMargins } from './PrintStyles'
 
@@ -220,19 +221,19 @@ const ExecutiveTemplate = ({ resume, formatting }) => {
             {skills.technical.length > 0 && (
               <div style={styles.skillCategory}>
                 <strong style={{ color: colors.navy800 }}>Technical:</strong>
-                <div style={{ color: colors.gray700, marginTop: '2px' }}>{skills.technical.join(' • ')}</div>
+                <div style={{ color: colors.gray700, marginTop: '2px' }}>{renderSkillsList(skills.technical, formatting?.skillsLayout, { backgroundColor: colors.gray100, color: colors.gray700 }, { color: colors.gray700 })}</div>
               </div>
             )}
             {skills.soft.length > 0 && (
               <div style={styles.skillCategory}>
                 <strong style={{ color: colors.navy800 }}>Leadership:</strong>
-                <div style={{ color: colors.gray700, marginTop: '2px' }}>{skills.soft.join(' • ')}</div>
+                <div style={{ color: colors.gray700, marginTop: '2px' }}>{renderSkillsList(skills.soft, formatting?.skillsLayout, { backgroundColor: colors.gray100, color: colors.gray700 }, { color: colors.gray700 })}</div>
               </div>
             )}
           </div>
           {skills.languages.length > 0 && (
             <div style={{ ...styles.skillCategory, marginTop: '8px' }}>
-              <strong style={{ color: colors.navy800 }}>Languages:</strong> {skills.languages.join(', ')}
+              <strong style={{ color: colors.navy800 }}>Languages:</strong> {renderSkillsList(skills.languages, formatting?.skillsLayout, { backgroundColor: colors.gray100, color: colors.gray700 }, { color: colors.gray700 })}
             </div>
           )}
         </div>

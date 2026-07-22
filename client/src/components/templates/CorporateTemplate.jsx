@@ -1,4 +1,5 @@
 import React from 'react'
+import { renderSkillsList } from '../../utils/renderSkills'
 import GenericSection from './GenericSection'
 import { colors, fonts, printStyles, getFontSize, getLineHeight, getMargins } from './PrintStyles'
 
@@ -236,19 +237,19 @@ const CorporateTemplate = ({ resume, formatting }) => {
               {skills.technical.length > 0 && (
                 <div style={styles.skillCategory}>
                   <div style={styles.skillCategoryTitle}>Technical</div>
-                  <div style={{ color: colors.gray700 }}>{skills.technical.join(' • ')}</div>
+                  <div style={{ color: colors.gray700 }}>{renderSkillsList(skills.technical, formatting?.skillsLayout)}</div>
                 </div>
               )}
               {skills.soft.length > 0 && (
                 <div style={styles.skillCategory}>
                   <div style={styles.skillCategoryTitle}>Professional</div>
-                  <div style={{ color: colors.gray700 }}>{skills.soft.join(' • ')}</div>
+                  <div style={{ color: colors.gray700 }}>{renderSkillsList(skills.soft, formatting?.skillsLayout)}</div>
                 </div>
               )}
               {skills.languages.length > 0 && (
                 <div style={styles.skillCategory}>
                   <div style={styles.skillCategoryTitle}>Languages</div>
-                  <div style={{ color: colors.gray700 }}>{skills.languages.join(' • ')}</div>
+                  <div style={{ color: colors.gray700 }}>{renderSkillsList(skills.languages, formatting?.skillsLayout)}</div>
                 </div>
               )}
             </div>

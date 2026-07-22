@@ -119,6 +119,7 @@ const useResumeStore = create(
                 margins: 'normal', // 'narrow', 'normal', 'wide'
                 colorScheme: 'blue', // for modern template
                 exportMode: 'digital', // 'digital' (shows URLs) or 'print' (shows labels)
+                skillsLayout: 'tags', // 'tags', 'bullets', 'comma'
             },
 
             // ═══════════════════════════════════════════════════════════════════

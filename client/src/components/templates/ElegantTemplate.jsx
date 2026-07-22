@@ -1,4 +1,5 @@
 import React from 'react'
+import { renderSkillsList } from '../../utils/renderSkills'
 import GenericSection from './GenericSection'
 import { colors, fonts, printStyles, getFontSize, getLineHeight, getMargins } from './PrintStyles'
 
@@ -261,9 +262,9 @@ const ElegantTemplate = ({ resume, formatting }) => {
             <span style={styles.dividerLine}></span>
           </div>
           <div style={styles.skillsElegant}>
-            {skills.technical.length > 0 && <p style={{ margin: '0 0 6px 0' }}>{skills.technical.join(' • ')}</p>}
-            {skills.soft.length > 0 && <p style={{ margin: '0 0 6px 0', fontStyle: 'italic' }}>{skills.soft.join(' • ')}</p>}
-            {skills.languages.length > 0 && <p style={{ margin: 0 }}>Languages: {skills.languages.join(', ')}</p>}
+            {skills.technical.length > 0 && <p style={{ margin: '0 0 6px 0' }}>{renderSkillsList(skills.technical, formatting?.skillsLayout)}</p>}
+            {skills.soft.length > 0 && <p style={{ margin: '0 0 6px 0', fontStyle: 'italic' }}>{renderSkillsList(skills.soft, formatting?.skillsLayout)}</p>}
+            {skills.languages.length > 0 && <p style={{ margin: 0 }}>Languages: {renderSkillsList(skills.languages, formatting?.skillsLayout)}</p>}
           </div>
         </div>
       )}

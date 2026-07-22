@@ -1,4 +1,5 @@
 import React from 'react'
+import { renderSkillsList } from '../../utils/renderSkills'
 import GenericSection from './GenericSection'
 import { FaEnvelope, FaPhone, FaMapMarkerAlt, FaLinkedin, FaGithub, FaGlobe } from 'react-icons/fa'
 
@@ -210,19 +211,19 @@ const ATSTemplate = ({ resume, formatting }) => {
           {skills.technical.length > 0 && (
             <div style={{ marginBottom: '4px', fontSize: '13px' }}>
               <span style={{ fontWeight: '600', color: colors.text }}>Technical: </span>
-              <span style={{ color: colors.textSecondary }}>{skills.technical.join(' • ')}</span>
+              <span style={{ color: colors.textSecondary }}>{renderSkillsList(skills.technical, formatting?.skillsLayout)}</span>
             </div>
           )}
           {skills.soft.length > 0 && (
             <div style={{ marginBottom: '4px', fontSize: '13px' }}>
               <span style={{ fontWeight: '600', color: colors.text }}>Soft Skills: </span>
-              <span style={{ color: colors.textSecondary }}>{skills.soft.join(' • ')}</span>
+              <span style={{ color: colors.textSecondary }}>{renderSkillsList(skills.soft, formatting?.skillsLayout)}</span>
             </div>
           )}
           {skills.languages.length > 0 && (
             <div style={{ marginBottom: '4px', fontSize: '13px' }}>
               <span style={{ fontWeight: '600', color: colors.text }}>Languages: </span>
-              <span style={{ color: colors.textSecondary }}>{skills.languages.join(' • ')}</span>
+              <span style={{ color: colors.textSecondary }}>{renderSkillsList(skills.languages, formatting?.skillsLayout)}</span>
             </div>
           )}
         </div>

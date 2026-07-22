@@ -1,4 +1,5 @@
 import React from 'react'
+import { renderSkillsList } from '../../utils/renderSkills'
 import GenericSection from './GenericSection'
 import { colors, fonts, printStyles, getFontSize, getLineHeight, getMargins } from './PrintStyles'
 
@@ -277,7 +278,7 @@ const ProfessionalTemplate = ({ resume, formatting }) => {
           )}
           {skills.languages.length > 0 && (
             <div style={{ fontSize: '12px', color: colors.gray600 }}>
-              <strong>Languages:</strong> {skills.languages.join(', ')}
+              <strong>Languages:</strong> {renderSkillsList(skills.languages, formatting?.skillsLayout)}
             </div>
           )}
         </div>

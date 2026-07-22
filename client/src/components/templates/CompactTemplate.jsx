@@ -1,4 +1,5 @@
 import React from 'react'
+import { renderSkillsList } from '../../utils/renderSkills'
 import GenericSection from './GenericSection'
 import { colors, fonts, printStyles, getFontSize, getLineHeight } from './PrintStyles'
 
@@ -211,17 +212,17 @@ const CompactTemplate = ({ resume, formatting }) => {
               <h2 style={styles.sectionTitle}>Skills</h2>
               {skills.technical.length > 0 && (
                 <div style={styles.skillsCompact}>
-                  <strong>Tech:</strong> {skills.technical.join(', ')}
+                  <strong>Tech:</strong> {renderSkillsList(skills.technical, formatting?.skillsLayout)}
                 </div>
               )}
               {skills.soft.length > 0 && (
                 <div style={styles.skillsCompact}>
-                  <strong>Soft:</strong> {skills.soft.join(', ')}
+                  <strong>Soft:</strong> {renderSkillsList(skills.soft, formatting?.skillsLayout)}
                 </div>
               )}
               {skills.languages.length > 0 && (
                 <div style={styles.skillsCompact}>
-                  <strong>Lang:</strong> {skills.languages.join(', ')}
+                  <strong>Lang:</strong> {renderSkillsList(skills.languages, formatting?.skillsLayout)}
                 </div>
               )}
             </div>
