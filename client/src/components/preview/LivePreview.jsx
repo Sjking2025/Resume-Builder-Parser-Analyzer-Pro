@@ -61,17 +61,17 @@ const LivePreview = () => {
     try {
       const element = resumeRef.current
       
-      // Capture the element using html2canvas with scale: 2 for high definition
+      // Attempt high-definition canvas capture
       const canvas = await html2canvas(element, {
         scale: 2,
         useCORS: true,
+        allowTaint: true,
         logging: false,
         backgroundColor: '#ffffff'
       })
 
       const imgData = canvas.toDataURL('image/png')
       
-      // Standard A4 dimensions in mm
       const pdf = new jsPDF({
         orientation: 'portrait',
         unit: 'mm',
@@ -85,11 +85,9 @@ const LivePreview = () => {
       let heightLeft = imgHeight
       let position = 0
 
-      // Add first page
       pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, imgHeight)
       heightLeft -= pageHeight
 
-      // Handle multi-page if the resume content spans multiple pages
       while (heightLeft > 0) {
         position = heightLeft - imgHeight
         pdf.addPage()
@@ -100,12 +98,12 @@ const LivePreview = () => {
       const fullName = resume.personalInfo?.fullName || 'Resume'
       const cleanFileName = `${fullName.replace(/[^a-zA-Z0-9]/g, '_')}_Resume.pdf`
       
-      // Save directly to user's downloads folder as a valid PDF
       pdf.save(cleanFileName)
       
     } catch (error) {
-      console.error('Error generating PDF:', error)
-      alert('Failed to generate PDF. Please try again.')
+      console.warn('Canvas export fallback to native browser print:', error)
+      // Ultimate fail-safe: Native browser print dialog on current tab
+      window.print()
     } finally {
       setIsExporting(false)
     }
@@ -140,7 +138,7 @@ const LivePreview = () => {
 
       {/* Resume Preview */}
       <div className="flex-1 overflow-auto bg-gray-100 p-8">
-        <div ref={resumeRef} className="animate-fade-in">
+        <div ref={resumeRef} id="printable-resume" className="animate-fade-in">
           <Template resume={resume} formatting={formatting} />
         </div>
       </div>
