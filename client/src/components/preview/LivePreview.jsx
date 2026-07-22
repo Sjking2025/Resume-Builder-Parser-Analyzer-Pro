@@ -59,23 +59,14 @@ const LivePreview = () => {
     try {
       // Get the resume HTML with inline styles
       const resumeHTML = resumeRef.current.innerHTML
+      const fullName = resume.personalInfo?.fullName || 'Resume'
       
-      // Create a new window with print-optimized content
-      const printWindow = window.open('', '_blank', 'width=800,height=600')
-      
-      if (!printWindow) {
-        alert('Please allow popups to export the PDF.')
-        setIsExporting(false)
-        return
-      }
-
-      // Write the complete HTML document with print styles
-      printWindow.document.write(`
+      const completeHtml = `
         <!DOCTYPE html>
         <html>
         <head>
           <meta charset="UTF-8">
-          <title>${resume.personalInfo.fullName || 'Resume'} - Resume</title>
+          <title>${fullName} - Resume</title>
           <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Georgia&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
           <style>
             /* Reset and base styles */
@@ -188,6 +179,49 @@ const LivePreview = () => {
           <div class="resume-wrapper">
             ${resumeHTML}
           </div>
+        </body>
+        </html>
+      `
+
+      // Try backend PDF generation first
+      try {
+        const { API_ENDPOINTS } = await import('../../config/api')
+        const response = await fetch(API_ENDPOINTS.exportPdf, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ html: completeHtml, filename: `${fullName.replace(/\s+/g, '_')}_Resume.pdf` })
+        })
+
+        if (!response.ok) {
+          throw new Error(`Server returned ${response.status}`)
+        }
+
+        const contentType = response.headers.get('content-type')
+        if (contentType && contentType.includes('application/pdf')) {
+          const blob = await response.blob()
+          const url = window.URL.createObjectURL(blob)
+          const a = document.createElement('a')
+          a.href = url
+          a.download = `${fullName.replace(/\s+/g, '_')}_Resume.pdf`
+          document.body.appendChild(a)
+          a.click()
+          a.remove()
+          window.URL.revokeObjectURL(url)
+          return
+        }
+      } catch (backendError) {
+        console.warn('Backend PDF generation failed or unavailable, falling back to browser print:', backendError)
+      }
+      
+      // Fallback: Browser Print
+      const printWindow = window.open('', '_blank', 'width=800,height=600')
+      
+      if (!printWindow) {
+        alert('Please allow popups to export the PDF.')
+        return
+      }
+
+      printWindow.document.write(completeHtml.replace('</body>', `
           <script>
             // Wait for fonts and content to load
             window.onload = function() {
@@ -202,8 +236,7 @@ const LivePreview = () => {
             };
           </script>
         </body>
-        </html>
-      `)
+      `))
       
       printWindow.document.close()
       
