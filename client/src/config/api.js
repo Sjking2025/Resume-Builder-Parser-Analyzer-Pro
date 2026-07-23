@@ -28,20 +28,28 @@ export const API_ENDPOINTS = {
 
     health: `${API_BASE_URL}/api/ai/health`,
 
+    // Model Management (Multi-Provider)
+    models: `${API_BASE_URL}/api/ai/models`,
+    providersHealth: `${API_BASE_URL}/api/ai/providers/health`,
+
     // PDF export
     exportPdf: `${API_BASE_URL}/api/pdf/export`,
 }
 
 /**
- * Wrapper around native fetch to automatically attach custom API keys
+ * Wrapper around native fetch to automatically attach custom API keys and model selection.
+ * Injects x-ai-api-key and x-ai-model headers from sessionStorage.
  */
 export const apiFetch = async (url, options = {}) => {
   const apiKey = sessionStorage.getItem('customApiKey')
+  const aiModel = sessionStorage.getItem('customAiModel')
   const headers = {
     ...options.headers,
-    ...(apiKey ? { 'x-ai-api-key': apiKey } : {})
+    ...(apiKey ? { 'x-ai-api-key': apiKey } : {}),
+    ...(aiModel ? { 'x-ai-model': aiModel } : {}),
   }
   return fetch(url, { ...options, headers })
 }
 
 export default API_BASE_URL
+

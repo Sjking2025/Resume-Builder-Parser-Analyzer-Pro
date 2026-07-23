@@ -178,19 +178,19 @@ class SystemLogger:
 
     @staticmethod
     def divider():
-        print(f"{SystemLogger.DIM}{'\u2500' * 44}{SystemLogger.RESET}", flush=True)
+        print(f"{SystemLogger.DIM}{'-' * 44}{SystemLogger.RESET}", flush=True)
 
     @staticmethod
     def boot_header():
         print("", flush=True)
         SystemLogger.divider()
-        print(f"{SystemLogger.MAGENTA}{SystemLogger.BOLD}\U0001f680 AI CAREER ENGINE STARTED{SystemLogger.RESET}", flush=True)
+        print(f"{SystemLogger.MAGENTA}{SystemLogger.BOLD}[*] AI CAREER ENGINE STARTED{SystemLogger.RESET}", flush=True)
         SystemLogger.divider()
 
     @staticmethod
     def ready_footer():
         SystemLogger.divider()
-        print(f"{SystemLogger.GREEN}{SystemLogger.BOLD}\u2705 System Ready \u2014 Awaiting Requests{SystemLogger.RESET}", flush=True)
+        print(f"{SystemLogger.GREEN}{SystemLogger.BOLD}[+] System Ready -- Awaiting Requests{SystemLogger.RESET}", flush=True)
         SystemLogger.divider()
         print("", flush=True)
 

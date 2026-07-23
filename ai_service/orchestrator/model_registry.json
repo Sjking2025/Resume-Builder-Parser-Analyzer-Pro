@@ -1,0 +1,306 @@
+{
+  "version": "1.0.0",
+  "last_updated": "2026-07-23",
+  "models": [
+    {
+      "id": "google/gemini-2.5-flash",
+      "provider": "google",
+      "display_name": "Gemini 2.5 Flash",
+      "is_free": true,
+      "context_window": 1048576,
+      "max_output_tokens": 65536,
+      "capabilities": {
+        "vision": true,
+        "reasoning": true,
+        "streaming": true,
+        "tool_calling": true,
+        "json_mode": true
+      },
+      "category": "general",
+      "speed": "fast",
+      "quality": "high",
+      "input_price_per_million": 0,
+      "output_price_per_million": 0
+    },
+    {
+      "id": "google/gemini-2.5-pro",
+      "provider": "google",
+      "display_name": "Gemini 2.5 Pro",
+      "is_free": false,
+      "context_window": 1048576,
+      "max_output_tokens": 65536,
+      "capabilities": {
+        "vision": true,
+        "reasoning": true,
+        "streaming": true,
+        "tool_calling": true,
+        "json_mode": true
+      },
+      "category": "reasoning",
+      "speed": "medium",
+      "quality": "very_high",
+      "input_price_per_million": 1.25,
+      "output_price_per_million": 10.0
+    },
+    {
+      "id": "google/gemini-1.5-flash",
+      "provider": "google",
+      "display_name": "Gemini 1.5 Flash",
+      "is_free": true,
+      "context_window": 1048576,
+      "max_output_tokens": 8192,
+      "capabilities": {
+        "vision": true,
+        "reasoning": false,
+        "streaming": true,
+        "tool_calling": true,
+        "json_mode": true
+      },
+      "category": "general",
+      "speed": "very_fast",
+      "quality": "good",
+      "input_price_per_million": 0,
+      "output_price_per_million": 0
+    },
+    {
+      "id": "deepseek/deepseek-r1:free",
+      "provider": "openrouter",
+      "display_name": "DeepSeek R1",
+      "is_free": true,
+      "context_window": 163840,
+      "max_output_tokens": 163840,
+      "capabilities": {
+        "vision": false,
+        "reasoning": true,
+        "streaming": true,
+        "tool_calling": false,
+        "json_mode": false
+      },
+      "category": "reasoning",
+      "speed": "medium",
+      "quality": "very_high",
+      "input_price_per_million": 0,
+      "output_price_per_million": 0
+    },
+    {
+      "id": "deepseek/deepseek-chat-v3-0324:free",
+      "provider": "openrouter",
+      "display_name": "DeepSeek V3",
+      "is_free": true,
+      "context_window": 131072,
+      "max_output_tokens": 131072,
+      "capabilities": {
+        "vision": false,
+        "reasoning": false,
+        "streaming": true,
+        "tool_calling": true,
+        "json_mode": true
+      },
+      "category": "general",
+      "speed": "fast",
+      "quality": "high",
+      "input_price_per_million": 0,
+      "output_price_per_million": 0
+    },
+    {
+      "id": "google/gemma-3-27b-it:free",
+      "provider": "openrouter",
+      "display_name": "Gemma 3 27B",
+      "is_free": true,
+      "context_window": 96000,
+      "max_output_tokens": 8192,
+      "capabilities": {
+        "vision": true,
+        "reasoning": false,
+        "streaming": true,
+        "tool_calling": false,
+        "json_mode": false
+      },
+      "category": "general",
+      "speed": "fast",
+      "quality": "good",
+      "input_price_per_million": 0,
+      "output_price_per_million": 0
+    },
+    {
+      "id": "meta-llama/llama-4-scout:free",
+      "provider": "openrouter",
+      "display_name": "Llama 4 Scout",
+      "is_free": true,
+      "context_window": 512000,
+      "max_output_tokens": 131072,
+      "capabilities": {
+        "vision": true,
+        "reasoning": false,
+        "streaming": true,
+        "tool_calling": true,
+        "json_mode": true
+      },
+      "category": "general",
+      "speed": "fast",
+      "quality": "high",
+      "input_price_per_million": 0,
+      "output_price_per_million": 0
+    },
+    {
+      "id": "meta-llama/llama-4-maverick:free",
+      "provider": "openrouter",
+      "display_name": "Llama 4 Maverick",
+      "is_free": true,
+      "context_window": 1048576,
+      "max_output_tokens": 131072,
+      "capabilities": {
+        "vision": true,
+        "reasoning": false,
+        "streaming": true,
+        "tool_calling": true,
+        "json_mode": true
+      },
+      "category": "general",
+      "speed": "medium",
+      "quality": "high",
+      "input_price_per_million": 0,
+      "output_price_per_million": 0
+    },
+    {
+      "id": "qwen/qwen3-235b-a22b:free",
+      "provider": "openrouter",
+      "display_name": "Qwen 3 235B",
+      "is_free": true,
+      "context_window": 40960,
+      "max_output_tokens": 40960,
+      "capabilities": {
+        "vision": false,
+        "reasoning": true,
+        "streaming": true,
+        "tool_calling": true,
+        "json_mode": true
+      },
+      "category": "reasoning",
+      "speed": "medium",
+      "quality": "very_high",
+      "input_price_per_million": 0,
+      "output_price_per_million": 0
+    },
+    {
+      "id": "mistralai/mistral-small-3.2-24b-instruct:free",
+      "provider": "openrouter",
+      "display_name": "Mistral Small 3.2",
+      "is_free": true,
+      "context_window": 131072,
+      "max_output_tokens": 131072,
+      "capabilities": {
+        "vision": true,
+        "reasoning": false,
+        "streaming": true,
+        "tool_calling": true,
+        "json_mode": true
+      },
+      "category": "general",
+      "speed": "very_fast",
+      "quality": "good",
+      "input_price_per_million": 0,
+      "output_price_per_million": 0
+    },
+    {
+      "id": "openrouter/auto",
+      "provider": "openrouter",
+      "display_name": "Auto (OpenRouter Best Free)",
+      "is_free": true,
+      "context_window": 128000,
+      "max_output_tokens": 32000,
+      "capabilities": {
+        "vision": false,
+        "reasoning": false,
+        "streaming": true,
+        "tool_calling": false,
+        "json_mode": false
+      },
+      "category": "general",
+      "speed": "fast",
+      "quality": "high",
+      "input_price_per_million": 0,
+      "output_price_per_million": 0
+    },
+    {
+      "id": "openai/gpt-4o",
+      "provider": "openrouter",
+      "display_name": "GPT-4o",
+      "is_free": false,
+      "context_window": 128000,
+      "max_output_tokens": 16384,
+      "capabilities": {
+        "vision": true,
+        "reasoning": false,
+        "streaming": true,
+        "tool_calling": true,
+        "json_mode": true
+      },
+      "category": "general",
+      "speed": "fast",
+      "quality": "very_high",
+      "input_price_per_million": 2.5,
+      "output_price_per_million": 10.0
+    },
+    {
+      "id": "openai/gpt-4o-mini",
+      "provider": "openrouter",
+      "display_name": "GPT-4o Mini",
+      "is_free": false,
+      "context_window": 128000,
+      "max_output_tokens": 16384,
+      "capabilities": {
+        "vision": true,
+        "reasoning": false,
+        "streaming": true,
+        "tool_calling": true,
+        "json_mode": true
+      },
+      "category": "general",
+      "speed": "very_fast",
+      "quality": "good",
+      "input_price_per_million": 0.15,
+      "output_price_per_million": 0.6
+    },
+    {
+      "id": "anthropic/claude-sonnet-4",
+      "provider": "openrouter",
+      "display_name": "Claude Sonnet 4",
+      "is_free": false,
+      "context_window": 200000,
+      "max_output_tokens": 16000,
+      "capabilities": {
+        "vision": true,
+        "reasoning": true,
+        "streaming": true,
+        "tool_calling": true,
+        "json_mode": true
+      },
+      "category": "reasoning",
+      "speed": "medium",
+      "quality": "very_high",
+      "input_price_per_million": 3.0,
+      "output_price_per_million": 15.0
+    },
+    {
+      "id": "anthropic/claude-3.5-haiku",
+      "provider": "openrouter",
+      "display_name": "Claude 3.5 Haiku",
+      "is_free": false,
+      "context_window": 200000,
+      "max_output_tokens": 8192,
+      "capabilities": {
+        "vision": true,
+        "reasoning": false,
+        "streaming": true,
+        "tool_calling": true,
+        "json_mode": true
+      },
+      "category": "general",
+      "speed": "very_fast",
+      "quality": "good",
+      "input_price_per_million": 0.8,
+      "output_price_per_million": 4.0
+    }
+  ]
+}

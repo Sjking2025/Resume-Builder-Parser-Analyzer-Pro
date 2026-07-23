@@ -44,7 +44,11 @@ const aiPost = (url, data, config) => {
  */
 const getHeaders = (req) => {
     const aiApiKey = req.headers['x-ai-api-key'];
-    return aiApiKey ? { 'x-ai-api-key': aiApiKey } : {};
+    const aiModel = req.headers['x-ai-model'];
+    const headers = {};
+    if (aiApiKey) headers['x-ai-api-key'] = aiApiKey;
+    if (aiModel) headers['x-ai-model'] = aiModel;
+    return headers;
 };
 
 /**
@@ -82,6 +86,42 @@ router.get('/health', async (req, res) => {
             status: 'unhealthy',
             error: 'AI service is not running',
             aiServiceUrl: AI_SERVICE_URL
+        })
+    }
+})
+
+/**
+ * GET /api/ai/models
+ * Return the full model catalog from the AI service
+ */
+router.get('/models', async (req, res) => {
+    try {
+        const response = await axios.get(`${AI_SERVICE_URL}/models`)
+        return res.json(response.data)
+    } catch (error) {
+        safeLogError('Models Catalog Error', error)
+        return res.status(503).json({
+            error: 'Could not fetch model catalog',
+            models: []
+        })
+    }
+})
+
+/**
+ * GET /api/ai/providers/health
+ * Check health of available AI providers
+ */
+router.get('/providers/health', async (req, res) => {
+    try {
+        const response = await axios.get(`${AI_SERVICE_URL}/providers/health`, {
+            headers: getHeaders(req)
+        })
+        return res.json(response.data)
+    } catch (error) {
+        safeLogError('Provider Health Error', error)
+        return res.status(503).json({
+            error: 'Could not check provider health',
+            providers: []
         })
     }
 })

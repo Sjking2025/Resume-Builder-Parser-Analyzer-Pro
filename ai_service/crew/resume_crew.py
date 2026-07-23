@@ -7,6 +7,7 @@ import json
 import time
 from typing import Optional
 
+# Legacy imports kept for backward compatibility if anything references them directly
 from .ai_wrappers import OpenRouterWrapper, GoogleGenAIWrapper, GEMINI_AVAILABLE, OPENAI_AVAILABLE
 from .logger import SystemLogger
 from .prompts import (
@@ -23,32 +24,27 @@ from .prompts import (
     get_cv_to_resume_prompt,
 )
 
+# New orchestrator import
+from orchestrator.manager import AIManager
+
 class ResumeCrew:
     """Orchestrates AI agents for resume analysis"""
     
-    def __init__(self, api_key: str = None):
-        """Initialize the AI model. Boot logging is handled by main.py lifespan."""
-        openrouter_key = os.getenv("OPENROUTER_API_KEY")
-        google_key = os.getenv("GOOGLE_API_KEY")
+    def __init__(self, api_key: str = None, model_id: str = None):
+        """
+        Initialize the AI model via the AIManager orchestrator.
         
-        if api_key:
-            if api_key.startswith("sk-or-"):
-                if OPENAI_AVAILABLE:
-                    self.model = OpenRouterWrapper(api_key, "openrouter/free")
-                else:
-                    self.model = None
-            else:
-                if GEMINI_AVAILABLE:
-                    self.model = GoogleGenAIWrapper(api_key, "gemini-2.5-flash")
-                else:
-                    self.model = None
-        else:
-            if openrouter_key and OPENAI_AVAILABLE:
-                self.model = OpenRouterWrapper(openrouter_key, "openrouter/free")
-            elif google_key and GEMINI_AVAILABLE:
-                self.model = GoogleGenAIWrapper(google_key, "gemini-2.5-flash")
-            else:
-                self.model = None
+        Args:
+            api_key: User-provided API key (or falls back to env vars).
+            model_id: Explicit model ID from the frontend (or 'auto'/None for auto-select).
+        """
+        try:
+            manager = AIManager(api_key=api_key, model_id=model_id)
+            # Expose a backward-compatible .model with .generate_content(prompt)
+            self.model = manager
+        except Exception as e:
+            SystemLogger.warn("ResumeCrew", f"AIManager init fallback: {e}")
+            self.model = None
 
     # ═══════════════════════════════════════════════════════════════════════════
     # MULTI-AGENT TAILORING PIPELINE (5-Agent Architecture)
