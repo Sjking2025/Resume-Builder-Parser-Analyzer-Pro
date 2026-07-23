@@ -26,16 +26,18 @@ class AIManager:
         print(response.text)
     """
 
-    def __init__(self, api_key: str = None, model_id: str = None):
+    def __init__(self, api_key: str = None, model_id: str = None, routing_pref: str = "free_first"):
         """
         Initialize the AI Manager.
 
         Args:
             api_key: User-provided API key, or falls back to env vars.
             model_id: Explicit model ID, 'auto', or None (auto-select).
+            routing_pref: User preference for auto-routing (free_first, fastest, highest_quality).
         """
         self._api_key = api_key
         self._model_id = model_id
+        self._routing_pref = routing_pref
         self._resolved_model = None
         self._provider = None
 
@@ -104,6 +106,7 @@ class AIManager:
         model = resolve_model(
             model_id=self._model_id,
             provider=provider_type,
+            routing_pref=self._routing_pref
         )
 
         # Attempt generation with the primary model

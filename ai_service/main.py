@@ -161,7 +161,7 @@ async def providers_health(x_ai_api_key: Optional[str] = Header(None)):
 
 
 @app.post("/import-resume")
-async def import_resume(file: UploadFile = File(...), x_ai_api_key: Optional[str] = Header(None), x_ai_model: Optional[str] = Header(None)) -> ImportResponse:
+async def import_resume(file: UploadFile = File(...), x_ai_api_key: Optional[str] = Header(None), x_ai_model: Optional[str] = Header(None), x_ai_routing_pref: Optional[str] = Header(\'free_first\')) -> ImportResponse:
     """
     Parse an uploaded resume PDF and extract structured data.
     """
@@ -201,7 +201,7 @@ async def import_resume(file: UploadFile = File(...), x_ai_api_key: Optional[str
         
         # Parse using AI
         from crew.resume_crew import ResumeCrew
-        crew = ResumeCrew(api_key=x_ai_api_key, model_id=x_ai_model)
+        crew = ResumeCrew(api_key=x_ai_api_key, model_id=x_ai_model, routing_pref=x_ai_routing_pref)
         parsed_data = crew.parse_resume_for_import(resume_text)
         
         return ImportResponse(
@@ -220,7 +220,7 @@ async def import_resume(file: UploadFile = File(...), x_ai_api_key: Optional[str
 
 
 @app.post("/import-document")
-async def import_document(file: UploadFile = File(...), x_ai_api_key: Optional[str] = Header(None), x_ai_model: Optional[str] = Header(None)) -> DocumentImportResponse:
+async def import_document(file: UploadFile = File(...), x_ai_api_key: Optional[str] = Header(None), x_ai_model: Optional[str] = Header(None), x_ai_routing_pref: Optional[str] = Header(\'free_first\')) -> DocumentImportResponse:
     """
     Parse an uploaded CV or Resume PDF/DOCX and extract structured data with type detection.
     """
@@ -267,7 +267,7 @@ async def import_document(file: UploadFile = File(...), x_ai_api_key: Optional[s
         
         # Parse using AI
         from crew.resume_crew import ResumeCrew
-        crew = ResumeCrew(api_key=x_ai_api_key, model_id=x_ai_model)
+        crew = ResumeCrew(api_key=x_ai_api_key, model_id=x_ai_model, routing_pref=x_ai_routing_pref)
         parsed_data = crew.parse_document(document_text)
         
         document_detection = parsed_data.pop("documentDetection", {
@@ -293,7 +293,7 @@ async def import_document(file: UploadFile = File(...), x_ai_api_key: Optional[s
 
 
 @app.post("/convert-cv-to-resume")
-async def convert_cv_to_resume(request: ConvertCVRequest, x_ai_api_key: Optional[str] = Header(None), x_ai_model: Optional[str] = Header(None)):
+async def convert_cv_to_resume(request: ConvertCVRequest, x_ai_api_key: Optional[str] = Header(None), x_ai_model: Optional[str] = Header(None), x_ai_routing_pref: Optional[str] = Header(\'free_first\')):
     """
     Convert a parsed CV into a concise Resume.
     """
@@ -306,7 +306,7 @@ async def convert_cv_to_resume(request: ConvertCVRequest, x_ai_api_key: Optional
         
     try:
         from crew.resume_crew import ResumeCrew
-        crew = ResumeCrew(api_key=x_ai_api_key, model_id=x_ai_model)
+        crew = ResumeCrew(api_key=x_ai_api_key, model_id=x_ai_model, routing_pref=x_ai_routing_pref)
         
         result = crew.convert_cv_to_resume(
             request.cv_data,
@@ -330,7 +330,7 @@ async def convert_cv_to_resume(request: ConvertCVRequest, x_ai_api_key: Optional
         )
 
 @app.post("/analyze")
-async def analyze_resume_from_data(request: AnalyzeRequest, x_ai_api_key: Optional[str] = Header(None), x_ai_model: Optional[str] = Header(None)):
+async def analyze_resume_from_data(request: AnalyzeRequest, x_ai_api_key: Optional[str] = Header(None), x_ai_model: Optional[str] = Header(None), x_ai_routing_pref: Optional[str] = Header(\'free_first\')):
     """
     Analyze resume data and provide comprehensive feedback.
     """
@@ -348,7 +348,7 @@ async def analyze_resume_from_data(request: AnalyzeRequest, x_ai_api_key: Option
     
     try:
         from crew.resume_crew import ResumeCrew
-        crew = ResumeCrew(api_key=x_ai_api_key, model_id=x_ai_model)
+        crew = ResumeCrew(api_key=x_ai_api_key, model_id=x_ai_model, routing_pref=x_ai_routing_pref)
         analysis = crew.analyze_resume(request.resume_data, request.job_description)
         
         return analysis
@@ -362,7 +362,7 @@ async def analyze_resume_from_data(request: AnalyzeRequest, x_ai_api_key: Option
 
 
 @app.post("/tailor-resume")
-async def tailor_resume_to_jd(request: AnalyzeRequest, x_ai_api_key: Optional[str] = Header(None), x_ai_model: Optional[str] = Header(None)):
+async def tailor_resume_to_jd(request: AnalyzeRequest, x_ai_api_key: Optional[str] = Header(None), x_ai_model: Optional[str] = Header(None), x_ai_routing_pref: Optional[str] = Header(\'free_first\')):
     """
     Runs the full 5-Agent Resume Tailoring Pipeline.
     Pipeline:
@@ -393,7 +393,7 @@ async def tailor_resume_to_jd(request: AnalyzeRequest, x_ai_api_key: Optional[st
         
     try:
         from crew.resume_crew import ResumeCrew
-        crew = ResumeCrew(api_key=x_ai_api_key, model_id=x_ai_model)
+        crew = ResumeCrew(api_key=x_ai_api_key, model_id=x_ai_model, routing_pref=x_ai_routing_pref)
         
         # Run the full 5-agent pipeline
         pipeline_result = crew.run_tailoring_pipeline(
@@ -417,7 +417,7 @@ async def tailor_resume_to_jd(request: AnalyzeRequest, x_ai_api_key: Optional[st
 
 
 @app.post("/analyze-pdf")
-async def analyze_resume_from_pdf(file: UploadFile = File(...), job_description: Optional[str] = None, x_ai_api_key: Optional[str] = Header(None), x_ai_model: Optional[str] = Header(None)):
+async def analyze_resume_from_pdf(file: UploadFile = File(...), job_description: Optional[str] = None, x_ai_api_key: Optional[str] = Header(None), x_ai_model: Optional[str] = Header(None), x_ai_routing_pref: Optional[str] = Header(\'free_first\')):
     """
     Analyze an uploaded resume PDF and provide comprehensive feedback.
     """
@@ -464,7 +464,7 @@ async def analyze_resume_from_pdf(file: UploadFile = File(...), job_description:
         
         # First parse to get structured data
         from crew.resume_crew import ResumeCrew
-        crew = ResumeCrew(api_key=x_ai_api_key, model_id=x_ai_model)
+        crew = ResumeCrew(api_key=x_ai_api_key, model_id=x_ai_model, routing_pref=x_ai_routing_pref)
         parsed_data = crew.parse_resume_for_import(resume_text)
         
         # Then analyze
@@ -482,7 +482,7 @@ async def analyze_resume_from_pdf(file: UploadFile = File(...), job_description:
 
 
 @app.post("/portfolio-enhance")
-async def enhance_portfolio(request: AnalyzeRequest, x_ai_api_key: Optional[str] = Header(None), x_ai_model: Optional[str] = Header(None)):
+async def enhance_portfolio(request: AnalyzeRequest, x_ai_api_key: Optional[str] = Header(None), x_ai_model: Optional[str] = Header(None), x_ai_routing_pref: Optional[str] = Header(\'free_first\')):
     """
     Transform resume data into web-optimized portfolio content.
     Returns enhanced content for portfolio generation.
@@ -503,7 +503,7 @@ async def enhance_portfolio(request: AnalyzeRequest, x_ai_api_key: Optional[str]
     
     try:
         from crew.resume_crew import ResumeCrew
-        crew = ResumeCrew(api_key=x_ai_api_key, model_id=x_ai_model)
+        crew = ResumeCrew(api_key=x_ai_api_key, model_id=x_ai_model, routing_pref=x_ai_routing_pref)
         
         # Transform resume to portfolio content
         portfolio_data = crew.enhance_for_portfolio(resume_data)
@@ -521,7 +521,7 @@ async def enhance_portfolio(request: AnalyzeRequest, x_ai_api_key: Optional[str]
 
 
 @app.post("/portfolio-enhance-stream")
-async def enhance_portfolio_stream(request: AnalyzeRequest, x_ai_api_key: Optional[str] = Header(None), x_ai_model: Optional[str] = Header(None)):
+async def enhance_portfolio_stream(request: AnalyzeRequest, x_ai_api_key: Optional[str] = Header(None), x_ai_model: Optional[str] = Header(None), x_ai_routing_pref: Optional[str] = Header(\'free_first\')):
     """
     Stream portfolio generation section-by-section using Server-Sent Events.
     Returns real-time progress updates as portfolio is generated.
@@ -546,7 +546,7 @@ async def enhance_portfolio_stream(request: AnalyzeRequest, x_ai_api_key: Option
         import json
         
         try:
-            crew = ResumeCrew(api_key=x_ai_api_key, model_id=x_ai_model)
+            crew = ResumeCrew(api_key=x_ai_api_key, model_id=x_ai_model, routing_pref=x_ai_routing_pref)
             
             # Stream portfolio generation
             for event in crew.enhance_for_portfolio_streaming(resume_data):
@@ -591,7 +591,7 @@ class ModifyRoadmapRequest(BaseModel):
 
 
 @app.post("/skill-gap/analyze")
-async def analyze_skill_gap(request: SkillGapRequest, x_ai_api_key: Optional[str] = Header(None), x_ai_model: Optional[str] = Header(None)):
+async def analyze_skill_gap(request: SkillGapRequest, x_ai_api_key: Optional[str] = Header(None), x_ai_model: Optional[str] = Header(None), x_ai_routing_pref: Optional[str] = Header(\'free_first\')):
     """
     Analyze the skill gap between a resume and job description.
     Returns matched skills, missing skills, weak skills, and recommendations.
@@ -610,7 +610,7 @@ async def analyze_skill_gap(request: SkillGapRequest, x_ai_api_key: Optional[str
     
     try:
         from crew.resume_crew import ResumeCrew
-        crew = ResumeCrew(api_key=x_ai_api_key, model_id=x_ai_model)
+        crew = ResumeCrew(api_key=x_ai_api_key, model_id=x_ai_model, routing_pref=x_ai_routing_pref)
         
         result = crew.analyze_skill_gap(request.resume_data, request.job_description)
         
@@ -627,7 +627,7 @@ async def analyze_skill_gap(request: SkillGapRequest, x_ai_api_key: Optional[str
 
 
 @app.post("/skill-gap/roadmap")
-async def generate_roadmap(request: RoadmapRequest, x_ai_api_key: Optional[str] = Header(None), x_ai_model: Optional[str] = Header(None)):
+async def generate_roadmap(request: RoadmapRequest, x_ai_api_key: Optional[str] = Header(None), x_ai_model: Optional[str] = Header(None), x_ai_routing_pref: Optional[str] = Header(\'free_first\')):
     """
     Generate a practice-focused learning roadmap based on skill gap analysis.
     40% learning, 60% practice with curated resources.
@@ -644,7 +644,7 @@ async def generate_roadmap(request: RoadmapRequest, x_ai_api_key: Optional[str] 
     
     try:
         from crew.resume_crew import ResumeCrew
-        crew = ResumeCrew(api_key=x_ai_api_key, model_id=x_ai_model)
+        crew = ResumeCrew(api_key=x_ai_api_key, model_id=x_ai_model, routing_pref=x_ai_routing_pref)
         
         result = crew.generate_roadmap(request.gap_analysis, request.learner_profile)
         
@@ -661,7 +661,7 @@ async def generate_roadmap(request: RoadmapRequest, x_ai_api_key: Optional[str] 
 
 
 @app.post("/skill-gap/roadmap-stream")
-async def generate_roadmap_stream(request: RoadmapRequest, x_ai_api_key: Optional[str] = Header(None), x_ai_model: Optional[str] = Header(None)):
+async def generate_roadmap_stream(request: RoadmapRequest, x_ai_api_key: Optional[str] = Header(None), x_ai_model: Optional[str] = Header(None), x_ai_routing_pref: Optional[str] = Header(\'free_first\')):
     """
     Stream roadmap generation using Server-Sent Events.
     Returns real-time progress as each week is generated.
@@ -681,7 +681,7 @@ async def generate_roadmap_stream(request: RoadmapRequest, x_ai_api_key: Optiona
         import json
         
         try:
-            crew = ResumeCrew(api_key=x_ai_api_key, model_id=x_ai_model)
+            crew = ResumeCrew(api_key=x_ai_api_key, model_id=x_ai_model, routing_pref=x_ai_routing_pref)
             
             for event in crew.generate_roadmap_streaming(request.gap_analysis, request.learner_profile):
                 yield f"data: {json.dumps(event)}\n\n"
@@ -706,7 +706,7 @@ async def generate_roadmap_stream(request: RoadmapRequest, x_ai_api_key: Optiona
 
 
 @app.post("/skill-gap/roadmap/modify")
-async def modify_roadmap(request: ModifyRoadmapRequest, x_ai_api_key: Optional[str] = Header(None), x_ai_model: Optional[str] = Header(None)):
+async def modify_roadmap(request: ModifyRoadmapRequest, x_ai_api_key: Optional[str] = Header(None), x_ai_model: Optional[str] = Header(None), x_ai_routing_pref: Optional[str] = Header(\'free_first\')):
     """
     Use AI to modify an existing roadmap based on natural language request.
     Examples: "Push Kubernetes to week 3", "Make React harder", "I have less time"
@@ -725,7 +725,7 @@ async def modify_roadmap(request: ModifyRoadmapRequest, x_ai_api_key: Optional[s
     
     try:
         from crew.resume_crew import ResumeCrew
-        crew = ResumeCrew(api_key=x_ai_api_key, model_id=x_ai_model)
+        crew = ResumeCrew(api_key=x_ai_api_key, model_id=x_ai_model, routing_pref=x_ai_routing_pref)
         
         result = crew.modify_roadmap(request.current_roadmap, request.modification_request)
         

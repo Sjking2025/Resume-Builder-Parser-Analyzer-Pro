@@ -43,10 +43,12 @@ export const API_ENDPOINTS = {
 export const apiFetch = async (url, options = {}) => {
   const apiKey = sessionStorage.getItem('customApiKey')
   const aiModel = sessionStorage.getItem('customAiModel')
+  const routingPref = sessionStorage.getItem('customAiRoutingPref')
   const headers = {
     ...options.headers,
     ...(apiKey ? { 'x-ai-api-key': apiKey } : {}),
     ...(aiModel ? { 'x-ai-model': aiModel } : {}),
+    ...(routingPref ? { 'x-ai-routing-pref': routingPref } : {}),
   }
   const response = await fetch(url, { ...options, headers })
   

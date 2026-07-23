@@ -22,6 +22,7 @@ def resolve_model(
     model_id: Optional[str] = None,
     provider: Optional[str] = None,
     task_type: str = "general",
+    routing_pref: str = "free_first",
 ) -> ModelEntry:
     """
     Resolve the best model for a request.
@@ -81,9 +82,13 @@ def resolve_model(
     available = [m for m in free_models if not _is_on_cooldown(m.id)]
 
     if available:
-        # Sort by quality (very_high > high > good)
-        quality_order = {"very_high": 0, "high": 1, "good": 2}
-        available.sort(key=lambda m: quality_order.get(m.quality, 3))
+        if routing_pref == "fastest":
+            speed_order = {"very_fast": 0, "fast": 1, "medium": 2, "slow": 3}
+            available.sort(key=lambda m: speed_order.get(m.speed, 4))
+        else:
+            # Default to highest quality sort (used for free_first and highest_quality)
+            quality_order = {"very_high": 0, "high": 1, "good": 2}
+            available.sort(key=lambda m: quality_order.get(m.quality, 3))
         return available[0]
 
     # All free models on cooldown — check if any are available (ignoring cooldown)

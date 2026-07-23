@@ -45,9 +45,11 @@ const aiPost = (url, data, config) => {
 const getHeaders = (req) => {
     const aiApiKey = req.headers['x-ai-api-key'];
     const aiModel = req.headers['x-ai-model'];
+    const routingPref = req.headers['x-ai-routing-pref'];
     const headers = {};
     if (aiApiKey) headers['x-ai-api-key'] = aiApiKey;
     if (aiModel) headers['x-ai-model'] = aiModel;
+    if (routingPref) headers['x-ai-routing-pref'] = routingPref;
     return headers;
 };
 

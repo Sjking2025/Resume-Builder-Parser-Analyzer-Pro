@@ -13,6 +13,7 @@ const ApiKeyModal = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [apiKey, setApiKey] = useState('');
   const [model, setModel] = useState('');
+  const [routingPref, setRoutingPref] = useState('free_first');
   const [saved, setSaved] = useState(false);
   const [models, setModels] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -25,6 +26,9 @@ const ApiKeyModal = () => {
     
     const storedModel = sessionStorage.getItem('customAiModel');
     if (storedModel) setModel(storedModel);
+
+    const storedPref = sessionStorage.getItem('customAiRoutingPref');
+    if (storedPref) setRoutingPref(storedPref);
   }, []);
 
   // Fetch model catalog when modal opens
@@ -84,6 +88,8 @@ const ApiKeyModal = () => {
     } else {
       sessionStorage.removeItem('customAiModel');
     }
+
+    sessionStorage.setItem('customAiRoutingPref', routingPref);
     
     setSaved(true);
     setTimeout(() => {
@@ -95,8 +101,10 @@ const ApiKeyModal = () => {
   const handleClear = () => {
     setApiKey('');
     setModel('');
+    setRoutingPref('free_first');
     sessionStorage.removeItem('customApiKey');
     sessionStorage.removeItem('customAiModel');
+    sessionStorage.removeItem('customAiRoutingPref');
     setSaved(true);
     setTimeout(() => { setSaved(false); setIsOpen(false); }, 1000);
   };
@@ -142,6 +150,22 @@ const ApiKeyModal = () => {
                 <p className="text-xs text-gray-500 mt-1.5">
                   <code className="bg-gray-100 px-1 py-0.5 rounded text-gray-700">sk-or-</code> for OpenRouter · <code className="bg-gray-100 px-1 py-0.5 rounded text-gray-700">AIza</code> for Google Gemini
                 </p>
+              </div>
+
+              {/* Routing Preference */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">
+                  <FaBolt className="inline mr-1 text-xs" /> Routing Strategy
+                </label>
+                <select
+                  value={routingPref}
+                  onChange={(e) => setRoutingPref(e.target.value)}
+                  className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-sm bg-white"
+                >
+                  <option value="free_first">Free First (Recommended)</option>
+                  <option value="fastest">Fastest Model (Low Latency)</option>
+                  <option value="highest_quality">Highest Quality (Slower)</option>
+                </select>
               </div>
 
               {/* Model Selection */}

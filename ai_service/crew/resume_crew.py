@@ -30,16 +30,17 @@ from orchestrator.manager import AIManager
 class ResumeCrew:
     """Orchestrates AI agents for resume analysis"""
     
-    def __init__(self, api_key: str = None, model_id: str = None):
+    def __init__(self, api_key: str = None, model_id: str = None, routing_pref: str = "free_first"):
         """
         Initialize the AI model via the AIManager orchestrator.
         
         Args:
             api_key: User-provided API key (or falls back to env vars).
             model_id: Explicit model ID from the frontend (or 'auto'/None for auto-select).
+            routing_pref: Routing preference (e.g. 'free_first', 'fastest', 'highest_quality').
         """
         try:
-            manager = AIManager(api_key=api_key, model_id=model_id)
+            manager = AIManager(api_key=api_key, model_id=model_id, routing_pref=routing_pref)
             # Expose a backward-compatible .model with .generate_content(prompt)
             self.model = manager
         except Exception as e:
