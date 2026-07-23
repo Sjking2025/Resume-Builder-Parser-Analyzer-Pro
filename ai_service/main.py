@@ -213,6 +213,8 @@ async def import_resume(file: UploadFile = File(...), x_ai_api_key: Optional[str
     except HTTPException:
         raise
     except Exception as e:
+        if \'PAID_CONSENT_REQUIRED\' in str(e):
+            raise ValueError(str(e))
         raise HTTPException(
             status_code=500,
             detail=f"Error parsing resume: {str(e)}"
@@ -286,6 +288,8 @@ async def import_document(file: UploadFile = File(...), x_ai_api_key: Optional[s
     except HTTPException:
         raise
     except Exception as e:
+        if \'PAID_CONSENT_REQUIRED\' in str(e):
+            raise ValueError(str(e))
         raise HTTPException(
             status_code=500,
             detail=f"Error parsing document: {str(e)}"
@@ -324,6 +328,8 @@ async def convert_cv_to_resume(request: ConvertCVRequest, x_ai_api_key: Optional
     except HTTPException:
         raise
     except Exception as e:
+        if \'PAID_CONSENT_REQUIRED\' in str(e):
+            raise ValueError(str(e))
         raise HTTPException(
             status_code=500,
             detail=f"Error converting CV to Resume: {str(e)}"
@@ -354,6 +360,8 @@ async def analyze_resume_from_data(request: AnalyzeRequest, x_ai_api_key: Option
         return analysis
         
     except Exception as e:
+        if \'PAID_CONSENT_REQUIRED\' in str(e):
+            raise ValueError(str(e))
         SystemLogger.error("System", f"Analysis failed: {str(e)}")
         raise HTTPException(
             status_code=500,
@@ -409,6 +417,8 @@ async def tailor_resume_to_jd(request: AnalyzeRequest, x_ai_api_key: Optional[st
         }
         
     except Exception as e:
+        if \'PAID_CONSENT_REQUIRED\' in str(e):
+            raise ValueError(str(e))
         SystemLogger.error("System", f"Pipeline failed: {str(e)}")
         raise HTTPException(
             status_code=500,
@@ -475,6 +485,8 @@ async def analyze_resume_from_pdf(file: UploadFile = File(...), job_description:
     except HTTPException:
         raise
     except Exception as e:
+        if \'PAID_CONSENT_REQUIRED\' in str(e):
+            raise ValueError(str(e))
         raise HTTPException(
             status_code=500,
             detail=f"Error analyzing resume: {str(e)}"
@@ -514,6 +526,8 @@ async def enhance_portfolio(request: AnalyzeRequest, x_ai_api_key: Optional[str]
         }
         
     except Exception as e:
+        if \'PAID_CONSENT_REQUIRED\' in str(e):
+            raise ValueError(str(e))
         raise HTTPException(
             status_code=500,
             detail=f"Error enhancing portfolio: {str(e)}"
@@ -554,6 +568,8 @@ async def enhance_portfolio_stream(request: AnalyzeRequest, x_ai_api_key: Option
                 yield f"data: {json.dumps(event)}\n\n"
                 
         except Exception as e:
+            if \'PAID_CONSENT_REQUIRED\' in str(e):
+                raise ValueError(str(e))
             # Send error event
             error_event = {
                 "error": str(e),
@@ -620,6 +636,8 @@ async def analyze_skill_gap(request: SkillGapRequest, x_ai_api_key: Optional[str
         }
         
     except Exception as e:
+        if \'PAID_CONSENT_REQUIRED\' in str(e):
+            raise ValueError(str(e))
         raise HTTPException(
             status_code=500,
             detail=f"Error analyzing skill gap: {str(e)}"
@@ -654,6 +672,8 @@ async def generate_roadmap(request: RoadmapRequest, x_ai_api_key: Optional[str] 
         }
         
     except Exception as e:
+        if \'PAID_CONSENT_REQUIRED\' in str(e):
+            raise ValueError(str(e))
         raise HTTPException(
             status_code=500,
             detail=f"Error generating roadmap: {str(e)}"
@@ -687,6 +707,8 @@ async def generate_roadmap_stream(request: RoadmapRequest, x_ai_api_key: Optiona
                 yield f"data: {json.dumps(event)}\n\n"
                 
         except Exception as e:
+            if \'PAID_CONSENT_REQUIRED\' in str(e):
+                raise ValueError(str(e))
             error_event = {
                 "error": str(e),
                 "progress": 0,
@@ -735,6 +757,8 @@ async def modify_roadmap(request: ModifyRoadmapRequest, x_ai_api_key: Optional[s
         }
         
     except Exception as e:
+        if \'PAID_CONSENT_REQUIRED\' in str(e):
+            raise ValueError(str(e))
         raise HTTPException(
             status_code=500,
             detail=f"Error modifying roadmap: {str(e)}"

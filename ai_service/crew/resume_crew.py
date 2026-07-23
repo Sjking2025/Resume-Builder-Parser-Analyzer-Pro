@@ -44,6 +44,8 @@ class ResumeCrew:
             # Expose a backward-compatible .model with .generate_content(prompt)
             self.model = manager
         except Exception as e:
+            if \'PAID_CONSENT_REQUIRED\' in str(e):
+                raise ValueError(str(e))
             SystemLogger.warn("ResumeCrew", f"AIManager init fallback: {e}")
             self.model = None
 
@@ -173,6 +175,8 @@ class ResumeCrew:
             SystemLogger.done("ResumeParser", f"Resume parsed successfully ({sections} sections found)")
             return normalize_import_data(parsed_data)
         except Exception as e:
+            if \'PAID_CONSENT_REQUIRED\' in str(e):
+                raise ValueError(str(e))
             SystemLogger.error("ResumeParser", f"Parsing failed: {str(e)}")
             import traceback
             traceback.print_exc()
@@ -229,6 +233,8 @@ class ResumeCrew:
             return normalize_import_data(parsed_data)
             
         except Exception as e:
+            if \'PAID_CONSENT_REQUIRED\' in str(e):
+                raise ValueError(str(e))
             SystemLogger.error("DocumentParser", f"Parsing failed: {str(e)}")
             import traceback
             traceback.print_exc()
@@ -277,6 +283,8 @@ class ResumeCrew:
             }
             
         except Exception as e:
+            if \'PAID_CONSENT_REQUIRED\' in str(e):
+                raise ValueError(str(e))
             SystemLogger.error("CVConverter", f"Conversion failed: {str(e)}")
             import traceback
             traceback.print_exc()
@@ -470,6 +478,8 @@ class ResumeCrew:
             }
 
         except Exception as e:
+            if \'PAID_CONSENT_REQUIRED\' in str(e):
+                raise ValueError(str(e))
             SystemLogger.error("System", f"Analysis failed: {str(e)}")
             if "quota" in str(e).lower() or "429" in str(e):
                 raise ValueError("Gemini API Quota Exceeded. Please check your plan or try again later.")
@@ -542,6 +552,8 @@ class ResumeCrew:
             return portfolio_data
             
         except Exception as e:
+            if \'PAID_CONSENT_REQUIRED\' in str(e):
+                raise ValueError(str(e))
             SystemLogger.error("System", f"Portfolio enhancement failed: {str(e)}")
             return get_empty_portfolio(resume_data)
     
@@ -640,6 +652,8 @@ class ResumeCrew:
             }
             
         except Exception as e:
+            if \'PAID_CONSENT_REQUIRED\' in str(e):
+                raise ValueError(str(e))
             SystemLogger.error("System", f"Streaming failed: {str(e)}")
             # Stream fallback on error
             for section_name, start, end, status in sections:
@@ -760,6 +774,8 @@ Return ONLY valid JSON:
             return result
             
         except Exception as e:
+            if \'PAID_CONSENT_REQUIRED\' in str(e):
+                raise ValueError(str(e))
             SystemLogger.error("System", f"Gap analysis failed: {str(e)}")
             return {"error": str(e), "matchScore": 0}
     
@@ -953,6 +969,8 @@ CRITICAL URL RULES:
             return result
             
         except Exception as e:
+            if \'PAID_CONSENT_REQUIRED\' in str(e):
+                raise ValueError(str(e))
             SystemLogger.error("System", f"Roadmap generation failed: {str(e)}")
             return {"error": str(e)}
     
@@ -1089,6 +1107,8 @@ Return the COMPLETE modified roadmap as valid JSON, with a "modificationSummary"
             return result
             
         except Exception as e:
+            if \'PAID_CONSENT_REQUIRED\' in str(e):
+                raise ValueError(str(e))
             return {"error": str(e), "modificationSummary": f"Error: {str(e)}"}
 
     # ═══════════════════════════════════════════════════════════════════════════════
@@ -1247,5 +1267,7 @@ Return the COMPLETE modified roadmap as valid JSON, with a "modificationSummary"
             return normalize_import_data(tailored_resume)
             
         except Exception as e:
+            if \'PAID_CONSENT_REQUIRED\' in str(e):
+                raise ValueError(str(e))
             SystemLogger.error("System", f"Resume tailoring failed: {str(e)}")
             return resume_data
