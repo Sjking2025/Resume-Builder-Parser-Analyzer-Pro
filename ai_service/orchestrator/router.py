@@ -11,28 +11,11 @@ from .models import registry, ModelEntry
 from .providers.base import ProviderError
 
 
-# Cooldown tracking for rate-limited models: { model_id: expiry_timestamp }
-_cooldown_map: dict[str, float] = {}
-
-# Default cooldown period in seconds after a rate-limit error
-COOLDOWN_SECONDS = 60
-
+from .health import health_monitor
 
 def _is_on_cooldown(model_id: str) -> bool:
-    """Check if a model is currently on cooldown."""
-    expiry = _cooldown_map.get(model_id)
-    if expiry is None:
-        return False
-    if time.time() > expiry:
-        del _cooldown_map[model_id]
-        return False
-    return True
-
-
-def _set_cooldown(model_id: str, seconds: int = COOLDOWN_SECONDS):
-    """Mark a model as rate-limited for `seconds`."""
-    _cooldown_map[model_id] = time.time() + seconds
-    print(f"[Router] Model {model_id} placed on {seconds}s cooldown")
+    """Check if a model is currently on cooldown via HealthMonitor."""
+    return health_monitor.is_on_cooldown(model_id)
 
 
 def resolve_model(
@@ -136,11 +119,12 @@ def get_fallback_models(
 
 def mark_model_failed(model_id: str, error: ProviderError):
     """Mark a model as temporarily failed (rate-limited or unavailable)."""
-    if error.is_rate_limit or error.is_quota:
-        _set_cooldown(model_id)
-    else:
-        # Shorter cooldown for non-rate-limit errors
-        _set_cooldown(model_id, 15)
+    # Record the failure in the health monitor for exponential backoff
+    health_monitor.record_failure(
+        model_id, 
+        is_rate_limit=error.is_rate_limit or error.is_quota,
+        reason=str(error)
+    )
 
 
 def _guess_provider(model_id: str) -> str:

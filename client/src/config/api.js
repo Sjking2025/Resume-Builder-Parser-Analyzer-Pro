@@ -48,7 +48,17 @@ export const apiFetch = async (url, options = {}) => {
     ...(apiKey ? { 'x-ai-api-key': apiKey } : {}),
     ...(aiModel ? { 'x-ai-model': aiModel } : {}),
   }
-  return fetch(url, { ...options, headers })
+  const response = await fetch(url, { ...options, headers })
+  
+  if (response.status === 402) {
+    const errorData = await response.json().catch(() => ({}));
+    if (errorData.error_type === 'paid_consent_required') {
+      window.dispatchEvent(new CustomEvent('paid_consent_required', { detail: errorData }));
+      throw new Error('PAID_CONSENT_REQUIRED');
+    }
+  }
+  
+  return response
 }
 
 export default API_BASE_URL

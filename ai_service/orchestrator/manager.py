@@ -97,6 +97,9 @@ class AIManager:
         api_key, provider_type = self._get_active_key_and_provider_type()
         provider = self._get_provider(provider_type, api_key)
 
+        import time
+        from .health import health_monitor
+        
         # Resolve which model to use
         model = resolve_model(
             model_id=self._model_id,
@@ -104,8 +107,11 @@ class AIManager:
         )
 
         # Attempt generation with the primary model
+        start_time = time.time()
         try:
             response = provider.generate(prompt, model.id, safety_settings)
+            latency = time.time() - start_time
+            health_monitor.record_success(model.id, latency)
             return response
         except ProviderError as e:
             print(f"[AIManager] Primary model {model.id} failed: {e}")
@@ -119,9 +125,12 @@ class AIManager:
         fallbacks = get_fallback_models(model.id, provider=provider_type)
         
         for i, fallback in enumerate(fallbacks[:max_retries]):
+            start_time = time.time()
             try:
                 print(f"[AIManager] Failover attempt {i + 1}: trying {fallback.display_name}")
                 response = provider.generate(prompt, fallback.id, safety_settings)
+                latency = time.time() - start_time
+                health_monitor.record_success(fallback.id, latency)
                 print(f"[AIManager] Failover success with {fallback.display_name}")
                 return response
             except ProviderError as e:
@@ -129,9 +138,10 @@ class AIManager:
                 mark_model_failed(fallback.id, e)
                 continue
 
+        # If we exhausted all free fallbacks and didn't start with a paid model
+        # We need to signal the frontend to ask for paid model consent
         raise ValueError(
-            f"All free models exhausted after {max_retries} failover attempts. "
-            "Please try again later or provide a different API key."
+            "PAID_CONSENT_REQUIRED: All compatible free models are currently exhausted or rate-limited."
         )
 
     def generate_content(self, prompt: str, safety_settings=None):

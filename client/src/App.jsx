@@ -8,6 +8,7 @@ import PortfolioBuilder from './pages/PortfolioBuilder'
 import SkillGapAnalyzer from './pages/SkillGapAnalyzer'
 import CVConversionPage from './pages/CVConversionPage'
 import ApiKeyModal from './components/common/ApiKeyModal'
+import PaidConsentModal from './components/common/PaidConsentModal'
 import './App.css'
 
 function App() {
@@ -23,6 +24,7 @@ function App() {
           <Route path="/convert" element={<CVConversionPage />} />
         </Routes>
         <ApiKeyModal />
+        <PaidConsentModal />
       </div>
     </DraftProtection>
   )

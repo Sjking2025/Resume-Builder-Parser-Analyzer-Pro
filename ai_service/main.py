@@ -98,6 +98,40 @@ app.add_middleware(
 )
 
 
+from fastapi.responses import JSONResponse
+from fastapi.requests import Request
+
+@app.exception_handler(ValueError)
+async def value_error_handler(request: Request, exc: ValueError):
+    """Intercept ValueError to translate specific business errors into HTTP statuses."""
+    msg = str(exc)
+    if "PAID_CONSENT_REQUIRED" in msg:
+        SystemLogger.warn("System", "Paid consent required (all free models exhausted).")
+        return JSONResponse(
+            status_code=402,
+            content={"detail": "Paid consent required to continue.", "error_type": "paid_consent_required"}
+        )
+    return JSONResponse(
+        status_code=500,
+        content={"detail": f"Internal value error: {msg}"}
+    )
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    """Catch any other exceptions that might wrap the paid consent error."""
+    msg = str(exc)
+    if "PAID_CONSENT_REQUIRED" in msg:
+        SystemLogger.warn("System", "Paid consent required (all free models exhausted).")
+        return JSONResponse(
+            status_code=402,
+            content={"detail": "Paid consent required to continue.", "error_type": "paid_consent_required"}
+        )
+    # Re-raise or return 500
+    return JSONResponse(
+        status_code=500,
+        content={"detail": f"Internal server error: {msg}"}
+    )
+
 @app.get("/health")
 async def health_check() -> HealthResponse:
     """Health check endpoint"""
