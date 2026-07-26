@@ -2,10 +2,12 @@ import React, { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { FaHome, FaBullseye, FaSearch, FaRocket, FaSpinner, FaCheckCircle, FaExclamationTriangle, FaTimesCircle, FaClock, FaEdit, FaPaperPlane, FaTimes, FaMagic } from 'react-icons/fa'
 import useResumeStore from '../store/useResumeStore'
-import { API_ENDPOINTS, apiFetch } from '../config/api'
+import { API_ENDPOINTS } from '../config/api'
+import { useAIRequest } from '../hooks/useAIRequest'
 import SquareLoader from '../components/common/SquareLoader'
 import BanterLoader from '../components/common/BanterLoader'
 import PencilLoader from '../components/common/PencilLoader'
+import PreflightIndicator from '../components/ai/PreflightIndicator'
 
 /**
  * SkillGapAnalyzer - Main page for analyzing resume vs JD and generating roadmaps
@@ -20,7 +22,7 @@ const SkillGapAnalyzer = () => {
   const [gapAnalysis, setGapAnalysis] = useState(null)
   const [roadmap, setRoadmap] = useState(null)
   const [error, setError] = useState(null)
-  const [isLoading, setIsLoading] = useState(false)
+  
   
   // Exit confirmation
   const [showExitConfirm, setShowExitConfirm] = useState(false)
@@ -100,19 +102,24 @@ const SkillGapAnalyzer = () => {
   
   // Modification
   const [modifyRequest, setModifyRequest] = useState('')
-  const [isModifying, setIsModifying] = useState(false)
+  
 
-  // Auto-Tailoring
-  const [isTailoring, setIsTailoring] = useState(false)
+  // API Requests
+  const { execute: executeTailor, preflightState: tailorPreflight, isLoading: tailorLoading } = useAIRequest()
+  const { execute: executeAnalyze, preflightState: analyzePreflight, isLoading: analyzeLoading } = useAIRequest()
+  const { execute: executeRoadmap, preflightState: roadmapPreflight } = useAIRequest()
+  const { execute: executeModify, preflightState: modifyPreflight } = useAIRequest()
+
+  const tailorReq = { execute: executeTailor, isLoading: tailorLoading, preflightState: tailorPreflight }
+  const analyzeReq = { execute: executeAnalyze, isLoading: analyzeLoading, preflightState: analyzePreflight }
+  const roadmapReq = { execute: executeRoadmap, preflightState: roadmapPreflight }
+  const modifyReqAI = { execute: executeModify, preflightState: modifyPreflight }
 
   const handleAutoTailor = async () => {
     if (!jobDescription || !resume) return
 
-    setIsTailoring(true)
-    setError(null)
-
     try {
-      const response = await apiFetch(API_ENDPOINTS.tailorResume, {
+      const result = await tailorReq.execute(API_ENDPOINTS.tailorResume, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -121,13 +128,8 @@ const SkillGapAnalyzer = () => {
         })
       })
 
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || errorData.detail || 'Failed to tailor resume')
-      }
+      if (!result) return; // aborted
 
-      const result = await response.json()
-      
       // The pipeline now returns { success, data: finalResume, qualityReport }
       const finalResume = result.data || result // fallback for shape variations
       const qualityReport = result.qualityReport || null
@@ -150,9 +152,6 @@ const SkillGapAnalyzer = () => {
       
     } catch (err) {
       console.error('Auto-Tailor Error:', err)
-      setError(err.message)
-    } finally {
-      setIsTailoring(false)
     }
   }
 
@@ -210,7 +209,6 @@ const SkillGapAnalyzer = () => {
     
     setStep('analyzing')
     setError(null)
-    setIsLoading(true)
     setAnalysisProgress(0)
     
     // Simulate progress animation
@@ -223,7 +221,7 @@ const SkillGapAnalyzer = () => {
     }, 500)
     
     try {
-      const response = await apiFetch(API_ENDPOINTS.skillGapAnalyze, {
+      const result = await analyzeReq.execute(API_ENDPOINTS.skillGapAnalyze, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
@@ -235,24 +233,17 @@ const SkillGapAnalyzer = () => {
       clearInterval(progressInterval)
       setAnalysisProgress(100) // Complete!
       
-      if (!response.ok) {
-        throw new Error('Failed to analyze skill gap')
-      }
-      
-      const result = await response.json()
-      
+      if (!result) return; // aborted
+
       if (result.success && result.data) {
         setGapAnalysis(result.data)
         setTimeout(() => setStep('report'), 500) // Brief pause to show 100%
       } else {
-        throw new Error(result.data?.error || 'Analysis failed')
+        throw new Error(result.error || 'Analysis failed')
       }
-    } catch (err) {
+    } catch {
       clearInterval(progressInterval)
-      setError(err.message)
       setStep('input')
-    } finally {
-      setIsLoading(false)
     }
   }
 
@@ -284,18 +275,16 @@ const SkillGapAnalyzer = () => {
     setWeeks([])
     
     try {
-      const response = await apiFetch(API_ENDPOINTS.skillGapRoadmapStream, {
+      const response = await roadmapReq.execute(API_ENDPOINTS.skillGapRoadmapStream, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           gap_analysis: gapAnalysis,
           learner_profile: learnerProfile 
         })
-      })
-      
-      if (!response.ok) {
-        throw new Error('Failed to start stream')
-      }
+      }, { returnRaw: true })
+
+      if (!response) return; // aborted
       
       const reader = response.body.getReader()
       const decoder = new TextDecoder()
@@ -349,38 +338,35 @@ const SkillGapAnalyzer = () => {
 
   // Modify roadmap with AI
   const handleModifyRoadmap = async () => {
-    if (!modifyRequest.trim()) return
-    
-    setIsModifying(true)
+    if (!modifyRequest.trim() || !weeks.length) return
     
     try {
-      const response = await apiFetch(API_ENDPOINTS.skillGapRoadmapModify, {
+      const result = await modifyReqAI.execute(API_ENDPOINTS.skillGapRoadmapModify, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          current_roadmap: roadmap,
-          modification_request: modifyRequest
+          current_plan: weeks,
+          modification_request: modifyRequest,
+          learner_profile: learnerProfile
         })
       })
       
-      if (!response.ok) {
-        throw new Error('Failed to modify roadmap')
-      }
-      
-      const result = await response.json()
-      
+      if (!result) return;
       if (result.success && result.data) {
-        setRoadmap(result.data)
+        setWeeks(result.data)
         setModifyRequest('')
+        
+      } else {
+        throw new Error('Modification failed')
       }
     } catch (err) {
-      setError(err.message)
-    } finally {
-      setIsModifying(false)
+      console.error("Modification error:", err)
     }
   }
 
   return (
+    <>
+    <PreflightIndicator preflightState={tailorReq.preflightState || analyzeReq.preflightState || roadmapReq.preflightState || modifyReqAI.preflightState} />
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       {/* Header */}
       <header className="bg-white shadow-sm sticky top-0 z-10">
@@ -640,14 +626,14 @@ const SkillGapAnalyzer = () => {
                 </div>
                 <button
                   onClick={handleAutoTailor}
-                  disabled={isTailoring}
+                  disabled={tailorReq.isLoading}
                   className={`py-3 px-6 rounded-xl font-bold text-white shadow-md transition-all flex items-center gap-2 flex-shrink-0 ${
-                    isTailoring
+                    tailorReq.isLoading
                       ? 'bg-gray-400 cursor-not-allowed'
                       : 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-500/30 hover:shadow-lg'
                   }`}
                 >
-                  {isTailoring ? (
+                  {tailorReq.analyzeReq.isLoading ? (
                     <>
                       <FaSpinner className="animate-spin" />
                       Tailoring...
@@ -1147,7 +1133,7 @@ const SkillGapAnalyzer = () => {
                   disabled={isModifying || !modifyRequest.trim()}
                   className="btn-primary px-6 flex items-center gap-2"
                 >
-                  {isModifying ? <FaSpinner className="animate-spin" /> : <FaPaperPlane />}
+                  {modifyReqAI.isLoading ? <FaSpinner className="animate-spin" /> : <FaPaperPlane />}
                   Apply
                 </button>
               </div>
@@ -1217,6 +1203,7 @@ const SkillGapAnalyzer = () => {
         </div>
       )}
     </div>
+    </>
   )
 }
 

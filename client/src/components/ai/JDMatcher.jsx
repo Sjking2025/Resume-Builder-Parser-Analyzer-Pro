@@ -1,8 +1,9 @@
-import React, { useState } from 'react'
+import React from 'react'
 import { FaBriefcase, FaSpinner, FaMagic } from 'react-icons/fa'
 import { useNavigate } from 'react-router-dom'
 import useResumeStore from '../../store/useResumeStore'
-import { API_ENDPOINTS, apiFetch } from '../../config/api'
+import { API_ENDPOINTS } from '../../config/api'
+import { useAIRequest } from '../../hooks/useAIRequest'
 
 /**
  * JD Matcher Component
@@ -18,18 +19,13 @@ const JDMatcher = ({
 }) => {
   const navigate = useNavigate()
   const { resume, loadResume } = useResumeStore()
-  const [isTailoring, setIsTailoring] = useState(false)
-  const [tailorError, setTailorError] = useState(null)
+  const { execute, isLoading: isTailoring, error: tailorError } = useAIRequest()
 
-  // Handle auto-tailoring the entire resume
   const handleAutoTailor = async () => {
     if (!jobDescription || !resume) return
 
-    setIsTailoring(true)
-    setTailorError(null)
-
     try {
-      const response = await apiFetch(API_ENDPOINTS.tailorResume, {
+      const result = await execute(API_ENDPOINTS.tailorResume, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -38,13 +34,8 @@ const JDMatcher = ({
         })
       })
 
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || errorData.detail || 'Failed to tailor resume')
-      }
+      if (!result) return; // aborted
 
-      const result = await response.json()
-      
       // Pipeline returns { success, data: finalResume, qualityReport }
       const finalResume = result.data || result
       const qualityReport = result.qualityReport || null
@@ -67,9 +58,7 @@ const JDMatcher = ({
       
     } catch (err) {
       console.error('Auto-Tailor Error:', err)
-      setTailorError(err.message)
-    } finally {
-      setIsTailoring(false)
+      // error state handled by hook
     }
   }
 

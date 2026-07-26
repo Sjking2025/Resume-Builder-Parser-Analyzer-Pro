@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import useResumeStore from '../../store/useResumeStore'
 import { FaCode, FaPlus, FaTrash } from 'react-icons/fa'
+import BulletTextarea from './BulletTextarea'
 
 const ProjectsForm = () => {
   const { resume, addProject, updateProject, removeProject } = useResumeStore()
@@ -70,7 +71,7 @@ const ProjectsForm = () => {
               className="input-field text-sm"
             />
             
-            <textarea
+            <BulletTextarea
               value={proj.description}
               onChange={(e) => handleUpdate(index, 'description', e.target.value)}
               placeholder="Project description and key features (one per line)"
@@ -109,7 +110,7 @@ const ProjectsForm = () => {
             className="input-field text-sm"
           />
           
-          <textarea
+          <BulletTextarea
             value={newProject.description}
             onChange={(e) => setNewProject({ ...newProject, description: e.target.value })}
             placeholder="Project description and key features"

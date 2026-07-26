@@ -2,7 +2,9 @@ import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import useResumeStore from '../store/useResumeStore'
 import { FaExchangeAlt, FaSpinner, FaArrowLeft, FaCheck, FaExclamationTriangle } from 'react-icons/fa'
-import { API_ENDPOINTS, apiFetch } from '../config/api'
+import { API_ENDPOINTS } from '../config/api'
+import { useAIRequest } from '../hooks/useAIRequest'
+import PreflightIndicator from '../components/ai/PreflightIndicator'
 
 const CVConversionPage = () => {
   const navigate = useNavigate()
@@ -15,8 +17,7 @@ const CVConversionPage = () => {
     industry: ''
   })
   
-  const [isConverting, setIsConverting] = useState(false)
-  const [error, setError] = useState(null)
+  const { execute, isLoading: isConverting, error, preflightState } = useAIRequest()
   
   // If no resume in store, go back
   if (!resume || !resume.personalInfo) {
@@ -38,11 +39,8 @@ const CVConversionPage = () => {
   }
 
   const handleConvert = async () => {
-    setIsConverting(true)
-    setError(null)
-    
     try {
-      const response = await apiFetch(API_ENDPOINTS.convertCvToResume, {
+      const result = await execute(API_ENDPOINTS.convertCvToResume, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -53,12 +51,7 @@ const CVConversionPage = () => {
         })
       })
       
-      if (!response.ok) {
-        const errData = await response.json().catch(() => ({}))
-        throw new Error(errData.detail || errData.error || 'Failed to convert CV')
-      }
-      
-      const result = await response.json()
+      if (!result) return; // aborted
       
       if (result.success && result.data) {
         // Load the new resume data and navigate to editor
@@ -73,12 +66,14 @@ const CVConversionPage = () => {
         throw new Error(result.error || 'Conversion returned unsuccessful status')
       }
     } catch (err) {
-      setError(err.message)
-      setIsConverting(false)
+      console.error("CV Conversion failed:", err)
+      // Error is handled by hook
     }
   }
 
   return (
+    <>
+    <PreflightIndicator preflightState={preflightState} />
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50 to-indigo-50 py-12 px-4 sm:px-6">
       <div className="max-w-2xl mx-auto">
         <button
@@ -216,6 +211,7 @@ const CVConversionPage = () => {
         </div>
       </div>
     </div>
+    </>
   )
 }
 

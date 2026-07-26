@@ -1,17 +1,17 @@
 {
-  "version": "1.0.0",
-  "last_updated": "2026-07-23",
+  "version": "1.1.0",
+  "last_updated": "2026-07-26",
   "models": [
     {
-      "id": "google/gemini-2.5-flash",
+      "id": "google/gemini-3.6-flash",
       "provider": "google",
-      "display_name": "Gemini 2.5 Flash",
+      "display_name": "Gemini 3.6 Flash",
       "is_free": true,
       "context_window": 1048576,
       "max_output_tokens": 65536,
       "capabilities": {
         "vision": true,
-        "reasoning": true,
+        "reasoning": false,
         "streaming": true,
         "tool_calling": true,
         "json_mode": true
@@ -23,32 +23,12 @@
       "output_price_per_million": 0
     },
     {
-      "id": "google/gemini-2.5-pro",
+      "id": "google/gemini-3.5-flash",
       "provider": "google",
-      "display_name": "Gemini 2.5 Pro",
-      "is_free": false,
-      "context_window": 1048576,
-      "max_output_tokens": 65536,
-      "capabilities": {
-        "vision": true,
-        "reasoning": true,
-        "streaming": true,
-        "tool_calling": true,
-        "json_mode": true
-      },
-      "category": "reasoning",
-      "speed": "medium",
-      "quality": "very_high",
-      "input_price_per_million": 1.25,
-      "output_price_per_million": 10.0
-    },
-    {
-      "id": "google/gemini-1.5-flash",
-      "provider": "google",
-      "display_name": "Gemini 1.5 Flash",
+      "display_name": "Gemini 3.5 Flash",
       "is_free": true,
       "context_window": 1048576,
-      "max_output_tokens": 8192,
+      "max_output_tokens": 65536,
       "capabilities": {
         "vision": true,
         "reasoning": false,
@@ -57,8 +37,8 @@
         "json_mode": true
       },
       "category": "general",
-      "speed": "very_fast",
-      "quality": "good",
+      "speed": "fast",
+      "quality": "high",
       "input_price_per_million": 0,
       "output_price_per_million": 0
     },
@@ -301,6 +281,266 @@
       "quality": "good",
       "input_price_per_million": 0.8,
       "output_price_per_million": 4.0
+    },
+    {
+      "id": "google/gemini-2.5-pro",
+      "provider": "google",
+      "display_name": "Gemini 2.5 Pro",
+      "is_free": false,
+      "context_window": 1048576,
+      "max_output_tokens": 65536,
+      "capabilities": {
+        "vision": true,
+        "reasoning": true,
+        "streaming": true,
+        "tool_calling": true,
+        "json_mode": true
+      },
+      "category": "reasoning",
+      "speed": "fast",
+      "quality": "high",
+      "input_price_per_million": 0,
+      "output_price_per_million": 0
+    },
+    {
+      "id": "google/gemini-2.5-flash",
+      "provider": "google",
+      "display_name": "Gemini 2.5 Flash (Legacy)",
+      "is_free": true,
+      "context_window": 1048576,
+      "max_output_tokens": 65536,
+      "capabilities": {
+        "vision": true,
+        "reasoning": false,
+        "streaming": true,
+        "tool_calling": true,
+        "json_mode": true
+      },
+      "category": "legacy",
+      "speed": "fast",
+      "quality": "high",
+      "input_price_per_million": 0,
+      "output_price_per_million": 0
+    },
+    {
+      "id": "google/gemini-2.5-flash-lite",
+      "provider": "google",
+      "display_name": "Gemini 2.5 Flash-Lite (Legacy)",
+      "is_free": true,
+      "context_window": 1048576,
+      "max_output_tokens": 65536,
+      "capabilities": {
+        "vision": true,
+        "reasoning": false,
+        "streaming": true,
+        "tool_calling": true,
+        "json_mode": true
+      },
+      "category": "legacy",
+      "speed": "fast",
+      "quality": "high",
+      "input_price_per_million": 0,
+      "output_price_per_million": 0
+    },
+    {
+      "id": "google/imagen-4",
+      "provider": "google",
+      "display_name": "Imagen 4",
+      "is_free": false,
+      "context_window": 1048576,
+      "max_output_tokens": 65536,
+      "capabilities": {
+        "vision": true,
+        "reasoning": false,
+        "streaming": true,
+        "tool_calling": true,
+        "json_mode": true
+      },
+      "category": "image",
+      "speed": "fast",
+      "quality": "high",
+      "input_price_per_million": 0,
+      "output_price_per_million": 0
+    },
+    {
+      "id": "google/imagen-4-ultra",
+      "provider": "google",
+      "display_name": "Imagen 4 Ultra",
+      "is_free": false,
+      "context_window": 1048576,
+      "max_output_tokens": 65536,
+      "capabilities": {
+        "vision": true,
+        "reasoning": false,
+        "streaming": true,
+        "tool_calling": true,
+        "json_mode": true
+      },
+      "category": "image",
+      "speed": "fast",
+      "quality": "high",
+      "input_price_per_million": 0,
+      "output_price_per_million": 0
+    },
+    {
+      "id": "google/veo-3",
+      "provider": "google",
+      "display_name": "Veo 3",
+      "is_free": false,
+      "context_window": 1048576,
+      "max_output_tokens": 65536,
+      "capabilities": {
+        "vision": true,
+        "reasoning": false,
+        "streaming": true,
+        "tool_calling": true,
+        "json_mode": true
+      },
+      "category": "video",
+      "speed": "fast",
+      "quality": "high",
+      "input_price_per_million": 0,
+      "output_price_per_million": 0
+    },
+    {
+      "id": "google/chirp-3",
+      "provider": "google",
+      "display_name": "Chirp 3",
+      "is_free": false,
+      "context_window": 1048576,
+      "max_output_tokens": 65536,
+      "capabilities": {
+        "vision": true,
+        "reasoning": false,
+        "streaming": true,
+        "tool_calling": true,
+        "json_mode": true
+      },
+      "category": "audio",
+      "speed": "fast",
+      "quality": "high",
+      "input_price_per_million": 0,
+      "output_price_per_million": 0
+    },
+    {
+      "id": "google/lyria-2",
+      "provider": "google",
+      "display_name": "Lyria 2",
+      "is_free": false,
+      "context_window": 1048576,
+      "max_output_tokens": 65536,
+      "capabilities": {
+        "vision": true,
+        "reasoning": false,
+        "streaming": true,
+        "tool_calling": true,
+        "json_mode": true
+      },
+      "category": "audio",
+      "speed": "fast",
+      "quality": "high",
+      "input_price_per_million": 0,
+      "output_price_per_million": 0
+    },
+    {
+      "id": "google/gemini-embedding",
+      "provider": "google",
+      "display_name": "Gemini Embedding",
+      "is_free": false,
+      "context_window": 1048576,
+      "max_output_tokens": 65536,
+      "capabilities": {
+        "vision": true,
+        "reasoning": false,
+        "streaming": true,
+        "tool_calling": true,
+        "json_mode": true
+      },
+      "category": "embedding",
+      "speed": "fast",
+      "quality": "high",
+      "input_price_per_million": 0,
+      "output_price_per_million": 0
+    },
+    {
+      "id": "google/gemini-2.0-flash",
+      "provider": "google",
+      "display_name": "Gemini 2.0 Flash (Legacy)",
+      "is_free": true,
+      "context_window": 1048576,
+      "max_output_tokens": 65536,
+      "capabilities": {
+        "vision": true,
+        "reasoning": false,
+        "streaming": true,
+        "tool_calling": true,
+        "json_mode": true
+      },
+      "category": "legacy",
+      "speed": "fast",
+      "quality": "high",
+      "input_price_per_million": 0,
+      "output_price_per_million": 0
+    },
+    {
+      "id": "google/gemini-2.0-flash-lite",
+      "provider": "google",
+      "display_name": "Gemini 2.0 Flash-Lite (Legacy)",
+      "is_free": true,
+      "context_window": 1048576,
+      "max_output_tokens": 65536,
+      "capabilities": {
+        "vision": true,
+        "reasoning": false,
+        "streaming": true,
+        "tool_calling": true,
+        "json_mode": true
+      },
+      "category": "legacy",
+      "speed": "fast",
+      "quality": "high",
+      "input_price_per_million": 0,
+      "output_price_per_million": 0
+    },
+    {
+      "id": "google/gemini-1.5-pro",
+      "provider": "google",
+      "display_name": "Gemini 1.5 Pro (Legacy)",
+      "is_free": false,
+      "context_window": 1048576,
+      "max_output_tokens": 65536,
+      "capabilities": {
+        "vision": true,
+        "reasoning": false,
+        "streaming": true,
+        "tool_calling": true,
+        "json_mode": true
+      },
+      "category": "legacy",
+      "speed": "fast",
+      "quality": "high",
+      "input_price_per_million": 0,
+      "output_price_per_million": 0
+    },
+    {
+      "id": "google/gemini-1.5-flash",
+      "provider": "google",
+      "display_name": "Gemini 1.5 Flash (Legacy)",
+      "is_free": true,
+      "context_window": 1048576,
+      "max_output_tokens": 65536,
+      "capabilities": {
+        "vision": true,
+        "reasoning": false,
+        "streaming": true,
+        "tool_calling": true,
+        "json_mode": true
+      },
+      "category": "legacy",
+      "speed": "fast",
+      "quality": "high",
+      "input_price_per_million": 0,
+      "output_price_per_million": 0
     }
   ]
 }

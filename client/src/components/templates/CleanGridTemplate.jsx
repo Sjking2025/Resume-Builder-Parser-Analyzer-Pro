@@ -182,7 +182,7 @@ const CleanGridTemplate = ({ resume, formatting }) => {
                   {exp.description && (
                     <ul style={styles.list}>
                       {exp.description.split('\n').filter(Boolean).map((line, i) => (
-                        <li key={i} style={styles.listItem}>{line.replace(/^[-•]\s*/, '')}</li>
+                        <li key={i} style={{ ...styles.listItem, marginLeft: `${(line.match(/^\s*/)[0].length) * 8}px` }}>{line.replace(/^\s*[-•]\s*/, '')}</li>
                       ))}
                     </ul>
                   )}
@@ -204,7 +204,7 @@ const CleanGridTemplate = ({ resume, formatting }) => {
                   {proj.description && (
                     <ul style={styles.list}>
                       {proj.description.split('\n').filter(Boolean).map((line, i) => (
-                        <li key={i} style={styles.listItem}>{line.replace(/^[-•]\s*/, '')}</li>
+                        <li key={i} style={{ ...styles.listItem, marginLeft: `${(line.match(/^\s*/)[0].length) * 8}px` }}>{line.replace(/^\s*[-•]\s*/, '')}</li>
                       ))}
                     </ul>
                   )}
@@ -236,19 +236,19 @@ const CleanGridTemplate = ({ resume, formatting }) => {
             <section style={styles.section}>
               <h2 style={styles.sectionTitle}>Technical Skills</h2>
               {skills.technical.length > 0 && (
-                <p style={styles.paragraph}>
+                <div style={styles.paragraph}>
                   <span style={styles.label}>Technical:</span> {renderSkillsList(skills.technical, formatting?.skillsLayout)}
-                </p>
+                </div>
               )}
               {skills.soft.length > 0 && (
-                <p style={styles.paragraph}>
+                <div style={styles.paragraph}>
                   <span style={styles.label}>Soft Skills:</span> {renderSkillsList(skills.soft, formatting?.skillsLayout)}
-                </p>
+                </div>
               )}
               {skills.languages.length > 0 && (
-                <p style={styles.paragraph}>
+                <div style={styles.paragraph}>
                   <span style={styles.label}>Languages:</span> {renderSkillsList(skills.languages, formatting?.skillsLayout)}
-                </p>
+                </div>
               )}
             </section>
           )}

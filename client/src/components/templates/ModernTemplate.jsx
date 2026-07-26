@@ -184,7 +184,7 @@ const ModernTemplate = ({ resume, formatting }) => {
                 {exp.description && (
                   <ul style={{ paddingLeft: '20px', color: colors.textSecondary, margin: '8px 0 0 8px' }}>
                     {exp.description.split('\n').filter(Boolean).map((line, i) => (
-                      <li key={i} style={{ marginBottom: '4px' }}>{line.replace(/^[-•]\s*/, '')}</li>
+                      <li key={i} style={{ marginLeft: `${(line.match(/^\s*/)[0].length) * 8}px`, marginBottom: '4px' }}>{line.replace(/^\s*[-•]\s*/, '')}</li>
                     ))}
                   </ul>
                 )}
@@ -245,7 +245,7 @@ const ModernTemplate = ({ resume, formatting }) => {
                 {proj.description && (
                   <ul style={{ paddingLeft: '20px', color: colors.textSecondary, margin: '8px 0 0 8px' }}>
                     {proj.description.split('\n').filter(Boolean).map((line, i) => (
-                      <li key={i} style={{ marginBottom: '4px' }}>{line.replace(/^[-•]\s*/, '')}</li>
+                      <li key={i} style={{ marginLeft: `${(line.match(/^\s*/)[0].length) * 8}px`, marginBottom: '4px' }}>{line.replace(/^\s*[-•]\s*/, '')}</li>
                     ))}
                   </ul>
                 )}

@@ -31,6 +31,7 @@ export const API_ENDPOINTS = {
     // Model Management (Multi-Provider)
     models: `${API_BASE_URL}/api/ai/models`,
     providersHealth: `${API_BASE_URL}/api/ai/providers/health`,
+    preflight: `${API_BASE_URL}/api/ai/preflight`,
 
     // PDF export
     exportPdf: `${API_BASE_URL}/api/pdf/export`,

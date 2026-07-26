@@ -3,6 +3,12 @@ Routing Engine — Intelligent model selection with free-first strategy.
 
 Resolves the best model for a given request, handles failover
 between compatible free models, and enforces the paid consent barrier.
+
+RESILIENCE DESIGN:
+- Does NOT filter fallbacks by provider — if primary OpenRouter model fails,
+  it can still try other OpenRouter models (the manager handles provider selection).
+- Prioritizes models by quality, but also considers recent health.
+- `openrouter/auto` is treated as a last-resort free fallback on OpenRouter.
 """
 
 import time
@@ -47,7 +53,10 @@ def resolve_model(
     if model_id and model_id != "auto":
         model = registry.get_model(model_id)
         if model:
-            return model
+            if provider and model.provider != provider:
+                print(f"[Router] Explicit model {model_id} incompatible with provider {provider}, falling back to auto")
+            else:
+                return model
         # Model not in registry — could be a direct model ID the user typed
         # Return a synthetic entry so the provider can attempt it
         print(f"[Router] Model {model_id} not in registry, passing through to provider")
@@ -66,11 +75,14 @@ def resolve_model(
         )
 
     # 2. Auto-select: best free model not on cooldown
+    # IMPORTANT: Filter by provider so we only pick models this provider can serve
     free_models = registry.get_free_models()
 
-    # Filter by provider if specified
     if provider:
         free_models = [m for m in free_models if m.provider == provider]
+
+    # Exclude non-text models (image, video, audio, embedding) and legacy models
+    free_models = [m for m in free_models if m.category not in ("image", "video", "audio", "embedding", "legacy")]
 
     # Filter by category preference
     if task_type != "general":
@@ -91,9 +103,12 @@ def resolve_model(
             available.sort(key=lambda m: quality_order.get(m.quality, 3))
         return available[0]
 
-    # All free models on cooldown — check if any are available (ignoring cooldown)
+    # All free models on cooldown — try anyway with the least-recently-failed one
     if free_models:
-        return free_models[0]  # Try anyway, the provider might have recovered
+        # Sort by remaining cooldown (shortest first) so we pick the one closest to recovery
+        free_models.sort(key=lambda m: health_monitor._get_stats(m.id).remaining_cooldown())
+        print(f"[Router] All free models on cooldown. Trying {free_models[0].display_name} (shortest cooldown)")
+        return free_models[0]
 
     raise ValueError("No suitable free model available")
 
@@ -106,14 +121,27 @@ def get_fallback_models(
     Get a list of fallback free models after a failure.
 
     Returns models ordered by quality, excluding the failed model.
+    Does NOT filter by provider — the manager will handle provider routing.
     """
     free_models = registry.get_free_models()
 
     # Exclude the failed model
     fallbacks = [m for m in free_models if m.id != failed_model_id]
 
-    # Remove cooldown models
-    fallbacks = [m for m in fallbacks if not _is_on_cooldown(m.id)]
+    # Filter by provider if specified
+    if provider:
+        fallbacks = [m for m in fallbacks if m.provider == provider]
+
+    # Exclude non-text models
+    fallbacks = [m for m in fallbacks if m.category not in ("image", "video", "audio", "embedding", "legacy")]
+
+    # Remove cooldown models — but keep at least some options
+    not_on_cooldown = [m for m in fallbacks if not _is_on_cooldown(m.id)]
+    if not_on_cooldown:
+        fallbacks = not_on_cooldown
+    else:
+        # All on cooldown — sort by shortest remaining cooldown
+        fallbacks.sort(key=lambda m: health_monitor._get_stats(m.id).remaining_cooldown())
 
     # Sort by quality
     quality_order = {"very_high": 0, "high": 1, "good": 2}

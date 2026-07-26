@@ -3,11 +3,13 @@ import { useNavigate } from 'react-router-dom'
 import { FaHome, FaGlobe, FaSpinner, FaDownload, FaEdit, FaRocket, FaCog, FaEye, FaDesktop, FaTabletAlt, FaMobileAlt } from 'react-icons/fa'
 import useResumeStore from '../store/useResumeStore'
 import usePortfolioStore from '../store/usePortfolioStore'
-import { API_ENDPOINTS, apiFetch } from '../config/api'
+import { API_ENDPOINTS } from '../config/api'
+import { useAIRequest } from '../hooks/useAIRequest'
 import ThemeSelector from '../components/portfolio/ThemeSelector'
 import PortfolioPreview from '../components/portfolio/PortfolioPreview'
 import GenerationProgress from '../components/portfolio/GenerationProgress'
 import { themeMap } from '../components/portfolio/PortfolioPreview'
+import PreflightIndicator from '../components/ai/PreflightIndicator'
 
 // Device presets for responsive preview
 const DEVICE_PRESETS = {
@@ -39,6 +41,8 @@ const PortfolioBuilder = () => {
   const [activeTab, setActiveTab] = useState('theme') // 'theme' or 'settings'
   const [showPreviewModal, setShowPreviewModal] = useState(false)
   const [selectedDevice, setSelectedDevice] = useState('desktop') // 'desktop', 'tablet', 'mobile'
+
+  const { execute, preflightState } = useAIRequest()
   
   // Streaming progress state
   const [streamProgress, setStreamProgress] = useState(0)
@@ -76,15 +80,13 @@ const PortfolioBuilder = () => {
     }
 
     try {
-      const response = await apiFetch(API_ENDPOINTS.portfolioEnhanceStream, {
+      const response = await execute(API_ENDPOINTS.portfolioEnhanceStream, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ resume_data: resume })
-      })
+      }, { returnRaw: true })
 
-      if (!response.ok) {
-        throw new Error('Failed to start stream')
-      }
+      if (!response) return; // aborted
 
       const reader = response.body.getReader()
       const decoder = new TextDecoder()
@@ -619,6 +621,8 @@ const PortfolioBuilder = () => {
 
 
   return (
+    <>
+    <PreflightIndicator preflightState={preflightState} />
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
       {/* Header */}
       <header className="bg-white shadow-md sticky top-0 z-40">
@@ -910,6 +914,7 @@ const PortfolioBuilder = () => {
         />
       )}
     </div>
+    </>
   )
 }
 

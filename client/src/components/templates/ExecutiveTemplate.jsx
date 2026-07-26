@@ -159,7 +159,7 @@ const ExecutiveTemplate = ({ resume, formatting }) => {
               {exp.description && (
                 <ul style={styles.list}>
                   {exp.description.split('\n').filter(Boolean).map((line, i) => (
-                    <li key={i} style={styles.listItem}>{line.replace(/^[-•]\s*/, '')}</li>
+                    <li key={i} style={{ ...styles.listItem, marginLeft: `${(line.match(/^\s*/)[0].length) * 8}px` }}>{line.replace(/^\s*[-•]\s*/, '')}</li>
                   ))}
                 </ul>
               )}
@@ -204,7 +204,7 @@ const ExecutiveTemplate = ({ resume, formatting }) => {
               {proj.description && (
                 <ul style={styles.list}>
                   {proj.description.split('\n').filter(Boolean).map((line, i) => (
-                    <li key={i} style={styles.listItem}>{line.replace(/^[-•]\s*/, '')}</li>
+                    <li key={i} style={{ ...styles.listItem, marginLeft: `${(line.match(/^\s*/)[0].length) * 8}px` }}>{line.replace(/^\s*[-•]\s*/, '')}</li>
                   ))}
                 </ul>
               )}

@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import useResumeStore from '../../store/useResumeStore'
 import { FaBriefcase, FaPlus, FaTrash } from 'react-icons/fa'
+import BulletTextarea from './BulletTextarea'
 
 const ExperienceForm = () => {
   const { resume, addExperience, updateExperience, removeExperience } = useResumeStore()
@@ -102,7 +103,7 @@ const ExperienceForm = () => {
               <span className="text-sm text-gray-700">I currently work here</span>
             </label>
             
-            <textarea
+            <BulletTextarea
               value={exp.description}
               onChange={(e) => handleUpdate(index, 'description', e.target.value)}
               placeholder="Key responsibilities and achievements (one per line, start with action verbs)"
@@ -170,7 +171,7 @@ const ExperienceForm = () => {
             <span className="text-sm text-gray-700">I currently work here</span>
           </label>
           
-          <textarea
+          <BulletTextarea
             value={newExperience.description}
             onChange={(e) => setNewExperience({ ...newExperience, description: e.target.value })}
             placeholder="Key responsibilities and achievements (one per line)"

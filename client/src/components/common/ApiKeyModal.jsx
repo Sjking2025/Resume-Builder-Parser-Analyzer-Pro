@@ -11,6 +11,7 @@ import { API_ENDPOINTS } from '../../config/api';
  */
 const ApiKeyModal = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const [provider, setProvider] = useState('openrouter');
   const [apiKey, setApiKey] = useState('');
   const [model, setModel] = useState('');
   const [routingPref, setRoutingPref] = useState('free_first');
@@ -21,6 +22,9 @@ const ApiKeyModal = () => {
 
   // Load saved values on mount
   useEffect(() => {
+    const storedProvider = sessionStorage.getItem('customAiProvider');
+    if (storedProvider) setProvider(storedProvider);
+
     const stored = sessionStorage.getItem('customApiKey');
     if (stored) setApiKey(stored);
     
@@ -56,27 +60,60 @@ const ApiKeyModal = () => {
     fetchModels();
   }, [isOpen]);
 
-  // Group models by provider
-  const groupedModels = useMemo(() => {
-    const groups = {};
-    models.forEach(m => {
-      const provider = m.provider || 'other';
-      if (!groups[provider]) groups[provider] = [];
-      groups[provider].push(m);
-    });
-    // Sort: free models first within each group
-    Object.values(groups).forEach(list => {
-      list.sort((a, b) => (a.is_free === b.is_free ? 0 : a.is_free ? -1 : 1));
-    });
-    return groups;
-  }, [models]);
+  // Filter models by selected provider
+  const filteredModels = useMemo(() => {
+    return models.filter(m => m.provider === provider);
+  }, [models, provider]);
 
+  // Group models by provider
   const providerLabels = {
     google: { name: 'Google AI', icon: '🔵' },
     openrouter: { name: 'OpenRouter', icon: '🟣' },
   };
 
+  const googleCategories = {
+    general: '⭐ Latest',
+    reasoning: '⭐ Latest',
+    image: 'Image Generation',
+    video: 'Video',
+    audio: 'Speech & Audio',
+    embedding: 'Embeddings',
+    legacy: 'Legacy'
+  };
+
+  const groupedModels = useMemo(() => {
+    const groups = {};
+    filteredModels.forEach(m => {
+      const prov = m.provider || 'other';
+      let groupKey = prov;
+      let label = `${providerLabels[prov]?.icon || '⚪'} ${providerLabels[prov]?.name || prov}`;
+      
+      if (prov === 'google' && m.category) {
+        const catName = googleCategories[m.category] || m.category;
+        groupKey = `google_${m.category}`;
+        label = `🔵 Google AI - ${catName}`;
+      }
+      
+      if (!groups[groupKey]) groups[groupKey] = { label, models: [] };
+      groups[groupKey].models.push(m);
+    });
+    
+    // Sort: free models first within each group
+    Object.values(groups).forEach(group => {
+      group.models.sort((a, b) => (a.is_free === b.is_free ? 0 : a.is_free ? -1 : 1));
+    });
+    return groups;
+  }, [filteredModels]);
+
+  // When provider changes, reset model selection to auto
+  const handleProviderChange = (newProvider) => {
+    setProvider(newProvider);
+    setModel('');
+  };
+
   const handleSave = () => {
+    sessionStorage.setItem('customAiProvider', provider);
+
     if (apiKey.trim()) {
       sessionStorage.setItem('customApiKey', apiKey.trim());
     } else {
@@ -101,15 +138,36 @@ const ApiKeyModal = () => {
   const handleClear = () => {
     setApiKey('');
     setModel('');
+    setProvider('openrouter');
     setRoutingPref('free_first');
     sessionStorage.removeItem('customApiKey');
     sessionStorage.removeItem('customAiModel');
+    sessionStorage.removeItem('customAiProvider');
     sessionStorage.removeItem('customAiRoutingPref');
     setSaved(true);
     setTimeout(() => { setSaved(false); setIsOpen(false); }, 1000);
   };
 
   const selectedModel = models.find(m => m.id === model);
+
+  const providerConfig = {
+    openrouter: {
+      name: 'OpenRouter',
+      icon: '🟣',
+      keyPlaceholder: 'sk-or-v1-...',
+      keyHint: 'Get your key from openrouter.ai/keys',
+      color: 'purple',
+    },
+    google: {
+      name: 'Google Gemini',
+      icon: '🔵',
+      keyPlaceholder: 'AIza...',
+      keyHint: 'Get your key from aistudio.google.com/apikey',
+      color: 'blue',
+    }
+  };
+
+  const activeProvider = providerConfig[provider] || providerConfig.openrouter;
 
   return (
     <>
@@ -135,20 +193,50 @@ const ApiKeyModal = () => {
             </div>
             
             <div className="p-5 overflow-y-auto flex-1 space-y-5">
+              {/* Provider Selection */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  <FaBolt className="inline mr-1 text-xs" /> AI Provider
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  {Object.entries(providerConfig).map(([key, cfg]) => (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => handleProviderChange(key)}
+                      className={`flex items-center gap-2 px-4 py-3 rounded-xl border-2 text-sm font-medium transition-all ${
+                        provider === key
+                          ? `border-${cfg.color}-500 bg-${cfg.color}-50 text-${cfg.color}-700 shadow-sm`
+                          : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
+                      }`}
+                      style={provider === key ? {
+                        borderColor: cfg.color === 'purple' ? '#8b5cf6' : '#3b82f6',
+                        backgroundColor: cfg.color === 'purple' ? '#f5f3ff' : '#eff6ff',
+                        color: cfg.color === 'purple' ? '#6d28d9' : '#1d4ed8',
+                      } : {}}
+                    >
+                      <span className="text-lg">{cfg.icon}</span>
+                      <span>{cfg.name}</span>
+                      {provider === key && <FaCheck className="ml-auto text-xs" />}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               {/* API Key Section */}
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-1">
-                  <FaKey className="inline mr-1 text-xs" /> API Key
+                  <FaKey className="inline mr-1 text-xs" /> {activeProvider.name} API Key
                 </label>
                 <input
                   type="password"
                   value={apiKey}
                   onChange={(e) => setApiKey(e.target.value)}
-                  placeholder="sk-or-... or AIza..."
+                  placeholder={activeProvider.keyPlaceholder}
                   className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors font-mono text-sm"
                 />
                 <p className="text-xs text-gray-500 mt-1.5">
-                  <code className="bg-gray-100 px-1 py-0.5 rounded text-gray-700">sk-or-</code> for OpenRouter · <code className="bg-gray-100 px-1 py-0.5 rounded text-gray-700">AIza</code> for Google Gemini
+                  {activeProvider.keyHint}
                 </p>
               </div>
 
@@ -185,13 +273,13 @@ const ApiKeyModal = () => {
                     onChange={(e) => setModel(e.target.value)}
                     className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-sm bg-white"
                   >
-                    <option value="">Auto (Best Free Model)</option>
-                    {Object.entries(groupedModels).map(([provider, providerModels]) => (
+                    <option value="">Auto (Best Free {activeProvider.name} Model)</option>
+                    {Object.entries(groupedModels).map(([groupKey, group]) => (
                       <optgroup
-                        key={provider}
-                        label={`${providerLabels[provider]?.icon || '⚪'} ${providerLabels[provider]?.name || provider}`}
+                        key={groupKey}
+                        label={group.label}
                       >
-                        {providerModels.map(m => (
+                        {group.models.map(m => (
                           <option key={m.id} value={m.id}>
                             {m.is_free ? '🟢' : '🟡'} {m.display_name}
                             {m.context_window ? ` · ${Math.round(m.context_window / 1024)}K ctx` : ''}
@@ -300,12 +388,12 @@ const ApiKeyModal = () => {
  */
 const FALLBACK_MODELS = [
   {
-    id: 'google/gemini-2.5-flash',
+    id: 'google/gemini-3.6-flash',
     provider: 'google',
-    display_name: 'Gemini 2.5 Flash',
+    display_name: 'Gemini 3.6 Flash',
     is_free: true,
     context_window: 1048576,
-    capabilities: { vision: true, reasoning: true, streaming: true, tool_calling: true },
+    capabilities: { vision: true, reasoning: false, streaming: true, tool_calling: true },
     category: 'general',
     speed: 'fast',
     quality: 'high',
@@ -313,9 +401,35 @@ const FALLBACK_MODELS = [
     output_price_per_million: 0,
   },
   {
-    id: 'google/gemini-1.5-flash',
+    id: 'google/gemini-2.5-flash',
     provider: 'google',
-    display_name: 'Gemini 1.5 Flash',
+    display_name: 'Gemini 2.5 Flash',
+    is_free: true,
+    context_window: 1048576,
+    capabilities: { vision: true, reasoning: false, streaming: true, tool_calling: true },
+    category: 'general',
+    speed: 'fast',
+    quality: 'high',
+    input_price_per_million: 0,
+    output_price_per_million: 0,
+  },
+  {
+    id: 'google/gemini-2.5-pro',
+    provider: 'google',
+    display_name: 'Gemini 2.5 Pro',
+    is_free: false,
+    context_window: 1048576,
+    capabilities: { vision: true, reasoning: true, streaming: true, tool_calling: true },
+    category: 'reasoning',
+    speed: 'medium',
+    quality: 'very_high',
+    input_price_per_million: 1.25,
+    output_price_per_million: 10.0,
+  },
+  {
+    id: 'google/gemini-2.5-flash-lite',
+    provider: 'google',
+    display_name: 'Gemini 2.5 Flash-Lite',
     is_free: true,
     context_window: 1048576,
     capabilities: { vision: true, reasoning: false, streaming: true, tool_calling: true },

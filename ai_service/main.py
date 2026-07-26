@@ -51,6 +51,10 @@ class DocumentImportResponse(BaseModel):
     documentDetection: dict
 
 
+class PreflightRequest(BaseModel):
+    required_capability: Optional[str] = None
+
+
 from crew.logger import SystemLogger
 
 @asynccontextmanager
@@ -160,8 +164,32 @@ async def providers_health(x_ai_api_key: Optional[str] = Header(None)):
     }
 
 
+@app.post("/preflight")
+async def ai_preflight(request: PreflightRequest, x_ai_api_key: Optional[str] = Header(None), x_ai_model: Optional[str] = Header(None), x_ai_routing_pref: Optional[str] = Header('free_first')):
+    """Run comprehensive AI preflight checks before generation."""
+    from orchestrator.manager import AIManager
+    active_key = x_ai_api_key or API_KEY
+    if not active_key:
+        return {
+            "is_ready": False,
+            "provider_healthy": False,
+            "authentication_valid": False,
+            "error": "AI service not configured. Set OPENROUTER_API_KEY or GOOGLE_API_KEY."
+        }
+        
+    try:
+        manager = AIManager(api_key=active_key, model_id=x_ai_model, routing_pref=x_ai_routing_pref)
+        result = manager.run_preflight_checks(required_capability=request.required_capability)
+        return result
+    except Exception as e:
+        return {
+            "is_ready": False,
+            "error": f"Preflight error: {str(e)}"
+        }
+
+
 @app.post("/import-resume")
-async def import_resume(file: UploadFile = File(...), x_ai_api_key: Optional[str] = Header(None), x_ai_model: Optional[str] = Header(None), x_ai_routing_pref: Optional[str] = Header(\'free_first\')) -> ImportResponse:
+async def import_resume(file: UploadFile = File(...), x_ai_api_key: Optional[str] = Header(None), x_ai_model: Optional[str] = Header(None), x_ai_routing_pref: Optional[str] = Header('free_first')) -> ImportResponse:
     """
     Parse an uploaded resume PDF and extract structured data.
     """
@@ -213,7 +241,7 @@ async def import_resume(file: UploadFile = File(...), x_ai_api_key: Optional[str
     except HTTPException:
         raise
     except Exception as e:
-        if \'PAID_CONSENT_REQUIRED\' in str(e):
+        if "PAID_CONSENT_REQUIRED" in str(e):
             raise ValueError(str(e))
         raise HTTPException(
             status_code=500,
@@ -222,7 +250,7 @@ async def import_resume(file: UploadFile = File(...), x_ai_api_key: Optional[str
 
 
 @app.post("/import-document")
-async def import_document(file: UploadFile = File(...), x_ai_api_key: Optional[str] = Header(None), x_ai_model: Optional[str] = Header(None), x_ai_routing_pref: Optional[str] = Header(\'free_first\')) -> DocumentImportResponse:
+async def import_document(file: UploadFile = File(...), x_ai_api_key: Optional[str] = Header(None), x_ai_model: Optional[str] = Header(None), x_ai_routing_pref: Optional[str] = Header('free_first')) -> DocumentImportResponse:
     """
     Parse an uploaded CV or Resume PDF/DOCX and extract structured data with type detection.
     """
@@ -288,7 +316,7 @@ async def import_document(file: UploadFile = File(...), x_ai_api_key: Optional[s
     except HTTPException:
         raise
     except Exception as e:
-        if \'PAID_CONSENT_REQUIRED\' in str(e):
+        if "PAID_CONSENT_REQUIRED" in str(e):
             raise ValueError(str(e))
         raise HTTPException(
             status_code=500,
@@ -297,7 +325,7 @@ async def import_document(file: UploadFile = File(...), x_ai_api_key: Optional[s
 
 
 @app.post("/convert-cv-to-resume")
-async def convert_cv_to_resume(request: ConvertCVRequest, x_ai_api_key: Optional[str] = Header(None), x_ai_model: Optional[str] = Header(None), x_ai_routing_pref: Optional[str] = Header(\'free_first\')):
+async def convert_cv_to_resume(request: ConvertCVRequest, x_ai_api_key: Optional[str] = Header(None), x_ai_model: Optional[str] = Header(None), x_ai_routing_pref: Optional[str] = Header('free_first')):
     """
     Convert a parsed CV into a concise Resume.
     """
@@ -328,7 +356,7 @@ async def convert_cv_to_resume(request: ConvertCVRequest, x_ai_api_key: Optional
     except HTTPException:
         raise
     except Exception as e:
-        if \'PAID_CONSENT_REQUIRED\' in str(e):
+        if "PAID_CONSENT_REQUIRED" in str(e):
             raise ValueError(str(e))
         raise HTTPException(
             status_code=500,
@@ -336,7 +364,7 @@ async def convert_cv_to_resume(request: ConvertCVRequest, x_ai_api_key: Optional
         )
 
 @app.post("/analyze")
-async def analyze_resume_from_data(request: AnalyzeRequest, x_ai_api_key: Optional[str] = Header(None), x_ai_model: Optional[str] = Header(None), x_ai_routing_pref: Optional[str] = Header(\'free_first\')):
+async def analyze_resume_from_data(request: AnalyzeRequest, x_ai_api_key: Optional[str] = Header(None), x_ai_model: Optional[str] = Header(None), x_ai_routing_pref: Optional[str] = Header('free_first')):
     """
     Analyze resume data and provide comprehensive feedback.
     """
@@ -360,7 +388,7 @@ async def analyze_resume_from_data(request: AnalyzeRequest, x_ai_api_key: Option
         return analysis
         
     except Exception as e:
-        if \'PAID_CONSENT_REQUIRED\' in str(e):
+        if "PAID_CONSENT_REQUIRED" in str(e):
             raise ValueError(str(e))
         SystemLogger.error("System", f"Analysis failed: {str(e)}")
         raise HTTPException(
@@ -370,7 +398,7 @@ async def analyze_resume_from_data(request: AnalyzeRequest, x_ai_api_key: Option
 
 
 @app.post("/tailor-resume")
-async def tailor_resume_to_jd(request: AnalyzeRequest, x_ai_api_key: Optional[str] = Header(None), x_ai_model: Optional[str] = Header(None), x_ai_routing_pref: Optional[str] = Header(\'free_first\')):
+async def tailor_resume_to_jd(request: AnalyzeRequest, x_ai_api_key: Optional[str] = Header(None), x_ai_model: Optional[str] = Header(None), x_ai_routing_pref: Optional[str] = Header('free_first')):
     """
     Runs the full 5-Agent Resume Tailoring Pipeline.
     Pipeline:
@@ -417,7 +445,7 @@ async def tailor_resume_to_jd(request: AnalyzeRequest, x_ai_api_key: Optional[st
         }
         
     except Exception as e:
-        if \'PAID_CONSENT_REQUIRED\' in str(e):
+        if "PAID_CONSENT_REQUIRED" in str(e):
             raise ValueError(str(e))
         SystemLogger.error("System", f"Pipeline failed: {str(e)}")
         raise HTTPException(
@@ -427,7 +455,7 @@ async def tailor_resume_to_jd(request: AnalyzeRequest, x_ai_api_key: Optional[st
 
 
 @app.post("/analyze-pdf")
-async def analyze_resume_from_pdf(file: UploadFile = File(...), job_description: Optional[str] = None, x_ai_api_key: Optional[str] = Header(None), x_ai_model: Optional[str] = Header(None), x_ai_routing_pref: Optional[str] = Header(\'free_first\')):
+async def analyze_resume_from_pdf(file: UploadFile = File(...), job_description: Optional[str] = None, x_ai_api_key: Optional[str] = Header(None), x_ai_model: Optional[str] = Header(None), x_ai_routing_pref: Optional[str] = Header('free_first')):
     """
     Analyze an uploaded resume PDF and provide comprehensive feedback.
     """
@@ -485,7 +513,7 @@ async def analyze_resume_from_pdf(file: UploadFile = File(...), job_description:
     except HTTPException:
         raise
     except Exception as e:
-        if \'PAID_CONSENT_REQUIRED\' in str(e):
+        if "PAID_CONSENT_REQUIRED" in str(e):
             raise ValueError(str(e))
         raise HTTPException(
             status_code=500,
@@ -494,7 +522,7 @@ async def analyze_resume_from_pdf(file: UploadFile = File(...), job_description:
 
 
 @app.post("/portfolio-enhance")
-async def enhance_portfolio(request: AnalyzeRequest, x_ai_api_key: Optional[str] = Header(None), x_ai_model: Optional[str] = Header(None), x_ai_routing_pref: Optional[str] = Header(\'free_first\')):
+async def enhance_portfolio(request: AnalyzeRequest, x_ai_api_key: Optional[str] = Header(None), x_ai_model: Optional[str] = Header(None), x_ai_routing_pref: Optional[str] = Header('free_first')):
     """
     Transform resume data into web-optimized portfolio content.
     Returns enhanced content for portfolio generation.
@@ -526,7 +554,7 @@ async def enhance_portfolio(request: AnalyzeRequest, x_ai_api_key: Optional[str]
         }
         
     except Exception as e:
-        if \'PAID_CONSENT_REQUIRED\' in str(e):
+        if "PAID_CONSENT_REQUIRED" in str(e):
             raise ValueError(str(e))
         raise HTTPException(
             status_code=500,
@@ -535,7 +563,7 @@ async def enhance_portfolio(request: AnalyzeRequest, x_ai_api_key: Optional[str]
 
 
 @app.post("/portfolio-enhance-stream")
-async def enhance_portfolio_stream(request: AnalyzeRequest, x_ai_api_key: Optional[str] = Header(None), x_ai_model: Optional[str] = Header(None), x_ai_routing_pref: Optional[str] = Header(\'free_first\')):
+async def enhance_portfolio_stream(request: AnalyzeRequest, x_ai_api_key: Optional[str] = Header(None), x_ai_model: Optional[str] = Header(None), x_ai_routing_pref: Optional[str] = Header('free_first')):
     """
     Stream portfolio generation section-by-section using Server-Sent Events.
     Returns real-time progress updates as portfolio is generated.
@@ -568,7 +596,7 @@ async def enhance_portfolio_stream(request: AnalyzeRequest, x_ai_api_key: Option
                 yield f"data: {json.dumps(event)}\n\n"
                 
         except Exception as e:
-            if \'PAID_CONSENT_REQUIRED\' in str(e):
+            if "PAID_CONSENT_REQUIRED" in str(e):
                 raise ValueError(str(e))
             # Send error event
             error_event = {
@@ -607,7 +635,7 @@ class ModifyRoadmapRequest(BaseModel):
 
 
 @app.post("/skill-gap/analyze")
-async def analyze_skill_gap(request: SkillGapRequest, x_ai_api_key: Optional[str] = Header(None), x_ai_model: Optional[str] = Header(None), x_ai_routing_pref: Optional[str] = Header(\'free_first\')):
+async def analyze_skill_gap(request: SkillGapRequest, x_ai_api_key: Optional[str] = Header(None), x_ai_model: Optional[str] = Header(None), x_ai_routing_pref: Optional[str] = Header('free_first')):
     """
     Analyze the skill gap between a resume and job description.
     Returns matched skills, missing skills, weak skills, and recommendations.
@@ -636,7 +664,7 @@ async def analyze_skill_gap(request: SkillGapRequest, x_ai_api_key: Optional[str
         }
         
     except Exception as e:
-        if \'PAID_CONSENT_REQUIRED\' in str(e):
+        if "PAID_CONSENT_REQUIRED" in str(e):
             raise ValueError(str(e))
         raise HTTPException(
             status_code=500,
@@ -645,7 +673,7 @@ async def analyze_skill_gap(request: SkillGapRequest, x_ai_api_key: Optional[str
 
 
 @app.post("/skill-gap/roadmap")
-async def generate_roadmap(request: RoadmapRequest, x_ai_api_key: Optional[str] = Header(None), x_ai_model: Optional[str] = Header(None), x_ai_routing_pref: Optional[str] = Header(\'free_first\')):
+async def generate_roadmap(request: RoadmapRequest, x_ai_api_key: Optional[str] = Header(None), x_ai_model: Optional[str] = Header(None), x_ai_routing_pref: Optional[str] = Header('free_first')):
     """
     Generate a practice-focused learning roadmap based on skill gap analysis.
     40% learning, 60% practice with curated resources.
@@ -672,7 +700,7 @@ async def generate_roadmap(request: RoadmapRequest, x_ai_api_key: Optional[str] 
         }
         
     except Exception as e:
-        if \'PAID_CONSENT_REQUIRED\' in str(e):
+        if "PAID_CONSENT_REQUIRED" in str(e):
             raise ValueError(str(e))
         raise HTTPException(
             status_code=500,
@@ -681,7 +709,7 @@ async def generate_roadmap(request: RoadmapRequest, x_ai_api_key: Optional[str] 
 
 
 @app.post("/skill-gap/roadmap-stream")
-async def generate_roadmap_stream(request: RoadmapRequest, x_ai_api_key: Optional[str] = Header(None), x_ai_model: Optional[str] = Header(None), x_ai_routing_pref: Optional[str] = Header(\'free_first\')):
+async def generate_roadmap_stream(request: RoadmapRequest, x_ai_api_key: Optional[str] = Header(None), x_ai_model: Optional[str] = Header(None), x_ai_routing_pref: Optional[str] = Header('free_first')):
     """
     Stream roadmap generation using Server-Sent Events.
     Returns real-time progress as each week is generated.
@@ -707,7 +735,7 @@ async def generate_roadmap_stream(request: RoadmapRequest, x_ai_api_key: Optiona
                 yield f"data: {json.dumps(event)}\n\n"
                 
         except Exception as e:
-            if \'PAID_CONSENT_REQUIRED\' in str(e):
+            if "PAID_CONSENT_REQUIRED" in str(e):
                 raise ValueError(str(e))
             error_event = {
                 "error": str(e),
@@ -728,7 +756,7 @@ async def generate_roadmap_stream(request: RoadmapRequest, x_ai_api_key: Optiona
 
 
 @app.post("/skill-gap/roadmap/modify")
-async def modify_roadmap(request: ModifyRoadmapRequest, x_ai_api_key: Optional[str] = Header(None), x_ai_model: Optional[str] = Header(None), x_ai_routing_pref: Optional[str] = Header(\'free_first\')):
+async def modify_roadmap(request: ModifyRoadmapRequest, x_ai_api_key: Optional[str] = Header(None), x_ai_model: Optional[str] = Header(None), x_ai_routing_pref: Optional[str] = Header('free_first')):
     """
     Use AI to modify an existing roadmap based on natural language request.
     Examples: "Push Kubernetes to week 3", "Make React harder", "I have less time"
@@ -757,7 +785,7 @@ async def modify_roadmap(request: ModifyRoadmapRequest, x_ai_api_key: Optional[s
         }
         
     except Exception as e:
-        if \'PAID_CONSENT_REQUIRED\' in str(e):
+        if "PAID_CONSENT_REQUIRED" in str(e):
             raise ValueError(str(e))
         raise HTTPException(
             status_code=500,

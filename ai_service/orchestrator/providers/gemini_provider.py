@@ -3,6 +3,11 @@ Google Gemini Provider — Wraps the Google GenAI SDK.
 
 Supports Gemini 2.5 Flash (free), Gemini 2.5 Pro (paid),
 and Gemini 1.5 Flash (free).
+
+RESILIENCE DESIGN:
+- Classifies 404 NOT_FOUND errors as rate-limit-like to trigger failover
+  (Google frequently deprecates model IDs without warning).
+- Detects "no longer available" errors from Google and treats them as model unavailable.
 """
 
 from .base import BaseProvider, ProviderResponse, ProviderHealth, ProviderError
@@ -78,8 +83,15 @@ class GeminiProvider(BaseProvider):
             msg = str(e)
             is_rate = "429" in msg or "rate" in msg.lower() or "resource_exhausted" in msg.lower()
             is_quota = "quota" in msg.lower() or "exceeded" in msg.lower()
+            
+            # Google frequently deprecates models — treat 404/NOT_FOUND as rate-limit
+            # so the router fails over to the next model instead of crashing
+            is_not_found = "404" in msg or "not_found" in msg.lower() or "no longer available" in msg.lower()
+            if is_not_found:
+                is_rate = True  # Trigger failover
+            
             raise ProviderError(
-                message=msg,
+                message=msg[:500],
                 provider=self.provider_name,
                 model_id=model_id,
                 is_rate_limit=is_rate,

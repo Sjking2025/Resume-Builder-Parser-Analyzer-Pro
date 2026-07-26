@@ -1,6 +1,8 @@
 import React, { useState, useCallback } from 'react'
 import { FaUpload, FaSpinner, FaCheck, FaTimes, FaFileAlt, FaMagic, FaExchangeAlt, FaRobot } from 'react-icons/fa'
-import { API_ENDPOINTS, apiFetch } from '../../config/api'
+import { API_ENDPOINTS } from '../../config/api'
+import { useAIRequest } from '../../hooks/useAIRequest'
+import PreflightIndicator from '../ai/PreflightIndicator'
 
 /**
  * ResumeImportModal - Upload and parse existing resume/CV PDF/DOCX
@@ -8,8 +10,7 @@ import { API_ENDPOINTS, apiFetch } from '../../config/api'
 const ResumeImportModal = ({ isOpen, onClose, onImport, onNavigateToConversion }) => {
   const [file, setFile] = useState(null)
   const [isDragging, setIsDragging] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState(null)
+  const { execute, isLoading, error, setError, cancel, preflightState } = useAIRequest()
   
   const [parsedData, setParsedData] = useState(null)
   const [documentDetection, setDocumentDetection] = useState(null)
@@ -70,7 +71,6 @@ const ResumeImportModal = ({ isOpen, onClose, onImport, onNavigateToConversion }
   const handleParse = async () => {
     if (!file) return
 
-    setIsLoading(true)
     setError(null)
     setStep('parsing')
 
@@ -78,32 +78,24 @@ const ResumeImportModal = ({ isOpen, onClose, onImport, onNavigateToConversion }
       const formData = new FormData()
       formData.append('file', file)
 
-      const response = await apiFetch(API_ENDPOINTS.importDocument, {
+      const result = await execute(API_ENDPOINTS.importDocument, {
         method: 'POST',
         body: formData
       })
-
-      if (!response.ok) {
-        const errData = await response.json().catch(() => ({}))
-        throw new Error(errData.detail || errData.error || 'Failed to parse document')
-      }
-
-      const result = await response.json()
       
-      if (result.success && result.data) {
+      if (result && result.success && result.data) {
         setProgress(100)
         setTimeout(() => {
           setParsedData(result.data)
           setDocumentDetection(result.documentDetection || { type: 'resume', confidence: 100 })
-          setIsLoading(false)
           setStep('detection')
         }, 300)
       } else {
         throw new Error('Invalid response from server')
       }
     } catch (err) {
-      setError(err.message)
-      setIsLoading(false)
+      console.error('Import error:', err)
+      // Error is automatically set by useAIRequest
       setStep('upload')
     }
   }
@@ -128,21 +120,23 @@ const ResumeImportModal = ({ isOpen, onClose, onImport, onNavigateToConversion }
 
   // Reset and close
   const handleClose = () => {
+    cancel()
     setFile(null)
-    setError(null)
     setParsedData(null)
     setDocumentDetection(null)
-    setIsLoading(false)
-    setProgress(0)
+    setError(null)
     setStep('upload')
+    setProgress(0)
     onClose()
   }
 
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-auto">
+    <>
+      <PreflightIndicator preflightState={preflightState} />
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-auto">
         {/* Header */}
         <div className="flex justify-between items-center p-6 border-b">
           <h2 className="text-xl font-bold text-gray-800">
@@ -349,6 +343,7 @@ const ResumeImportModal = ({ isOpen, onClose, onImport, onNavigateToConversion }
         </div>
       </div>
     </div>
+    </>
   )
 }
 

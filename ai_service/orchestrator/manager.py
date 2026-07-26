@@ -3,9 +3,16 @@ AI Manager — Unified entry point for all AI generation requests.
 
 Replaces direct OpenRouterWrapper/GoogleGenAIWrapper usage.
 Routes through the provider abstraction and handles failover.
+
+RESILIENCE DESIGN:
+- Retries transient errors (503, timeout) once with a short delay.
+- Strips provider-incompatible safety settings automatically.
+- Exhausts ALL free fallbacks before raising PAID_CONSENT_REQUIRED.
+- Logs every attempt clearly for debugging.
 """
 
 import os
+import time
 from typing import Optional
 
 from .models import registry
@@ -74,16 +81,51 @@ class AIManager:
 
         return _provider_cache[cache_key]
 
-    def generate(self, prompt: str, safety_settings=None, max_retries: int = 3) -> ProviderResponse:
+    def _sanitize_safety_settings(self, safety_settings, provider_type: str):
+        """
+        Strip safety_settings that are incompatible with the provider.
+        Gemini uses HARM_CATEGORY_*, OpenRouter ignores them entirely.
+        """
+        if provider_type == "openrouter":
+            return None  # OpenRouter doesn't support Gemini-style safety settings
+        return safety_settings
+
+    def _try_generate(self, provider, model_id: str, prompt: str, safety_settings=None) -> ProviderResponse:
+        """
+        Attempt generation with a single retry for transient errors (503, timeout, connection).
+        """
+        last_error = None
+        for attempt in range(2):  # 1 initial + 1 retry
+            try:
+                return provider.generate(prompt, model_id, safety_settings)
+            except ProviderError as e:
+                last_error = e
+                # Only retry on transient errors (not rate limits or auth errors)
+                is_transient = (
+                    "503" in str(e) or 
+                    "502" in str(e) or
+                    "timeout" in str(e).lower() or 
+                    "connection" in str(e).lower() or
+                    "temporarily" in str(e).lower()
+                )
+                if attempt == 0 and is_transient:
+                    print(f"[AIManager] Transient error on {model_id}, retrying in 2s...")
+                    time.sleep(2)
+                    continue
+                raise
+        raise last_error
+
+    def generate(self, prompt: str, safety_settings=None, max_retries: int = 5) -> ProviderResponse:
         """
         Generate content with intelligent routing and failover.
 
         Flow:
         1. Resolve the target model (explicit or auto-select)
         2. Determine the provider from the API key
-        3. Execute the request
-        4. On failure: mark model as failed, try fallbacks
-        5. Never silently switch to a paid model
+        3. Sanitize safety settings for the provider
+        4. Execute the request with transient-error retry
+        5. On failure: mark model as failed, try fallbacks
+        6. Never silently switch to a paid model
 
         Args:
             prompt: The prompt to send.
@@ -99,8 +141,10 @@ class AIManager:
         api_key, provider_type = self._get_active_key_and_provider_type()
         provider = self._get_provider(provider_type, api_key)
 
-        import time
         from .health import health_monitor
+        
+        # Sanitize safety settings for the active provider
+        safe_settings = self._sanitize_safety_settings(safety_settings, provider_type)
         
         # Resolve which model to use
         model = resolve_model(
@@ -112,12 +156,14 @@ class AIManager:
         # Attempt generation with the primary model
         start_time = time.time()
         try:
-            response = provider.generate(prompt, model.id, safety_settings)
+            print(f"[AIManager] Trying primary model: {model.display_name} ({model.id})")
+            response = self._try_generate(provider, model.id, prompt, safe_settings)
             latency = time.time() - start_time
             health_monitor.record_success(model.id, latency)
+            print(f"[AIManager] ✓ Success with {model.display_name} ({latency:.1f}s)")
             return response
         except ProviderError as e:
-            print(f"[AIManager] Primary model {model.id} failed: {e}")
+            print(f"[AIManager] ✗ Primary model {model.display_name} failed: {e}")
             mark_model_failed(model.id, e)
 
             # Only attempt failover for free models
@@ -130,14 +176,14 @@ class AIManager:
         for i, fallback in enumerate(fallbacks[:max_retries]):
             start_time = time.time()
             try:
-                print(f"[AIManager] Failover attempt {i + 1}: trying {fallback.display_name}")
-                response = provider.generate(prompt, fallback.id, safety_settings)
+                print(f"[AIManager] Failover {i + 1}/{min(len(fallbacks), max_retries)}: trying {fallback.display_name} ({fallback.id})")
+                response = self._try_generate(provider, fallback.id, prompt, safe_settings)
                 latency = time.time() - start_time
                 health_monitor.record_success(fallback.id, latency)
-                print(f"[AIManager] Failover success with {fallback.display_name}")
+                print(f"[AIManager] ✓ Failover success with {fallback.display_name} ({latency:.1f}s)")
                 return response
             except ProviderError as e:
-                print(f"[AIManager] Failover {fallback.display_name} also failed: {e}")
+                print(f"[AIManager] ✗ Failover {fallback.display_name} failed: {e}")
                 mark_model_failed(fallback.id, e)
                 continue
 
@@ -160,6 +206,69 @@ class AIManager:
                 self.text = text
 
         return LegacyResponse(response.text)
+
+    def run_preflight_checks(self, required_capability: str = None) -> dict:
+        """
+        Run comprehensive preflight checks before generation.
+        Returns a dict of status checks.
+        """
+        try:
+            api_key, provider_type = self._get_active_key_and_provider_type()
+        except ValueError as e:
+            return {
+                "is_ready": False,
+                "provider_healthy": False,
+                "authentication_valid": False,
+                "error": str(e)
+            }
+            
+        provider = self._get_provider(provider_type, api_key)
+        
+        from .router import resolve_model, get_fallback_models
+        try:
+            model = resolve_model(
+                model_id=self._model_id,
+                provider=provider_type,
+                routing_pref=self._routing_pref
+            )
+        except ValueError as e:
+            return {
+                "is_ready": False,
+                "provider_healthy": True,
+                "model_available": False,
+                "error": str(e)
+            }
+        
+        health = provider.health_check()
+        
+        capability_ok = True
+        if required_capability:
+            capability_ok = model.capabilities.get(required_capability, False)
+            
+        from .health import health_monitor
+        on_cooldown = health_monitor.is_on_cooldown(model.id)
+        rate_limit_ok = not on_cooldown
+        
+        # Determine overall readiness
+        is_ready = health.is_healthy and capability_ok
+        
+        if not rate_limit_ok:
+            fallbacks = get_fallback_models(model.id, provider=provider_type)
+            if not fallbacks:
+                is_ready = False
+            else:
+                is_ready = health.is_healthy  # Still healthy, just using fallback
+                
+        return {
+            "is_ready": is_ready,
+            "provider_healthy": health.is_healthy,
+            "model_available": True,
+            "capabilities_supported": capability_ok,
+            "rate_limit_ok": rate_limit_ok,
+            "authentication_valid": health.error is None or ("401" not in str(health.error) and "unauthorized" not in str(health.error).lower()),
+            "resolved_model": model.display_name,
+            "error": health.error
+        }
 
     @staticmethod
     def get_model_catalog() -> list[dict]:

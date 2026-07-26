@@ -3,6 +3,12 @@ Health Monitor for AI Models
 
 Tracks success/failure rates, latency, and exponential backoff
 cooldowns for models across the orchestrator.
+
+RESILIENCE DESIGN:
+- Short cooldowns (5s base) so free models recover quickly.
+- Max cooldown capped at 60s (not minutes).
+- Cooldowns are per-model, not per-provider.
+- A single success resets all cooldown state for that model.
 """
 
 import time
@@ -35,7 +41,7 @@ class ModelStats:
         self.last_failure_reason = ""
 
     def record_failure(self, is_rate_limit: bool, reason: str):
-        """Record a failure and apply exponential backoff."""
+        """Record a failure and apply short, bounded exponential backoff."""
         self.failure_count += 1
         self.consecutive_failures += 1
         self.last_failure_reason = reason
@@ -43,15 +49,15 @@ class ModelStats:
         if is_rate_limit:
             self.rate_limit_count += 1
         
-        # Exponential backoff: 30s -> 60s -> 120s -> 240s...
-        base_cooldown = 30 if is_rate_limit else 10
-        multiplier = 2 ** min(self.consecutive_failures - 1, 6) # Max 64x multiplier
+        # SHORT backoff: 5s -> 10s -> 20s -> 40s -> 60s (capped)
+        base_cooldown = 5
+        multiplier = 2 ** min(self.consecutive_failures - 1, 4)  # Max 16x multiplier
         
-        cooldown_duration = base_cooldown * multiplier
+        cooldown_duration = min(base_cooldown * multiplier, 60)  # Hard cap at 60s
         self.cooldown_expiry = time.time() + cooldown_duration
         
         print(f"[Health] Model {self.model_id} failed ({self.consecutive_failures}x). "
-              f"Cooldown applied: {cooldown_duration}s. Reason: {reason[:100]}")
+              f"Cooldown: {cooldown_duration}s. Reason: {reason[:100]}")
 
     def is_on_cooldown(self) -> bool:
         """Check if the model is currently cooling down."""
@@ -64,6 +70,12 @@ class ModelStats:
             return False
             
         return True
+
+    def remaining_cooldown(self) -> float:
+        """Return remaining cooldown time in seconds, or 0 if not on cooldown."""
+        if not self.is_on_cooldown():
+            return 0.0
+        return max(0.0, self.cooldown_expiry - time.time())
 
     @property
     def avg_latency(self) -> float:
@@ -100,6 +112,18 @@ class HealthMonitor:
     def is_on_cooldown(self, model_id: str) -> bool:
         return self._get_stats(model_id).is_on_cooldown()
 
+    def clear_cooldown(self, model_id: str):
+        """Manually clear cooldown for a model (e.g., after waiting)."""
+        stats = self._get_stats(model_id)
+        stats.cooldown_expiry = 0.0
+        stats.consecutive_failures = 0
+
+    def clear_all_cooldowns(self):
+        """Nuclear option: clear all cooldowns (e.g., on fresh request after long idle)."""
+        for stats in self._stats.values():
+            stats.cooldown_expiry = 0.0
+            stats.consecutive_failures = 0
+
     def get_stats(self, model_id: str) -> dict:
         stats = self._get_stats(model_id)
         return {
@@ -107,6 +131,7 @@ class HealthMonitor:
             "success_rate": stats.success_rate,
             "avg_latency": stats.avg_latency,
             "is_on_cooldown": stats.is_on_cooldown(),
+            "remaining_cooldown": stats.remaining_cooldown(),
             "consecutive_failures": stats.consecutive_failures,
             "last_failure_reason": stats.last_failure_reason
         }

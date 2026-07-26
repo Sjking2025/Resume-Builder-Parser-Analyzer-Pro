@@ -137,7 +137,7 @@ const ATSTemplate = ({ resume, formatting }) => {
               {exp.description && (
                 <ul style={{ paddingLeft: '18px', color: colors.textSecondary, margin: '4px 0 0 0', fontSize: '12px' }}>
                   {exp.description.split('\n').filter(Boolean).map((line, i) => (
-                    <li key={i} style={{ marginBottom: '2px' }}>{line.replace(/^[-•]\s*/, '')}</li>
+                    <li key={i} style={{ marginLeft: `${(line.match(/^\s*/)[0].length) * 8}px`, marginBottom: '2px' }}>{line.replace(/^\s*[-•]\s*/, '')}</li>
                   ))}
                 </ul>
               )}
@@ -193,7 +193,7 @@ const ATSTemplate = ({ resume, formatting }) => {
               {proj.description && (
                 <ul style={{ paddingLeft: '18px', color: colors.textSecondary, margin: '4px 0 0 0', fontSize: '12px' }}>
                   {proj.description.split('\n').filter(Boolean).map((line, i) => (
-                    <li key={i} style={{ marginBottom: '2px' }}>{line.replace(/^[-•]\s*/, '')}</li>
+                    <li key={i} style={{ marginLeft: `${(line.match(/^\s*/)[0].length) * 8}px`, marginBottom: '2px' }}>{line.replace(/^\s*[-•]\s*/, '')}</li>
                   ))}
                 </ul>
               )}

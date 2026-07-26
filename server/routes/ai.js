@@ -129,6 +129,34 @@ router.get('/providers/health', async (req, res) => {
 })
 
 /**
+ * POST /api/ai/preflight
+ * Validate AI capabilities before a request
+ */
+router.post('/preflight', async (req, res) => {
+    try {
+        const response = await aiPost(`${AI_SERVICE_URL}/preflight`, req.body, {
+            headers: getHeaders(req)
+        })
+        return res.json(response.data)
+    } catch (error) {
+        safeLogError('Preflight Check Error', error)
+
+        if (error.code === 'ECONNREFUSED') {
+            return res.status(503).json({
+                error: 'AI service is not running',
+                message: 'Please start the Python AI service'
+            })
+        }
+
+        if (error.response) {
+            return res.status(error.response.status).json(error.response.data)
+        }
+
+        return res.status(500).json({ error: error.message })
+    }
+})
+
+/**
  * POST /api/ai/import-resume
  * Parse a PDF resume and extract structured data for form auto-fill
  */

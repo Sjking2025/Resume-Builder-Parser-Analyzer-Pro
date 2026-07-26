@@ -2,22 +2,23 @@ import React, { useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { FaHome, FaRobot, FaUpload, FaSpinner, FaEdit, FaFileAlt, FaDownload } from 'react-icons/fa'
 import useResumeStore from '../store/useResumeStore'
-import { API_ENDPOINTS, apiFetch } from '../config/api'
+import { API_ENDPOINTS } from '../config/api'
+import { useAIRequest } from '../hooks/useAIRequest'
 import ATSScoreCard from '../components/ai/ATSScoreCard'
 import SkillGapAnalysis from '../components/ai/SkillGapAnalysis'
 import ImprovementSuggestions from '../components/ai/ImprovementSuggestions'
 import JDMatcher from '../components/ai/JDMatcher'
 import CareerGuidance from '../components/ai/CareerGuidance'
 import AnalysisProgress from '../components/ai/AnalysisProgress'
+import PreflightIndicator from '../components/ai/PreflightIndicator'
 
 const AIAnalysisPage = () => {
   const navigate = useNavigate()
   const { resume } = useResumeStore()
   
   // Analysis state
-  const [isAnalyzing, setIsAnalyzing] = useState(false)
+  const { execute, isLoading: isAnalyzing, error, setError, preflightState } = useAIRequest()
   const [analysisResult, setAnalysisResult] = useState(null)
-  const [error, setError] = useState(null)
   
   // Input state
   const [jobDescription, setJobDescription] = useState('')
@@ -39,15 +40,14 @@ const AIAnalysisPage = () => {
     } else {
       setError('Please upload a PDF file')
     }
-  }, [])
+  }, [setError])
 
   // Analyze resume
   const handleAnalyze = async () => {
-    setIsAnalyzing(true)
     setError(null)
     
     try {
-      let response
+      let result
       
       if (inputMode === 'upload' && uploadedFile) {
         // Upload PDF for analysis
@@ -57,13 +57,13 @@ const AIAnalysisPage = () => {
           formData.append('job_description', jobDescription)
         }
         
-        response = await apiFetch(API_ENDPOINTS.analyzePdf, {
+        result = await execute(API_ENDPOINTS.analyzePdf, {
           method: 'POST',
           body: formData
         })
       } else {
         // Use resume data from editor
-        response = await apiFetch(API_ENDPOINTS.analyze, {
+        result = await execute(API_ENDPOINTS.analyze, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -73,18 +73,11 @@ const AIAnalysisPage = () => {
         })
       }
       
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || errorData.detail || 'Analysis failed')
-      }
-      
-      const data = await response.json()
-      setAnalysisResult(data)
+      if (!result) return; // aborted
+      setAnalysisResult(result)
     } catch (err) {
-      setError(err.message)
       console.error('Analysis error:', err)
-    } finally {
-      setIsAnalyzing(false)
+      // Error handled by hook
     }
   }
 
@@ -199,6 +192,8 @@ ${analysisResult.jd_match_details || ''}
   }
 
   return (
+    <>
+    <PreflightIndicator preflightState={preflightState} />
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
       {/* Analysis Progress Overlay */}
       <AnalysisProgress isAnalyzing={isAnalyzing} />
@@ -426,6 +421,7 @@ ${analysisResult.jd_match_details || ''}
         )}
       </main>
     </div>
+    </>
   )
 }
 
