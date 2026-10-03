@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import useResumeStore from '../../store/useResumeStore'
-import { FaLightbulb, FaTimes, FaPlus, FaTrash } from 'react-icons/fa'
+import { FaLightbulb, FaTimes, FaPlus, FaTrash, FaPen } from 'react-icons/fa'
 
 const SkillsForm = () => {
   const { resume, updateSkills, toggleCategorizedSkills, updateTechnicalCategories, toggleSoftSkills } = useResumeStore()
@@ -11,6 +11,99 @@ const SkillsForm = () => {
   })
   
   const [catInputValues, setCatInputValues] = useState({})
+  const [editingSkill, setEditingSkill] = useState(null)
+
+  const handleStartEdit = (listId, index, currentValue) => {
+    setEditingSkill({ listId, index, value: currentValue })
+  }
+
+  const handleCancelEdit = () => {
+    setEditingSkill(null)
+  }
+
+  const handleSaveEdit = () => {
+    if (!editingSkill) return
+    const newValue = editingSkill.value.trim()
+    if (!newValue) return // prevent saving empty skill
+
+    if (editingSkill.listId.startsWith('cat-')) {
+      const catIndex = parseInt(editingSkill.listId.split('-')[1])
+      const newCats = [...(resume.skills.technicalCategories || [])]
+      const oldSkills = [...newCats[catIndex].skills]
+      oldSkills[editingSkill.index] = newValue
+      newCats[catIndex] = { ...newCats[catIndex], skills: oldSkills }
+      updateTechnicalCategories(newCats)
+    } else {
+      const category = editingSkill.listId
+      const oldSkills = [...resume.skills[category]]
+      oldSkills[editingSkill.index] = newValue
+      updateSkills(category, oldSkills)
+    }
+    
+    setEditingSkill(null)
+  }
+
+  const handleEditKeyPress = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      handleSaveEdit()
+    } else if (e.key === 'Escape') {
+      e.preventDefault()
+      handleCancelEdit()
+    }
+  }
+
+  const renderSkillChip = (skill, index, listId, categoryTheme = false) => {
+    const isEditing = editingSkill && editingSkill.listId === listId && editingSkill.index === index;
+    
+    if (isEditing) {
+      return (
+        <div key={index} className={`flex items-center gap-1 border border-primary-500 rounded px-1 ${categoryTheme ? 'bg-white' : 'bg-primary-50'}`}>
+          <input
+            type="text"
+            value={editingSkill.value}
+            onChange={(e) => setEditingSkill({ ...editingSkill, value: e.target.value })}
+            onKeyDown={handleEditKeyPress}
+            autoFocus
+            className={`py-1 px-1 outline-none bg-transparent ${categoryTheme ? 'text-xs w-24' : 'text-sm w-32 text-primary-800'}`}
+          />
+          <button onClick={handleSaveEdit} className="text-green-600 hover:text-green-700 font-bold text-xs px-1">Save</button>
+          <button onClick={handleCancelEdit} className="text-gray-500 hover:text-gray-700 font-bold text-xs px-1">Cancel</button>
+        </div>
+      )
+    }
+
+    return (
+      <span
+        key={index}
+        className={categoryTheme 
+          ? "bg-white border border-gray-200 text-gray-700 px-2 py-1 rounded text-xs font-medium flex items-center gap-1 shadow-sm"
+          : "bg-primary-100 text-primary-700 px-3 py-1 rounded-full text-sm font-medium flex items-center gap-1"
+        }
+      >
+        {skill}
+        <button
+          onClick={() => handleStartEdit(listId, index, skill)}
+          className="hover:text-blue-600 transition-colors ml-1"
+        >
+          <FaPen size={categoryTheme ? 9 : 10} />
+        </button>
+        <button
+          onClick={() => {
+            if (categoryTheme) {
+              const catIndex = parseInt(listId.split('-')[1]);
+              handleRemoveCatSkill(catIndex, skill);
+            } else {
+              handleRemoveSkill(listId, skill);
+            }
+          }}
+          className="hover:text-red-600 transition-colors"
+        >
+          <FaTimes size={categoryTheme ? 10 : 12} />
+        </button>
+      </span>
+    )
+  }
 
   const handleAddSkill = (category) => {
     const value = inputValues[category].trim()
@@ -68,20 +161,7 @@ const SkillsForm = () => {
         </button>
       </div>
       <div className="flex flex-wrap gap-2">
-        {resume.skills[category].map((skill, index) => (
-          <span
-            key={index}
-            className="bg-primary-100 text-primary-700 px-3 py-1 rounded-full text-sm font-medium flex items-center gap-2"
-          >
-            {skill}
-            <button
-              onClick={() => handleRemoveSkill(category, skill)}
-              className="hover:text-red-600 transition-colors"
-            >
-              <FaTimes size={12} />
-            </button>
-          </span>
-        ))}
+        {resume.skills[category].map((skill, index) => renderSkillChip(skill, index, category, false))}
       </div>
     </div>
   )
@@ -160,20 +240,7 @@ const SkillsForm = () => {
             </button>
           </div>
           <div className="flex flex-wrap gap-2 mt-2">
-            {cat.skills.map((skill, sIndex) => (
-              <span
-                key={sIndex}
-                className="bg-white border border-gray-200 text-gray-700 px-2 py-1 rounded text-xs font-medium flex items-center gap-1 shadow-sm"
-              >
-                {skill}
-                <button
-                  onClick={() => handleRemoveCatSkill(index, skill)}
-                  className="hover:text-red-600 transition-colors"
-                >
-                  <FaTimes size={10} />
-                </button>
-              </span>
-            ))}
+            {cat.skills.map((skill, sIndex) => renderSkillChip(skill, sIndex, `cat-${index}`, true))}
           </div>
         </div>
       ))}
@@ -230,20 +297,7 @@ const SkillsForm = () => {
                 </button>
               </div>
               <div className="flex flex-wrap gap-2">
-                {resume.skills.technical.map((skill, index) => (
-                  <span
-                    key={index}
-                    className="bg-primary-100 text-primary-700 px-3 py-1 rounded-full text-sm font-medium flex items-center gap-2"
-                  >
-                    {skill}
-                    <button
-                      onClick={() => handleRemoveSkill('technical', skill)}
-                      className="hover:text-red-600 transition-colors"
-                    >
-                      <FaTimes size={12} />
-                    </button>
-                  </span>
-                ))}
+                {resume.skills.technical.map((skill, index) => renderSkillChip(skill, index, 'technical', false))}
               </div>
             </>
           )}
