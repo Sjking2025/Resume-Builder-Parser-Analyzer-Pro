@@ -203,17 +203,28 @@ const ATSTemplate = ({ resume, formatting }) => {
       )}
 
       {/* Skills */}
-      {(skills.technical.length > 0 || skills.soft.length > 0 || skills.languages.length > 0) && (
+      {(skills.technical.length > 0 || skills.soft.length > 0 || skills.languages.length > 0 || (skills.useCategorizedTechnical && skills.technicalCategories && skills.technicalCategories.some(cat => cat.skills.length > 0))) && (
         <div className="section" style={{ marginBottom: '16px' }}>
           <h2 style={{ fontSize: '16px', fontWeight: '700', color: colors.text, marginBottom: '8px', textTransform: 'uppercase', borderBottom: `1px solid ${colors.borderLight}`, paddingBottom: '4px' }}>
             Skills
           </h2>
-          {skills.technical.length > 0 && (
-            <div style={{ marginBottom: '4px', fontSize: '13px' }}>
-              <span style={{ fontWeight: '600', color: colors.text }}>Technical: </span>
-              <span style={{ color: colors.textSecondary }}>{renderSkillsList(skills.technical, formatting?.skillsLayout)}</span>
-            </div>
+          
+          {skills.useCategorizedTechnical && skills.technicalCategories ? (
+            skills.technicalCategories.map((cat, idx) => cat.skills && cat.skills.length > 0 && (
+              <div key={`cat-${idx}`} style={{ marginBottom: '4px', fontSize: '13px' }}>
+                <span style={{ fontWeight: '600', color: colors.text }}>{cat.name}: </span>
+                <span style={{ color: colors.textSecondary }}>{renderSkillsList(cat.skills, formatting?.skillsLayout)}</span>
+              </div>
+            ))
+          ) : (
+            skills.technical.length > 0 && (
+              <div style={{ marginBottom: '4px', fontSize: '13px' }}>
+                <span style={{ fontWeight: '600', color: colors.text }}>Technical: </span>
+                <span style={{ color: colors.textSecondary }}>{renderSkillsList(skills.technical, formatting?.skillsLayout)}</span>
+              </div>
+            )
           )}
+
           {skills.soft.length > 0 && (
             <div style={{ marginBottom: '4px', fontSize: '13px' }}>
               <span style={{ fontWeight: '600', color: colors.text }}>Soft Skills: </span>

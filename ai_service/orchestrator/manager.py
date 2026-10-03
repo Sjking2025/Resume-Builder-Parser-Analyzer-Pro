@@ -13,7 +13,12 @@ RESILIENCE DESIGN:
 
 import os
 import time
+import hashlib
 from typing import Optional
+from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
+
+# Hard timeout for any single generation attempt
+_GENERATION_TIMEOUT_S = 120
 
 from .models import registry
 from .router import resolve_model, get_fallback_models, mark_model_failed
@@ -67,7 +72,7 @@ class AIManager:
 
     def _get_provider(self, provider_type: str, api_key: str):
         """Get or create a provider instance (cached per key+type)."""
-        cache_key = f"{provider_type}:{api_key[:8]}"
+        cache_key = f"{provider_type}:{hashlib.sha256(api_key.encode()).hexdigest()[:16]}"
 
         if cache_key not in _provider_cache:
             if provider_type == "google":
@@ -93,11 +98,22 @@ class AIManager:
     def _try_generate(self, provider, model_id: str, prompt: str, safety_settings=None) -> ProviderResponse:
         """
         Attempt generation with a single retry for transient errors (503, timeout, connection).
+        Enforces a hard timeout of _GENERATION_TIMEOUT_S per attempt.
         """
         last_error = None
         for attempt in range(2):  # 1 initial + 1 retry
             try:
-                return provider.generate(prompt, model_id, safety_settings)
+                # Enforce hard timeout so no request hangs indefinitely
+                with ThreadPoolExecutor(max_workers=1) as executor:
+                    future = executor.submit(provider.generate, prompt, model_id, safety_settings)
+                    return future.result(timeout=_GENERATION_TIMEOUT_S)
+            except FuturesTimeoutError:
+                raise ProviderError(
+                    message=f"Generation timed out after {_GENERATION_TIMEOUT_S}s",
+                    provider=provider.provider_name,
+                    model_id=model_id,
+                    is_rate_limit=True,  # Treat as rate-limit-like to trigger failover
+                )
             except ProviderError as e:
                 last_error = e
                 # Only retry on transient errors (not rate limits or auth errors)
@@ -156,14 +172,14 @@ class AIManager:
         # Attempt generation with the primary model
         start_time = time.time()
         try:
-            print(f"[AIManager] Trying primary model: {model.display_name} ({model.id})")
+            print(f"[AIManager] Trying primary: {model.display_name} ({model.id})")
             response = self._try_generate(provider, model.id, prompt, safe_settings)
             latency = time.time() - start_time
             health_monitor.record_success(model.id, latency)
-            print(f"[AIManager] ✓ Success with {model.display_name} ({latency:.1f}s)")
+            print(f"[AIManager] OK -- {model.display_name} ({latency:.1f}s)")
             return response
         except ProviderError as e:
-            print(f"[AIManager] ✗ Primary model {model.display_name} failed: {e}")
+            print(f"[AIManager] FAIL -- Primary {model.display_name}: {e}")
             mark_model_failed(model.id, e)
 
             # Only attempt failover for free models
@@ -176,14 +192,14 @@ class AIManager:
         for i, fallback in enumerate(fallbacks[:max_retries]):
             start_time = time.time()
             try:
-                print(f"[AIManager] Failover {i + 1}/{min(len(fallbacks), max_retries)}: trying {fallback.display_name} ({fallback.id})")
+                print(f"[AIManager] Failover {i + 1}/{min(len(fallbacks), max_retries)}: {fallback.display_name} ({fallback.id})")
                 response = self._try_generate(provider, fallback.id, prompt, safe_settings)
                 latency = time.time() - start_time
                 health_monitor.record_success(fallback.id, latency)
-                print(f"[AIManager] ✓ Failover success with {fallback.display_name} ({latency:.1f}s)")
+                print(f"[AIManager] OK -- Failover {fallback.display_name} ({latency:.1f}s)")
                 return response
             except ProviderError as e:
-                print(f"[AIManager] ✗ Failover {fallback.display_name} failed: {e}")
+                print(f"[AIManager] FAIL -- Failover {fallback.display_name}: {e}")
                 mark_model_failed(fallback.id, e)
                 continue
 
@@ -243,7 +259,7 @@ class AIManager:
         
         capability_ok = True
         if required_capability:
-            capability_ok = model.capabilities.get(required_capability, False)
+            capability_ok = getattr(model.capabilities, required_capability, False)
             
         from .health import health_monitor
         on_cooldown = health_monitor.is_on_cooldown(model.id)

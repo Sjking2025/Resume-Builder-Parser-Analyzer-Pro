@@ -9,7 +9,6 @@ const ImprovementSuggestions = ({
   improvements = [], 
   strengths = [], 
   weaknesses = [],
-  onApplyImprovement
 }) => {
   const [copiedIndex, setCopiedIndex] = React.useState(null)
 

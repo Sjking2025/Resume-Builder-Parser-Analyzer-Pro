@@ -90,24 +90,26 @@ def resolve_model(
         if category_matches:
             free_models = category_matches + [m for m in free_models if m not in category_matches]
 
-    # Remove cooldown models
+    # Remove cooldown and circuit-open models
     available = [m for m in free_models if not _is_on_cooldown(m.id)]
 
     if available:
-        if routing_pref == "fastest":
-            speed_order = {"very_fast": 0, "fast": 1, "medium": 2, "slow": 3}
-            available.sort(key=lambda m: speed_order.get(m.speed, 4))
-        else:
-            # Default to highest quality sort (used for free_first and highest_quality)
-            quality_order = {"very_high": 0, "high": 1, "good": 2}
-            available.sort(key=lambda m: quality_order.get(m.quality, 3))
+        # Use weighted composite scoring instead of pure quality sort
+        available.sort(key=lambda m: _compute_model_score(m, routing_pref), reverse=True)
         return available[0]
 
     # All free models on cooldown — try anyway with the least-recently-failed one
+    # But skip circuit-open models entirely
+    recoverable = [m for m in free_models if not health_monitor.is_circuit_open(m.id)]
+    if recoverable:
+        recoverable.sort(key=lambda m: health_monitor._get_stats(m.id).remaining_cooldown())
+        print(f"[Router] All free models on cooldown. Trying {recoverable[0].display_name} (shortest cooldown)")
+        return recoverable[0]
+
+    # Even circuit-open models — last resort
     if free_models:
-        # Sort by remaining cooldown (shortest first) so we pick the one closest to recovery
         free_models.sort(key=lambda m: health_monitor._get_stats(m.id).remaining_cooldown())
-        print(f"[Router] All free models on cooldown. Trying {free_models[0].display_name} (shortest cooldown)")
+        print(f"[Router] All models circuit-open or cooldown. Last resort: {free_models[0].display_name}")
         return free_models[0]
 
     raise ValueError("No suitable free model available")
@@ -135,17 +137,19 @@ def get_fallback_models(
     # Exclude non-text models
     fallbacks = [m for m in fallbacks if m.category not in ("image", "video", "audio", "embedding", "legacy")]
 
-    # Remove cooldown models — but keep at least some options
-    not_on_cooldown = [m for m in fallbacks if not _is_on_cooldown(m.id)]
-    if not_on_cooldown:
-        fallbacks = not_on_cooldown
+    # Remove cooldown and circuit-open models — but keep at least some options
+    not_blocked = [m for m in fallbacks if not _is_on_cooldown(m.id)]
+    if not_blocked:
+        fallbacks = not_blocked
     else:
-        # All on cooldown — sort by shortest remaining cooldown
+        # All on cooldown — prefer non-circuit-open, sort by shortest remaining cooldown
+        recoverable = [m for m in fallbacks if not health_monitor.is_circuit_open(m.id)]
+        if recoverable:
+            fallbacks = recoverable
         fallbacks.sort(key=lambda m: health_monitor._get_stats(m.id).remaining_cooldown())
 
-    # Sort by quality
-    quality_order = {"very_high": 0, "high": 1, "good": 2}
-    fallbacks.sort(key=lambda m: quality_order.get(m.quality, 3))
+    # Sort by composite score (quality + health + speed)
+    fallbacks.sort(key=lambda m: _compute_model_score(m, "free_first"), reverse=True)
 
     return fallbacks
 
@@ -165,3 +169,31 @@ def _guess_provider(model_id: str) -> str:
     if model_id.startswith("google/") or model_id.startswith("gemini"):
         return "google"
     return "openrouter"
+
+
+def _compute_model_score(model: ModelEntry, routing_pref: str) -> float:
+    """
+    Compute a weighted composite score for model selection.
+    Balances quality, historical health, and speed.
+    Higher score = better candidate.
+    """
+    quality_scores = {"very_high": 1.0, "high": 0.75, "good": 0.5}
+    speed_scores = {"very_fast": 1.0, "fast": 0.75, "medium": 0.5, "slow": 0.25}
+
+    quality_val = quality_scores.get(model.quality, 0.3)
+    speed_val = speed_scores.get(model.speed, 0.3)
+
+    # Health from the monitor
+    stats = health_monitor._get_stats(model.id)
+    health_val = stats.success_rate  # 0.0 to 1.0
+
+    # Adjust weights based on routing preference
+    if routing_pref == "fastest":
+        w_quality, w_health, w_speed = 0.2, 0.3, 0.5
+    elif routing_pref == "highest_quality":
+        w_quality, w_health, w_speed = 0.6, 0.3, 0.1
+    else:  # free_first (default)
+        w_quality, w_health, w_speed = 0.4, 0.4, 0.2
+
+    score = (w_quality * quality_val) + (w_health * health_val) + (w_speed * speed_val)
+    return score

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { FaCog, FaKey, FaTimes, FaCheck, FaBolt, FaCrown, FaRobot, FaEye, FaBrain, FaWifi, FaExclamationTriangle } from 'react-icons/fa';
+import { FaCog, FaKey, FaTimes, FaCheck, FaBolt, FaCrown, FaRobot, FaEye, FaBrain, FaWifi, FaExclamationTriangle, FaCircle, FaStar, FaImage, FaVideo, FaMicrophone, FaDatabase, FaArchive, FaGlobe } from 'react-icons/fa';
 import { API_ENDPOINTS } from '../../config/api';
 
 /**
@@ -67,13 +67,13 @@ const ApiKeyModal = () => {
 
   // Group models by provider
   const providerLabels = {
-    google: { name: 'Google AI', icon: '🔵' },
-    openrouter: { name: 'OpenRouter', icon: '🟣' },
+    google: { name: 'Google AI', icon: <FaCircle className="text-blue-500 text-[10px]" /> },
+    openrouter: { name: 'OpenRouter', icon: <FaCircle className="text-purple-500 text-[10px]" /> },
   };
 
   const googleCategories = {
-    general: '⭐ Latest',
-    reasoning: '⭐ Latest',
+    general: 'Latest',
+    reasoning: 'Reasoning',
     image: 'Image Generation',
     video: 'Video',
     audio: 'Speech & Audio',
@@ -86,12 +86,13 @@ const ApiKeyModal = () => {
     filteredModels.forEach(m => {
       const prov = m.provider || 'other';
       let groupKey = prov;
-      let label = `${providerLabels[prov]?.icon || '⚪'} ${providerLabels[prov]?.name || prov}`;
+      const provInfo = providerLabels[prov];
+      let label = provInfo ? provInfo.name : prov;
       
       if (prov === 'google' && m.category) {
         const catName = googleCategories[m.category] || m.category;
         groupKey = `google_${m.category}`;
-        label = `🔵 Google AI - ${catName}`;
+        label = `Google AI - ${catName}`;
       }
       
       if (!groups[groupKey]) groups[groupKey] = { label, models: [] };
@@ -153,14 +154,14 @@ const ApiKeyModal = () => {
   const providerConfig = {
     openrouter: {
       name: 'OpenRouter',
-      icon: '🟣',
+      iconEl: <FaGlobe className="text-purple-500" />,
       keyPlaceholder: 'sk-or-v1-...',
       keyHint: 'Get your key from openrouter.ai/keys',
       color: 'purple',
     },
     google: {
       name: 'Google Gemini',
-      icon: '🔵',
+      iconEl: <FaRobot className="text-blue-500" />,
       keyPlaceholder: 'AIza...',
       keyHint: 'Get your key from aistudio.google.com/apikey',
       color: 'blue',
@@ -215,7 +216,7 @@ const ApiKeyModal = () => {
                         color: cfg.color === 'purple' ? '#6d28d9' : '#1d4ed8',
                       } : {}}
                     >
-                      <span className="text-lg">{cfg.icon}</span>
+                      <span className="text-lg">{cfg.iconEl}</span>
                       <span>{cfg.name}</span>
                       {provider === key && <FaCheck className="ml-auto text-xs" />}
                     </button>
@@ -281,7 +282,7 @@ const ApiKeyModal = () => {
                       >
                         {group.models.map(m => (
                           <option key={m.id} value={m.id}>
-                            {m.is_free ? '🟢' : '🟡'} {m.display_name}
+                            {m.is_free ? '[ Free ] ' : '[ Paid ] '}{m.display_name}
                             {m.context_window ? ` · ${Math.round(m.context_window / 1024)}K ctx` : ''}
                           </option>
                         ))}
@@ -307,7 +308,7 @@ const ApiKeyModal = () => {
                         ? 'bg-green-100 text-green-700' 
                         : 'bg-amber-100 text-amber-700'
                     }`}>
-                      {selectedModel.is_free ? '🟢 FREE' : `🟡 $${selectedModel.input_price_per_million}/M in`}
+                      {selectedModel.is_free ? 'FREE' : `$${selectedModel.input_price_per_million}/M in`}
                     </span>
                   </div>
                   <div className="flex flex-wrap gap-1.5">
@@ -343,9 +344,9 @@ const ApiKeyModal = () => {
 
               {/* Legend */}
               <div className="flex items-center gap-4 text-xs text-gray-500">
-                <span className="flex items-center gap-1">🟢 Free</span>
-                <span className="flex items-center gap-1">🟡 Paid</span>
-                <span className="text-gray-400">·</span>
+                <span className="flex items-center gap-1"><FaCircle className="text-emerald-500 text-[8px]" /> Free</span>
+                <span className="flex items-center gap-1"><FaCircle className="text-amber-500 text-[8px]" /> Paid</span>
+                <span className="text-gray-400">&middot;</span>
                 <span>Auto-failover between free models</span>
               </div>
               

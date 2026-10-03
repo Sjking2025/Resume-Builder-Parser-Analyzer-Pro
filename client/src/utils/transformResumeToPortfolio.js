@@ -5,7 +5,7 @@
 export const transformResumeToPortfolio = (resume) => {
     if (!resume) return null
 
-    const { personalInfo = {}, education = [], skills = {}, projects = [], experience = [], achievements = [] } = resume
+    const { personalInfo = {}, education = [], skills = {}, projects = [], experience = [] } = resume
 
     // Generate a professional headline based on experience
     const generateHeadline = () => {
@@ -15,7 +15,7 @@ export const transformResumeToPortfolio = (resume) => {
         }
         if (education.length > 0) {
             const latestEdu = education[0]
-            return `${latestEdu.degree} Graduate` || 'Student'
+            return `${latestEdu.degree || 'Student'} Graduate`
         }
         return 'Professional'
     }

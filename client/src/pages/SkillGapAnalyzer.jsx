@@ -472,7 +472,7 @@ const SkillGapAnalyzer = () => {
             {/* Analyze Button */}
             <button
               onClick={handleAnalyze}
-              disabled={!jobDescription.trim() || isLoading}
+              disabled={!jobDescription.trim() || analyzeReq.isLoading}
               className="w-full btn-primary py-4 text-lg font-bold flex items-center justify-center gap-2 disabled:opacity-50"
             >
               <FaSearch /> Analyze Skill Gap
@@ -633,7 +633,7 @@ const SkillGapAnalyzer = () => {
                       : 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-500/30 hover:shadow-lg'
                   }`}
                 >
-                  {tailorReq.analyzeReq.isLoading ? (
+                  {tailorReq.isLoading ? (
                     <>
                       <FaSpinner className="animate-spin" />
                       Tailoring...
@@ -1087,8 +1087,8 @@ const SkillGapAnalyzer = () => {
                             <p className="font-medium text-gray-800">{project.name}</p>
                             <p className="text-xs text-gray-500 mt-1">{project.description}</p>
                             {project.expectedErrors?.length > 0 && (
-                              <p className="text-xs text-red-500 mt-2">
-                                ⚠️ Expected: {project.expectedErrors.slice(0, 2).join(', ')}
+                              <p className="text-xs text-red-500 mt-2 flex items-center gap-1">
+                                <FaExclamationTriangle className="flex-shrink-0" /> Expected: {project.expectedErrors.slice(0, 2).join(', ')}
                               </p>
                             )}
                           </div>
@@ -1100,7 +1100,7 @@ const SkillGapAnalyzer = () => {
                   {/* Validation */}
                   {week.validation?.length > 0 && (
                     <div className="px-6 pb-6">
-                      <h4 className="font-bold text-gray-800 mb-2">✅ Validation</h4>
+                      <h4 className="font-bold text-gray-800 mb-2 flex items-center gap-1.5"><FaCheckCircle className="text-green-500" /> Validation</h4>
                       <div className="flex flex-wrap gap-2">
                         {week.validation.map((v, j) => (
                           <span key={j} className="px-3 py-1 bg-green-50 text-green-700 text-sm rounded-full">
@@ -1130,7 +1130,7 @@ const SkillGapAnalyzer = () => {
                 />
                 <button
                   onClick={handleModifyRoadmap}
-                  disabled={isModifying || !modifyRequest.trim()}
+                  disabled={modifyReqAI.isLoading || !modifyRequest.trim()}
                   className="btn-primary px-6 flex items-center gap-2"
                 >
                   {modifyReqAI.isLoading ? <FaSpinner className="animate-spin" /> : <FaPaperPlane />}

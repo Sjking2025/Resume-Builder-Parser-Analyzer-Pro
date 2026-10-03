@@ -8,9 +8,6 @@ export const API_ENDPOINTS = {
     // AI Analysis endpoints
     analyze: `${API_BASE_URL}/api/ai/analyze`,
     analyzePdf: `${API_BASE_URL}/api/ai/analyze-pdf`,
-    matchJd: `${API_BASE_URL}/api/ai/match-jd`,
-    improve: `${API_BASE_URL}/api/ai/improve`,
-    careerAdvice: `${API_BASE_URL}/api/ai/career-advice`,
     importResume: `${API_BASE_URL}/api/ai/import-resume`,
     importDocument: `${API_BASE_URL}/api/ai/import-document`,
     convertCvToResume: `${API_BASE_URL}/api/ai/convert-cv-to-resume`,
@@ -54,7 +51,8 @@ export const apiFetch = async (url, options = {}) => {
   const response = await fetch(url, { ...options, headers })
   
   if (response.status === 402) {
-    const errorData = await response.json().catch(() => ({}));
+    const cloned = response.clone();
+    const errorData = await cloned.json().catch(() => ({}));
     if (errorData.error_type === 'paid_consent_required') {
       window.dispatchEvent(new CustomEvent('paid_consent_required', { detail: errorData }));
       throw new Error('PAID_CONSENT_REQUIRED');

@@ -12,6 +12,7 @@ import { apiFetch, API_ENDPOINTS } from '../config/api';
 export function useAIRequest() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [errorType, setErrorType] = useState(null);
   const [data, setData] = useState(null);
   const [preflightState, setPreflightState] = useState(null);
   const abortControllerRef = useRef(null);
@@ -34,6 +35,7 @@ export function useAIRequest() {
 
     setIsLoading(true);
     setError(null);
+    setErrorType(null);
     setPreflightState(null);
 
     const returnRaw = config.returnRaw ?? false;
@@ -55,6 +57,7 @@ export function useAIRequest() {
         const err = "No internet connection detected.";
         setPreflightState(prev => ({ ...prev, status: 'error', error: err, checks: { ...prev.checks, network: false } }));
         setError(err);
+        setErrorType('network');
         setIsLoading(false);
         throw new Error(err);
       }
@@ -63,19 +66,42 @@ export function useAIRequest() {
         const err = "Document is not ready for processing.";
         setPreflightState(prev => ({ ...prev, status: 'error', error: err, checks: { ...prev.checks, document_ready: false } }));
         setError(err);
+        setErrorType('unknown');
         setIsLoading(false);
         throw new Error(err);
       }
 
-      try {
-        const preflightRes = await apiFetch(API_ENDPOINTS.preflight, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ required_capability: config.requiredCapability || null }),
-          signal: controller.signal
-        });
+      // Preflight with timeout + one retry on rate-limit
+      const runPreflight = async (isRetry = false) => {
+        const timeoutMs = 10000;
+        const preflightController = new AbortController();
+        const timeoutId = setTimeout(() => preflightController.abort(), timeoutMs);
+        // Link to parent: if user cancels the outer request, also abort preflight
+        const onParentAbort = () => preflightController.abort();
+        controller.signal.addEventListener('abort', onParentAbort);
 
-        const preflightData = await preflightRes.json();
+        try {
+          const preflightRes = await apiFetch(API_ENDPOINTS.preflight, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ required_capability: config.requiredCapability || null }),
+            signal: preflightController.signal
+          });
+          clearTimeout(timeoutId);
+          controller.signal.removeEventListener('abort', onParentAbort);
+          return await preflightRes.json();
+        } catch (fetchErr) {
+          clearTimeout(timeoutId);
+          controller.signal.removeEventListener('abort', onParentAbort);
+          if (fetchErr.name === 'AbortError') {
+            throw new Error('AI service is not responding (preflight timed out).');
+          }
+          throw fetchErr;
+        }
+      };
+
+      try {
+        let preflightData = await runPreflight();
 
         setPreflightState(prev => ({
           ...prev,
@@ -88,21 +114,53 @@ export function useAIRequest() {
           }
         }));
 
+        // Auto-retry once on rate-limit
+        if (!preflightData.is_ready && preflightData.rate_limit_ok === false) {
+          setPreflightState(prev => ({
+            ...prev,
+            status: 'checking',
+            error: 'Rate limited. Retrying in 3s...'
+          }));
+          await new Promise(resolve => setTimeout(resolve, 3000));
+          preflightData = await runPreflight(true);
+          setPreflightState(prev => ({
+            ...prev,
+            checks: {
+              ...prev.checks,
+              provider_healthy: preflightData.provider_healthy,
+              model_available: preflightData.model_available,
+              rate_limit_ok: preflightData.rate_limit_ok,
+              authentication_valid: preflightData.authentication_valid
+            }
+          }));
+        }
+
         if (!preflightData.is_ready) {
           let errorMsg = preflightData.error || "AI Provider is not ready.";
+          let eType = 'unknown';
           if (!preflightData.authentication_valid) {
             errorMsg = "Authentication failed. Check your AI Settings.";
+            eType = 'auth';
           } else if (!preflightData.rate_limit_ok) {
-            errorMsg = "Rate limit exceeded for the selected model.";
+            errorMsg = "Rate limit exceeded. Please wait a moment.";
+            eType = 'rate_limit';
+          } else if (!preflightData.provider_healthy) {
+            errorMsg = "AI provider is currently unavailable.";
+            eType = 'service_down';
           }
 
           setPreflightState(prev => ({
             ...prev,
             status: 'error',
             error: errorMsg,
-            suggestion: "Try switching to a different AI provider/model in Settings, or wait a moment."
+            suggestion: eType === 'auth'
+              ? "Verify your API key in AI Settings."
+              : eType === 'rate_limit'
+              ? "Try switching to a different model, or wait a moment."
+              : "Check that the AI service is running."
           }));
           setError(errorMsg);
+          setErrorType(eType);
           setIsLoading(false);
           throw new Error(errorMsg);
         }
@@ -113,24 +171,38 @@ export function useAIRequest() {
         await new Promise(resolve => setTimeout(resolve, 800));
         setPreflightState(prev => ({ ...prev, isVisible: false }));
 
+        // Auto-clear preflight state after 4s
+        setTimeout(() => setPreflightState(null), 4000);
+
       } catch (err) {
         if (err.name === 'AbortError') {
           return null; // aborted
         }
         
-        const errStr = err.message === 'PAID_CONSENT_REQUIRED' ? err.message : "Failed to reach AI service for preflight check.";
+        const errStr = err.message === 'PAID_CONSENT_REQUIRED' ? err.message : (err.message || "Failed to reach AI service for preflight check.");
         if (errStr === 'PAID_CONSENT_REQUIRED') {
-          setPreflightState(prev => ({ ...prev, status: 'error', error: "Paid models consent required to continue." }));
+          setPreflightState(prev => ({ ...prev, status: 'error', error: "Paid model consent required." }));
+          setErrorType('rate_limit');
           throw err;
+        }
+
+        // Classify the error
+        let eType = 'unknown';
+        const errLower = errStr.toLowerCase();
+        if (errLower.includes('timeout') || errLower.includes('not responding')) {
+          eType = 'timeout';
+        } else if (errLower.includes('network') || errLower.includes('fetch') || errLower.includes('econnrefused')) {
+          eType = 'service_down';
         }
 
         setPreflightState(prev => ({
           ...prev,
           status: 'error',
           error: errStr,
-          checks: { ...prev.checks, provider_healthy: false }
+          checks: { ...prev?.checks, provider_healthy: false }
         }));
         setError(errStr);
+        setErrorType(eType);
         setIsLoading(false);
         throw err;
       }
@@ -178,7 +250,25 @@ export function useAIRequest() {
         return null;
       }
       console.error('AI Request Error:', err);
-      setError(err.message || 'Network interruption or API failure.');
+      const errMsg = err.message || 'Network interruption or API failure.';
+      setError(errMsg);
+
+      // Classify error type from the HTTP response
+      const errLower = errMsg.toLowerCase();
+      if (errLower.includes('401') || errLower.includes('unauthorized') || errLower.includes('authentication')) {
+        setErrorType('auth');
+      } else if (errLower.includes('429') || errLower.includes('rate limit') || errLower.includes('rate_limit')) {
+        setErrorType('rate_limit');
+      } else if (errLower.includes('503') || errLower.includes('not running') || errLower.includes('econnrefused')) {
+        setErrorType('service_down');
+      } else if (errLower.includes('timeout')) {
+        setErrorType('timeout');
+      } else if (errLower.includes('network') || errLower.includes('fetch')) {
+        setErrorType('network');
+      } else {
+        setErrorType('unknown');
+      }
+
       throw err; // Re-throw to allow component-level handling if needed
     } finally {
       // Ensure we don't clear loading state if another request was just fired
@@ -201,9 +291,11 @@ export function useAIRequest() {
     cancel,
     isLoading,
     error,
+    errorType,
     data,
     preflightState,
     setError,
+    setErrorType,
     setIsLoading // Exposed if manual override is needed
   };
 }

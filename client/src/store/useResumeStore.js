@@ -59,6 +59,12 @@ const getDefaultResume = () => ({
         technical: [],
         soft: [],
         languages: [],
+        useCategorizedTechnical: false,
+        technicalCategories: [
+            { name: 'Programming Languages', skills: [] },
+            { name: 'Frameworks', skills: [] },
+            { name: 'Tools', skills: [] },
+        ],
     },
     projects: [],
     experience: [],
@@ -162,6 +168,18 @@ const useResumeStore = create(
             updateSkills: (category, skills) =>
                 set({
                     resume: { ...get().resume, skills: { ...get().resume.skills, [category]: skills } },
+                    isDirty: true,
+                }),
+
+            toggleCategorizedSkills: (enabled) =>
+                set({
+                    resume: { ...get().resume, skills: { ...get().resume.skills, useCategorizedTechnical: enabled } },
+                    isDirty: true,
+                }),
+
+            updateTechnicalCategories: (categories) =>
+                set({
+                    resume: { ...get().resume, skills: { ...get().resume.skills, technicalCategories: categories } },
                     isDirty: true,
                 }),
 

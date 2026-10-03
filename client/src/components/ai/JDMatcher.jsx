@@ -1,5 +1,5 @@
 import React from 'react'
-import { FaBriefcase, FaSpinner, FaMagic } from 'react-icons/fa'
+import { FaBriefcase, FaSpinner, FaMagic, FaTimesCircle } from 'react-icons/fa'
 import { useNavigate } from 'react-router-dom'
 import useResumeStore from '../../store/useResumeStore'
 import { API_ENDPOINTS } from '../../config/api'
@@ -142,8 +142,8 @@ const JDMatcher = ({
             </p>
             
             {tailorError && (
-              <div className="mb-4 p-3 bg-red-50 text-red-600 rounded-lg text-sm">
-                ❌ {tailorError}
+              <div className="mb-4 p-3 bg-red-50 text-red-600 rounded-lg text-sm flex items-center gap-2">
+                <FaTimesCircle className="flex-shrink-0" /> {tailorError}
               </div>
             )}
 
