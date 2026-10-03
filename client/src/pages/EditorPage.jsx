@@ -232,6 +232,7 @@ const EditorPage = () => {
                 <option value="tags">Pill Tags</option>
                 <option value="bullets">Bullets</option>
                 <option value="comma">Comma Separated</option>
+                <option value="compact-categorized">Compact Categorized</option>
               </select>
             </div>
           </div>

@@ -209,33 +209,81 @@ const ATSTemplate = ({ resume, formatting }) => {
             Skills
           </h2>
           
-          {skills.useCategorizedTechnical && skills.technicalCategories ? (
-            skills.technicalCategories.map((cat, idx) => cat.skills && cat.skills.length > 0 && (
-              <div key={`cat-${idx}`} style={{ marginBottom: '4px', fontSize: '13px' }}>
-                <span style={{ fontWeight: '600', color: colors.text }}>{cat.name}: </span>
-                <span style={{ color: colors.textSecondary }}>{renderSkillsList(cat.skills, formatting?.skillsLayout)}</span>
+          {formatting?.skillsLayout === 'compact-categorized' ? (() => {
+            const allSkillCategories = [];
+            
+            if (skills.useCategorizedTechnical && skills.technicalCategories) {
+              skills.technicalCategories.forEach(cat => {
+                if (cat.skills && cat.skills.length > 0) {
+                  allSkillCategories.push({ name: cat.name, skills: cat.skills });
+                }
+              });
+            } else if (skills.technical.length > 0) {
+              allSkillCategories.push({ name: 'Technical', skills: skills.technical });
+            }
+            
+            if (skills.soft.length > 0) {
+              allSkillCategories.push({ name: 'Soft Skills', skills: skills.soft });
+            }
+            
+            if (skills.languages.length > 0) {
+              allSkillCategories.push({ name: 'Languages', skills: skills.languages });
+            }
+            
+            const rows = [];
+            for (let i = 0; i < allSkillCategories.length; i += 2) {
+              rows.push(allSkillCategories.slice(i, i + 2));
+            }
+            
+            return (
+              <div style={{ fontSize: '13px', lineHeight: '1.6' }}>
+                {rows.map((row, rIdx) => (
+                  <div key={`comp-row-${rIdx}`} style={{ display: 'flex', marginBottom: '2px' }}>
+                    <div style={{ flex: '1 1 0%', paddingRight: '12px' }}>
+                      <span style={{ fontWeight: '600', color: colors.text }}>{row[0].name}: </span>
+                      <span style={{ color: colors.textSecondary }}>{row[0].skills.join(', ')}</span>
+                    </div>
+                    {row[1] && (
+                      <div style={{ flex: '1 1 0%', paddingLeft: '12px' }}>
+                        <span style={{ fontWeight: '600', color: colors.text }}>{row[1].name}: </span>
+                        <span style={{ color: colors.textSecondary }}>{row[1].skills.join(', ')}</span>
+                      </div>
+                    )}
+                  </div>
+                ))}
               </div>
-            ))
-          ) : (
-            skills.technical.length > 0 && (
-              <div style={{ marginBottom: '4px', fontSize: '13px' }}>
-                <span style={{ fontWeight: '600', color: colors.text }}>Technical: </span>
-                <span style={{ color: colors.textSecondary }}>{renderSkillsList(skills.technical, formatting?.skillsLayout)}</span>
-              </div>
-            )
-          )}
+            );
+          })() : (
+            <>
+              {skills.useCategorizedTechnical && skills.technicalCategories ? (
+                skills.technicalCategories.map((cat, idx) => cat.skills && cat.skills.length > 0 && (
+                  <div key={`cat-${idx}`} style={{ marginBottom: '4px', fontSize: '13px' }}>
+                    <span style={{ fontWeight: '600', color: colors.text }}>{cat.name}: </span>
+                    <span style={{ color: colors.textSecondary }}>{renderSkillsList(cat.skills, formatting?.skillsLayout)}</span>
+                  </div>
+                ))
+              ) : (
+                skills.technical.length > 0 && (
+                  <div style={{ marginBottom: '4px', fontSize: '13px' }}>
+                    <span style={{ fontWeight: '600', color: colors.text }}>Technical: </span>
+                    <span style={{ color: colors.textSecondary }}>{renderSkillsList(skills.technical, formatting?.skillsLayout)}</span>
+                  </div>
+                )
+              )}
 
-          {skills.soft.length > 0 && (
-            <div style={{ marginBottom: '4px', fontSize: '13px' }}>
-              <span style={{ fontWeight: '600', color: colors.text }}>Soft Skills: </span>
-              <span style={{ color: colors.textSecondary }}>{renderSkillsList(skills.soft, formatting?.skillsLayout)}</span>
-            </div>
-          )}
-          {skills.languages.length > 0 && (
-            <div style={{ marginBottom: '4px', fontSize: '13px' }}>
-              <span style={{ fontWeight: '600', color: colors.text }}>Languages: </span>
-              <span style={{ color: colors.textSecondary }}>{renderSkillsList(skills.languages, formatting?.skillsLayout)}</span>
-            </div>
+              {skills.soft.length > 0 && (
+                <div style={{ marginBottom: '4px', fontSize: '13px' }}>
+                  <span style={{ fontWeight: '600', color: colors.text }}>Soft Skills: </span>
+                  <span style={{ color: colors.textSecondary }}>{renderSkillsList(skills.soft, formatting?.skillsLayout)}</span>
+                </div>
+              )}
+              {skills.languages.length > 0 && (
+                <div style={{ marginBottom: '4px', fontSize: '13px' }}>
+                  <span style={{ fontWeight: '600', color: colors.text }}>Languages: </span>
+                  <span style={{ color: colors.textSecondary }}>{renderSkillsList(skills.languages, formatting?.skillsLayout)}</span>
+                </div>
+              )}
+            </>
           )}
         </div>
       )}
