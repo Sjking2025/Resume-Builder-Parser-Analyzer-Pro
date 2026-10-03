@@ -195,6 +195,7 @@ const EditorPage = () => {
                 onChange={(e) => updateFormatting({ lineSpacing: e.target.value })}
                 className="input-field text-sm py-1.5"
               >
+                <option value="tight">Tight</option>
                 <option value="compact">Compact</option>
                 <option value="normal">Normal</option>
                 <option value="relaxed">Relaxed</option>
