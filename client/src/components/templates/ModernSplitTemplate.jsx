@@ -1,4 +1,4 @@
-import React from 'react'
+﻿import React from 'react'
 import GenericSection from './GenericSection'
 import { colors, printStyles, getFontSize, getLineHeight } from './PrintStyles'
 
@@ -162,11 +162,11 @@ const ModernSplitTemplate = ({ resume, formatting }) => {
 
         {/* Contact */}
         <div style={styles.contactSection}>
-          {personalInfo.email && <div style={styles.contactItem}>✉️ {personalInfo.email}</div>}
-          {personalInfo.phone && <div style={styles.contactItem}>📞 {personalInfo.phone}</div>}
-          {personalInfo.location && <div style={styles.contactItem}>📍 {personalInfo.location}</div>}
-          {personalInfo.linkedin && <div style={styles.contactItem}><a href={personalInfo.linkedin} style={styles.link}>{exportMode === 'digital' ? personalInfo.linkedin : '🔗 LinkedIn'}</a></div>}
-          {personalInfo.github && <div style={styles.contactItem}><a href={personalInfo.github} style={styles.link}>{exportMode === 'digital' ? personalInfo.github : '💻 GitHub'}</a></div>}
+          {personalInfo.email && <div style={styles.contactItem}>âœ‰ï¸ {personalInfo.email}</div>}
+          {personalInfo.phone && <div style={styles.contactItem}>ðŸ“ž {personalInfo.phone}</div>}
+          {personalInfo.location && <div style={styles.contactItem}>ðŸ“ {personalInfo.location}</div>}
+          {personalInfo.linkedin && <div style={styles.contactItem}><a href={personalInfo.linkedin} style={styles.link}>{exportMode === 'digital' ? personalInfo.linkedin : 'ðŸ”— LinkedIn'}</a></div>}
+          {personalInfo.github && <div style={styles.contactItem}><a href={personalInfo.github} style={styles.link}>{exportMode === 'digital' ? personalInfo.github : 'ðŸ’» GitHub'}</a></div>}
         </div>
 
         {/* Skills with visual bars */}
@@ -185,11 +185,11 @@ const ModernSplitTemplate = ({ resume, formatting }) => {
         )}
 
         {/* Soft Skills */}
-        {skills.soft.length > 0 && (
+        {(skills.includeSoftSkills !== false && skills.soft.length > 0) && (
           <div style={styles.leftSection}>
             <h2 style={styles.leftTitle}>Soft Skills</h2>
             {skills.soft.map((skill, idx) => (
-              <div key={idx} style={{ fontSize: '10px', color: colors.gray600, marginBottom: '4px' }}>• {skill}</div>
+              <div key={idx} style={{ fontSize: '10px', color: colors.gray600, marginBottom: '4px' }}>â€¢ {skill}</div>
             ))}
           </div>
         )}
@@ -199,7 +199,7 @@ const ModernSplitTemplate = ({ resume, formatting }) => {
           <div style={styles.leftSection}>
             <h2 style={styles.leftTitle}>Languages</h2>
             {skills.languages.map((lang, idx) => (
-              <div key={idx} style={{ fontSize: '10px', color: colors.gray600, marginBottom: '4px' }}>• {lang}</div>
+              <div key={idx} style={{ fontSize: '10px', color: colors.gray600, marginBottom: '4px' }}>â€¢ {lang}</div>
             ))}
           </div>
         )}
@@ -210,7 +210,7 @@ const ModernSplitTemplate = ({ resume, formatting }) => {
             <h2 style={styles.leftTitle}>Achievements</h2>
             {achievements.map((ach, idx) => (
               <div key={idx} style={{ fontSize: '10px', color: colors.gray600, marginBottom: '6px' }}>
-                🏆 {ach.title}
+                ðŸ† {ach.title}
                 {ach.date && <div style={{ fontSize: '9px', color: colors.gray400 }}>{ach.date}</div>}
               </div>
             ))}
@@ -244,7 +244,7 @@ const ModernSplitTemplate = ({ resume, formatting }) => {
                 {exp.description && (
                   <ul style={styles.list}>
                     {exp.description.split('\n').filter(Boolean).map((line, i) => (
-                      <li key={i} style={{ ...styles.listItem, marginLeft: `${(line.match(/^\s*/)[0].length) * 8}px` }}>{line.replace(/^\s*[-•]\s*/, '')}</li>
+                      <li key={i} style={{ ...styles.listItem, marginLeft: `${(line.match(/^\s*/)[0].length) * 8}px` }}>{line.replace(/^\s*[-â€¢]\s*/, '')}</li>
                     ))}
                   </ul>
                 )}
@@ -279,13 +279,13 @@ const ModernSplitTemplate = ({ resume, formatting }) => {
               <div key={idx} style={styles.entry}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
                   <div style={styles.entryTitle}>{proj.name}</div>
-                  {proj.link && <a href={proj.link} style={styles.link}>View →</a>}
+                  {proj.link && <a href={proj.link} style={styles.link}>View â†’</a>}
                 </div>
                 {proj.technologies && <div style={{ fontSize: '10px', color: colors.gray500 }}>{proj.technologies}</div>}
                 {proj.description && (
                   <ul style={styles.list}>
                     {proj.description.split('\n').filter(Boolean).map((line, i) => (
-                      <li key={i} style={{ ...styles.listItem, marginLeft: `${(line.match(/^\s*/)[0].length) * 8}px` }}>{line.replace(/^\s*[-•]\s*/, '')}</li>
+                      <li key={i} style={{ ...styles.listItem, marginLeft: `${(line.match(/^\s*/)[0].length) * 8}px` }}>{line.replace(/^\s*[-â€¢]\s*/, '')}</li>
                     ))}
                   </ul>
                 )}
@@ -313,3 +313,4 @@ const ModernSplitTemplate = ({ resume, formatting }) => {
 }
 
 export default ModernSplitTemplate
+

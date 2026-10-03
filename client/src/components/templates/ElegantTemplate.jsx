@@ -1,4 +1,4 @@
-import React from 'react'
+﻿import React from 'react'
 import { renderSkillsList } from '../../utils/renderSkills'
 import GenericSection from './GenericSection'
 import { colors, fonts, printStyles, getFontSize, getLineHeight, getMargins } from './PrintStyles'
@@ -185,14 +185,14 @@ const ElegantTemplate = ({ resume, formatting }) => {
               <div style={styles.entryHeader}>
                 <div>
                   <div style={styles.entryTitle}>{exp.title}</div>
-                  <div style={styles.entrySubtitle}>{exp.company}{exp.location && ` — ${exp.location}`}</div>
+                  <div style={styles.entrySubtitle}>{exp.company}{exp.location && ` â€” ${exp.location}`}</div>
                 </div>
-                <div style={styles.entryDate}>{exp.startDate} – {exp.current ? 'Present' : exp.endDate}</div>
+                <div style={styles.entryDate}>{exp.startDate} â€“ {exp.current ? 'Present' : exp.endDate}</div>
               </div>
               {exp.description && (
                 <ul style={styles.list}>
                   {exp.description.split('\n').filter(Boolean).map((line, i) => (
-                    <li key={i} style={{ ...styles.listItem, marginLeft: `${(line.match(/^\s*/)[0].length) * 8}px` }}>{line.replace(/^\s*[-•]\s*/, '')}</li>
+                    <li key={i} style={{ ...styles.listItem, marginLeft: `${(line.match(/^\s*/)[0].length) * 8}px` }}>{line.replace(/^\s*[-â€¢]\s*/, '')}</li>
                   ))}
                 </ul>
               )}
@@ -214,7 +214,7 @@ const ElegantTemplate = ({ resume, formatting }) => {
               <div style={styles.entryHeader}>
                 <div>
                   <div style={styles.entryTitle}>{edu.degree}{edu.field && ` in ${edu.field}`}</div>
-                  <div style={styles.entrySubtitle}>{edu.institution}{edu.location && ` — ${edu.location}`}</div>
+                  <div style={styles.entrySubtitle}>{edu.institution}{edu.location && ` â€” ${edu.location}`}</div>
                   {edu.gpa && <div style={{ fontSize: '11px', color: colors.gray500, marginTop: '2px' }}>GPA: {edu.gpa}</div>}
                 </div>
                 <div style={styles.entryDate}>{edu.graduationDate}</div>
@@ -244,7 +244,7 @@ const ElegantTemplate = ({ resume, formatting }) => {
               {proj.description && (
                 <ul style={styles.list}>
                   {proj.description.split('\n').filter(Boolean).map((line, i) => (
-                    <li key={i} style={{ ...styles.listItem, marginLeft: `${(line.match(/^\s*/)[0].length) * 8}px` }}>{line.replace(/^\s*[-•]\s*/, '')}</li>
+                    <li key={i} style={{ ...styles.listItem, marginLeft: `${(line.match(/^\s*/)[0].length) * 8}px` }}>{line.replace(/^\s*[-â€¢]\s*/, '')}</li>
                   ))}
                 </ul>
               )}
@@ -254,7 +254,7 @@ const ElegantTemplate = ({ resume, formatting }) => {
       )}
 
       {/* Skills */}
-      {(skills.technical.length > 0 || skills.soft.length > 0 || skills.languages.length > 0) && (
+      {(skills.technical.length > 0 || (skills.includeSoftSkills !== false && skills.soft.length > 0) || skills.languages.length > 0) && (
         <div style={styles.section}>
           <div style={styles.sectionDivider}>
             <span style={styles.dividerLine}></span>
@@ -263,7 +263,7 @@ const ElegantTemplate = ({ resume, formatting }) => {
           </div>
           <div style={styles.skillsElegant}>
             {skills.technical.length > 0 && <p style={{ margin: '0 0 6px 0' }}>{renderSkillsList(skills.technical, formatting?.skillsLayout)}</p>}
-            {skills.soft.length > 0 && <p style={{ margin: '0 0 6px 0', fontStyle: 'italic' }}>{renderSkillsList(skills.soft, formatting?.skillsLayout)}</p>}
+            {(skills.includeSoftSkills !== false && skills.soft.length > 0) && <p style={{ margin: '0 0 6px 0', fontStyle: 'italic' }}>{renderSkillsList(skills.soft, formatting?.skillsLayout)}</p>}
             {skills.languages.length > 0 && <p style={{ margin: 0 }}>Languages: {renderSkillsList(skills.languages, formatting?.skillsLayout)}</p>}
           </div>
         </div>
@@ -281,7 +281,7 @@ const ElegantTemplate = ({ resume, formatting }) => {
             {achievements.map((achievement, index) => (
               <span key={index} style={{ fontSize: '12px', color: colors.gray600 }}>
                 {achievement.title}{achievement.date && ` (${achievement.date})`}
-                {index < achievements.length - 1 && ' • '}
+                {index < achievements.length - 1 && ' â€¢ '}
               </span>
             ))}
           </div>
@@ -306,3 +306,4 @@ const ElegantTemplate = ({ resume, formatting }) => {
 }
 
 export default ElegantTemplate
+

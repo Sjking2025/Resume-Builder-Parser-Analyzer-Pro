@@ -1,4 +1,4 @@
-import React from 'react'
+﻿import React from 'react'
 import { renderSkillsList } from '../../utils/renderSkills'
 import GenericSection from './GenericSection'
 import { colors, printStyles, getFontSize, getLineHeight, getMargins } from './PrintStyles'
@@ -181,19 +181,19 @@ const BlueAccentTemplate = ({ resume, formatting }) => {
         <h1 style={styles.name}>{personalInfo.fullName || 'YOUR NAME'}</h1>
         <div style={styles.contactRow}>
           {personalInfo.location && (
-            <span style={styles.contactItem}>📍 {personalInfo.location}</span>
+            <span style={styles.contactItem}>ðŸ“ {personalInfo.location}</span>
           )}
           {personalInfo.phone && (
-            <span style={styles.contactItem}>📞 {personalInfo.phone}</span>
+            <span style={styles.contactItem}>ðŸ“ž {personalInfo.phone}</span>
           )}
           {personalInfo.email && (
-            <span style={styles.contactItem}>✉️ <a href={`mailto:${personalInfo.email}`} style={styles.contactLink}>{personalInfo.email}</a></span>
+            <span style={styles.contactItem}>âœ‰ï¸ <a href={`mailto:${personalInfo.email}`} style={styles.contactLink}>{personalInfo.email}</a></span>
           )}
           {personalInfo.linkedin && (
-            <span style={styles.contactItem}>🔗 <a href={personalInfo.linkedin} style={styles.contactLink}>{exportMode === 'digital' ? personalInfo.linkedin : 'LinkedIn'}</a></span>
+            <span style={styles.contactItem}>ðŸ”— <a href={personalInfo.linkedin} style={styles.contactLink}>{exportMode === 'digital' ? personalInfo.linkedin : 'LinkedIn'}</a></span>
           )}
           {personalInfo.github && (
-            <span style={styles.contactItem}>💻 <a href={personalInfo.github} style={styles.contactLink}>{exportMode === 'digital' ? personalInfo.github : 'GitHub'}</a></span>
+            <span style={styles.contactItem}>ðŸ’» <a href={personalInfo.github} style={styles.contactLink}>{exportMode === 'digital' ? personalInfo.github : 'GitHub'}</a></span>
           )}
         </div>
       </header>
@@ -215,14 +215,14 @@ const BlueAccentTemplate = ({ resume, formatting }) => {
               <div style={styles.entryHeader}>
                 <div>
                   <span style={styles.entryTitle}>{exp.title}</span>
-                  <span style={styles.entryCompany}> – {exp.company}</span>
+                  <span style={styles.entryCompany}> â€“ {exp.company}</span>
                 </div>
                 <span style={styles.entryDate}>{exp.startDate} - {exp.current ? 'Present' : exp.endDate}</span>
               </div>
               {exp.description && (
                 <ul style={styles.list}>
                   {exp.description.split('\n').filter(Boolean).map((line, i) => (
-                    <li key={i} style={{ ...styles.listItem, marginLeft: `${(line.match(/^\s*/)[0].length) * 8}px` }}>{line.replace(/^\s*[-•]\s*/, '')}</li>
+                    <li key={i} style={{ ...styles.listItem, marginLeft: `${(line.match(/^\s*/)[0].length) * 8}px` }}>{line.replace(/^\s*[-â€¢]\s*/, '')}</li>
                   ))}
                 </ul>
               )}
@@ -244,7 +244,7 @@ const BlueAccentTemplate = ({ resume, formatting }) => {
               {proj.description && (
                 <ul style={styles.list}>
                   {proj.description.split('\n').filter(Boolean).map((line, i) => (
-                    <li key={i} style={{ ...styles.listItem, marginLeft: `${(line.match(/^\s*/)[0].length) * 8}px` }}>{line.replace(/^\s*[-•]\s*/, '')}</li>
+                    <li key={i} style={{ ...styles.listItem, marginLeft: `${(line.match(/^\s*/)[0].length) * 8}px` }}>{line.replace(/^\s*[-â€¢]\s*/, '')}</li>
                   ))}
                 </ul>
               )}
@@ -261,7 +261,7 @@ const BlueAccentTemplate = ({ resume, formatting }) => {
             <article key={idx} style={styles.entry}>
               <div>
                 <span style={styles.entryTitle}>{edu.degree}{edu.field && ` in ${edu.field}`}</span>
-                <span style={styles.entryCompany}> – {edu.institution}, {edu.location || ''}</span>
+                <span style={styles.entryCompany}> â€“ {edu.institution}, {edu.location || ''}</span>
                 <span style={styles.entryDate}> ({edu.graduationDate})</span>
               </div>
               {edu.gpa && <div style={{ fontSize: '12px', color: '#4b5563' }}>CGPA: {edu.gpa}</div>}
@@ -310,7 +310,7 @@ const BlueAccentTemplate = ({ resume, formatting }) => {
       )}
 
       {/* Soft Skills */}
-      {skills.soft.length > 0 && (
+      {(skills.includeSoftSkills !== false && skills.soft.length > 0) && (
         <section style={styles.section}>
           <h2 style={styles.sectionTitle}>Soft Skills</h2>
           {renderSkillsList(skills.soft, formatting?.skillsLayout)}
@@ -360,3 +360,4 @@ const BlueAccentTemplate = ({ resume, formatting }) => {
 }
 
 export default BlueAccentTemplate
+

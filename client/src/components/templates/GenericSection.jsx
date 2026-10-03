@@ -1,4 +1,4 @@
-import React from 'react'
+﻿import React from 'react'
 
 const GenericSection = ({ title, items }) => {
   if (!items || items.length === 0) return null
@@ -48,4 +48,5 @@ const GenericSection = ({ title, items }) => {
 }
 
 export default GenericSection
+
 

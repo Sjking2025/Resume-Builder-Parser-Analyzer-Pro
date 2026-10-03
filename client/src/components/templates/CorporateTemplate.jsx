@@ -1,4 +1,4 @@
-import React from 'react'
+﻿import React from 'react'
 import { renderSkillsList } from '../../utils/renderSkills'
 import GenericSection from './GenericSection'
 import { colors, fonts, printStyles, getFontSize, getLineHeight, getMargins } from './PrintStyles'
@@ -168,7 +168,7 @@ const CorporateTemplate = ({ resume, formatting }) => {
             <h2 style={styles.sectionTitle}>Professional Experience</h2>
             {experience.map((exp, index) => (
               <div key={index} style={styles.entry}>
-                <div style={styles.entryDate}>{exp.startDate}<br />–<br />{exp.current ? 'Present' : exp.endDate}</div>
+                <div style={styles.entryDate}>{exp.startDate}<br />â€“<br />{exp.current ? 'Present' : exp.endDate}</div>
                 <div style={styles.entryContent}>
                   <div style={styles.entryTitle}>{exp.title}</div>
                   <div style={styles.entryCompany}>{exp.company}</div>
@@ -176,7 +176,7 @@ const CorporateTemplate = ({ resume, formatting }) => {
                   {exp.description && (
                     <ul style={styles.list}>
                       {exp.description.split('\n').filter(Boolean).map((line, i) => (
-                        <li key={i} style={{ ...styles.listItem, marginLeft: `${(line.match(/^\s*/)[0].length) * 8}px` }}>{line.replace(/^\s*[-•]\s*/, '')}</li>
+                        <li key={i} style={{ ...styles.listItem, marginLeft: `${(line.match(/^\s*/)[0].length) * 8}px` }}>{line.replace(/^\s*[-â€¢]\s*/, '')}</li>
                       ))}
                     </ul>
                   )}
@@ -219,7 +219,7 @@ const CorporateTemplate = ({ resume, formatting }) => {
                   {proj.description && (
                     <ul style={styles.list}>
                       {proj.description.split('\n').filter(Boolean).map((line, i) => (
-                        <li key={i} style={{ ...styles.listItem, marginLeft: `${(line.match(/^\s*/)[0].length) * 8}px` }}>{line.replace(/^\s*[-•]\s*/, '')}</li>
+                        <li key={i} style={{ ...styles.listItem, marginLeft: `${(line.match(/^\s*/)[0].length) * 8}px` }}>{line.replace(/^\s*[-â€¢]\s*/, '')}</li>
                       ))}
                     </ul>
                   )}
@@ -230,7 +230,7 @@ const CorporateTemplate = ({ resume, formatting }) => {
         )}
 
         {/* Skills */}
-        {(skills.technical.length > 0 || skills.soft.length > 0 || skills.languages.length > 0) && (
+        {(skills.technical.length > 0 || (skills.includeSoftSkills !== false && skills.soft.length > 0) || skills.languages.length > 0) && (
           <div style={styles.section}>
             <h2 style={styles.sectionTitle}>Core Competencies</h2>
             <div style={styles.skillsGrid}>
@@ -240,7 +240,7 @@ const CorporateTemplate = ({ resume, formatting }) => {
                   <div style={{ color: colors.gray700 }}>{renderSkillsList(skills.technical, formatting?.skillsLayout)}</div>
                 </div>
               )}
-              {skills.soft.length > 0 && (
+              {(skills.includeSoftSkills !== false && skills.soft.length > 0) && (
                 <div style={styles.skillCategory}>
                   <div style={styles.skillCategoryTitle}>Professional</div>
                   <div style={{ color: colors.gray700 }}>{renderSkillsList(skills.soft, formatting?.skillsLayout)}</div>
@@ -289,3 +289,4 @@ const CorporateTemplate = ({ resume, formatting }) => {
 }
 
 export default CorporateTemplate
+

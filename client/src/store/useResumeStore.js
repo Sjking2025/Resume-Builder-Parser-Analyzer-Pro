@@ -65,6 +65,7 @@ const getDefaultResume = () => ({
             { name: 'Frameworks', skills: [] },
             { name: 'Tools', skills: [] },
         ],
+        includeSoftSkills: true,
     },
     projects: [],
     experience: [],
@@ -174,6 +175,12 @@ const useResumeStore = create(
             toggleCategorizedSkills: (enabled) =>
                 set({
                     resume: { ...get().resume, skills: { ...get().resume.skills, useCategorizedTechnical: enabled } },
+                    isDirty: true,
+                }),
+
+            toggleSoftSkills: (enabled) =>
+                set({
+                    resume: { ...get().resume, skills: { ...get().resume.skills, includeSoftSkills: enabled } },
                     isDirty: true,
                 }),
 

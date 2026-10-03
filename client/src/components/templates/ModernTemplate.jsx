@@ -1,4 +1,4 @@
-import React from 'react'
+﻿import React from 'react'
 import { renderSkillsList } from '../../utils/renderSkills'
 import GenericSection from './GenericSection'
 import { FaEnvelope, FaPhone, FaMapMarkerAlt, FaLinkedin, FaGithub, FaGlobe, FaBriefcase, FaGraduationCap, FaCode, FaTrophy } from 'react-icons/fa'
@@ -184,7 +184,7 @@ const ModernTemplate = ({ resume, formatting }) => {
                 {exp.description && (
                   <ul style={{ paddingLeft: '20px', color: colors.textSecondary, margin: '8px 0 0 8px' }}>
                     {exp.description.split('\n').filter(Boolean).map((line, i) => (
-                      <li key={i} style={{ marginLeft: `${(line.match(/^\s*/)[0].length) * 8}px`, marginBottom: '4px' }}>{line.replace(/^\s*[-•]\s*/, '')}</li>
+                      <li key={i} style={{ marginLeft: `${(line.match(/^\s*/)[0].length) * 8}px`, marginBottom: '4px' }}>{line.replace(/^\s*[-â€¢]\s*/, '')}</li>
                     ))}
                   </ul>
                 )}
@@ -238,14 +238,14 @@ const ModernTemplate = ({ resume, formatting }) => {
                   </div>
                   {proj.link && (
                     <a href={proj.link} style={{ color: scheme.primary, textDecoration: 'none', fontSize: '13px', fontWeight: '600' }}>
-                      View →
+                      View â†’
                     </a>
                   )}
                 </div>
                 {proj.description && (
                   <ul style={{ paddingLeft: '20px', color: colors.textSecondary, margin: '8px 0 0 8px' }}>
                     {proj.description.split('\n').filter(Boolean).map((line, i) => (
-                      <li key={i} style={{ marginLeft: `${(line.match(/^\s*/)[0].length) * 8}px`, marginBottom: '4px' }}>{line.replace(/^\s*[-•]\s*/, '')}</li>
+                      <li key={i} style={{ marginLeft: `${(line.match(/^\s*/)[0].length) * 8}px`, marginBottom: '4px' }}>{line.replace(/^\s*[-â€¢]\s*/, '')}</li>
                     ))}
                   </ul>
                 )}
@@ -255,7 +255,7 @@ const ModernTemplate = ({ resume, formatting }) => {
         )}
 
         {/* Skills */}
-        {(skills.technical.length > 0 || skills.soft.length > 0 || skills.languages.length > 0) && (
+        {(skills.technical.length > 0 || (skills.includeSoftSkills !== false && skills.soft.length > 0) || skills.languages.length > 0) && (
           <div style={{ marginBottom: '24px' }}>
             <h2 style={{ fontSize: '22px', fontWeight: '700', color: scheme.primary, marginBottom: '16px' }}>Skills</h2>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -278,7 +278,7 @@ const ModernTemplate = ({ resume, formatting }) => {
                   </div>
                 </div>
               )}
-              {skills.soft.length > 0 && (
+              {(skills.includeSoftSkills !== false && skills.soft.length > 0) && (
                 <div>
                   <span style={{ fontWeight: '600', color: colors.text }}>Soft Skills: </span>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '4px' }}>
@@ -317,7 +317,7 @@ const ModernTemplate = ({ resume, formatting }) => {
             <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
               {achievements.map((achievement, index) => (
                 <li key={index} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', marginBottom: '8px' }}>
-                  <span style={{ color: scheme.primary, marginTop: '2px' }}>✓</span>
+                  <span style={{ color: scheme.primary, marginTop: '2px' }}>âœ“</span>
                   <span style={{ color: colors.textSecondary }}>
                     {achievement.title} {achievement.date && <span style={{ color: colors.textLight }}>({achievement.date})</span>}
                   </span>
@@ -346,3 +346,4 @@ const ModernTemplate = ({ resume, formatting }) => {
 }
 
 export default ModernTemplate
+

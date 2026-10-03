@@ -1,4 +1,4 @@
-import React from 'react'
+﻿import React from 'react'
 import { renderSkillsList } from '../../utils/renderSkills'
 import GenericSection from './GenericSection'
 import { colors, fonts, printStyles, getFontSize, getLineHeight, getMargins } from './PrintStyles'
@@ -141,12 +141,12 @@ const ClassicTemplate = ({ resume, formatting }) => {
                   <div style={styles.entryTitle}>{exp.title}</div>
                   <div style={styles.entrySubtitle}>{exp.company}{exp.location && `, ${exp.location}`}</div>
                 </div>
-                <div style={styles.entryDate}>{exp.startDate} – {exp.current ? 'Present' : exp.endDate}</div>
+                <div style={styles.entryDate}>{exp.startDate} â€“ {exp.current ? 'Present' : exp.endDate}</div>
               </div>
               {exp.description && (
                 <ul style={styles.list}>
                   {exp.description.split('\n').filter(Boolean).map((line, i) => (
-                    <li key={i} style={{ ...styles.listItem, marginLeft: `${(line.match(/^\s*/)[0].length) * 8}px` }}>{line.replace(/^\s*[-•]\s*/, '')}</li>
+                    <li key={i} style={{ ...styles.listItem, marginLeft: `${(line.match(/^\s*/)[0].length) * 8}px` }}>{line.replace(/^\s*[-â€¢]\s*/, '')}</li>
                   ))}
                 </ul>
               )}
@@ -190,7 +190,7 @@ const ClassicTemplate = ({ resume, formatting }) => {
               {proj.description && (
                 <ul style={styles.list}>
                   {proj.description.split('\n').filter(Boolean).map((line, i) => (
-                    <li key={i} style={{ ...styles.listItem, marginLeft: `${(line.match(/^\s*/)[0].length) * 8}px` }}>{line.replace(/^\s*[-•]\s*/, '')}</li>
+                    <li key={i} style={{ ...styles.listItem, marginLeft: `${(line.match(/^\s*/)[0].length) * 8}px` }}>{line.replace(/^\s*[-â€¢]\s*/, '')}</li>
                   ))}
                 </ul>
               )}
@@ -200,7 +200,7 @@ const ClassicTemplate = ({ resume, formatting }) => {
       )}
 
       {/* Skills */}
-      {(skills.technical.length > 0 || skills.soft.length > 0 || skills.languages.length > 0) && (
+      {(skills.technical.length > 0 || (skills.includeSoftSkills !== false && skills.soft.length > 0) || skills.languages.length > 0) && (
         <div style={styles.section}>
           <h2 style={styles.sectionTitle}>Skills</h2>
           {skills.technical.length > 0 && (
@@ -208,7 +208,7 @@ const ClassicTemplate = ({ resume, formatting }) => {
               <strong>Technical:</strong> {renderSkillsList(skills.technical, formatting?.skillsLayout)}
             </div>
           )}
-          {skills.soft.length > 0 && (
+          {(skills.includeSoftSkills !== false && skills.soft.length > 0) && (
             <div style={styles.skillLine}>
               <strong>Soft Skills:</strong> {renderSkillsList(skills.soft, formatting?.skillsLayout)}
             </div>
@@ -253,3 +253,4 @@ const ClassicTemplate = ({ resume, formatting }) => {
 }
 
 export default ClassicTemplate
+

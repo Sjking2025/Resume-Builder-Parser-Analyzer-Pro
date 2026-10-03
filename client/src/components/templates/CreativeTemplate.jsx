@@ -1,4 +1,4 @@
-import React from 'react'
+﻿import React from 'react'
 import { renderSkillsList } from '../../utils/renderSkills'
 import GenericSection from './GenericSection'
 import { colors, fonts, printStyles, getFontSize, getLineHeight, getMargins } from './PrintStyles'
@@ -143,9 +143,9 @@ const CreativeTemplate = ({ resume, formatting }) => {
           <div style={{ flex: 1 }}>
             <h1 style={styles.name}>{personalInfo.fullName || 'Your Name'}</h1>
             <div style={styles.contactRow}>
-              {personalInfo.email && <span>📧 {personalInfo.email}</span>}
-              {personalInfo.phone && <span>📱 {personalInfo.phone}</span>}
-              {personalInfo.location && <span>📍 {personalInfo.location}</span>}
+              {personalInfo.email && <span>ðŸ“§ {personalInfo.email}</span>}
+              {personalInfo.phone && <span>ðŸ“± {personalInfo.phone}</span>}
+              {personalInfo.location && <span>ðŸ“ {personalInfo.location}</span>}
               {personalInfo.linkedin && <a href={personalInfo.linkedin} style={styles.link}>{exportMode === 'digital' ? personalInfo.linkedin : 'LinkedIn'}</a>}
               {personalInfo.github && <a href={personalInfo.github} style={styles.link}>{exportMode === 'digital' ? personalInfo.github : 'GitHub'}</a>}
               {personalInfo.portfolio && <a href={personalInfo.portfolio} style={styles.link}>{exportMode === 'digital' ? personalInfo.portfolio : 'Portfolio'}</a>}
@@ -188,14 +188,14 @@ const CreativeTemplate = ({ resume, formatting }) => {
               <div style={styles.entryHeader}>
                 <div>
                   <div style={styles.entryTitle}>{exp.title}</div>
-                  <div style={styles.entryCompany}>{exp.company}{exp.location && ` • ${exp.location}`}</div>
+                  <div style={styles.entryCompany}>{exp.company}{exp.location && ` â€¢ ${exp.location}`}</div>
                 </div>
                 <div style={styles.entryDate}>{exp.startDate} - {exp.current ? 'Present' : exp.endDate}</div>
               </div>
               {exp.description && (
                 <ul style={styles.list}>
                   {exp.description.split('\n').filter(Boolean).map((line, i) => (
-                    <li key={i} style={{ ...styles.listItem, marginLeft: `${(line.match(/^\s*/)[0].length) * 8}px` }}>{line.replace(/^\s*[-•]\s*/, '')}</li>
+                    <li key={i} style={{ ...styles.listItem, marginLeft: `${(line.match(/^\s*/)[0].length) * 8}px` }}>{line.replace(/^\s*[-â€¢]\s*/, '')}</li>
                   ))}
                 </ul>
               )}
@@ -240,12 +240,12 @@ const CreativeTemplate = ({ resume, formatting }) => {
                   <div style={styles.entryTitle}>{proj.name}</div>
                   {proj.technologies && <div style={{ fontSize: '10px', color: accent.primary }}>{proj.technologies}</div>}
                 </div>
-                {proj.link && <a href={proj.link} style={{ ...styles.link, fontSize: '11px' }}>View →</a>}
+                {proj.link && <a href={proj.link} style={{ ...styles.link, fontSize: '11px' }}>View â†’</a>}
               </div>
               {proj.description && (
                 <ul style={styles.list}>
                   {proj.description.split('\n').filter(Boolean).map((line, i) => (
-                    <li key={i} style={{ ...styles.listItem, marginLeft: `${(line.match(/^\s*/)[0].length) * 8}px` }}>{line.replace(/^\s*[-•]\s*/, '')}</li>
+                    <li key={i} style={{ ...styles.listItem, marginLeft: `${(line.match(/^\s*/)[0].length) * 8}px` }}>{line.replace(/^\s*[-â€¢]\s*/, '')}</li>
                   ))}
                 </ul>
               )}
@@ -255,7 +255,7 @@ const CreativeTemplate = ({ resume, formatting }) => {
       )}
 
       {/* Skills */}
-      {(skills.technical.length > 0 || skills.soft.length > 0) && (
+      {(skills.technical.length > 0 || (skills.includeSoftSkills !== false && skills.soft.length > 0)) && (
         <div style={styles.section}>
           <h2 style={styles.sectionTitle}>
             Skills
@@ -287,7 +287,7 @@ const CreativeTemplate = ({ resume, formatting }) => {
           <div style={styles.skillTags}>
             {achievements.map((achievement, index) => (
               <span key={index} style={{ ...styles.skillTag, backgroundColor: colors.gold100, color: colors.gold600 }}>
-                🏆 {achievement.title}{achievement.date && ` (${achievement.date})`}
+                ðŸ† {achievement.title}{achievement.date && ` (${achievement.date})`}
               </span>
             ))}
           </div>
@@ -312,3 +312,4 @@ const CreativeTemplate = ({ resume, formatting }) => {
 }
 
 export default CreativeTemplate
+

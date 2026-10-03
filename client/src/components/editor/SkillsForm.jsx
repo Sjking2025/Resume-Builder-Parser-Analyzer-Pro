@@ -3,7 +3,7 @@ import useResumeStore from '../../store/useResumeStore'
 import { FaLightbulb, FaTimes, FaPlus, FaTrash } from 'react-icons/fa'
 
 const SkillsForm = () => {
-  const { resume, updateSkills, toggleCategorizedSkills, updateTechnicalCategories } = useResumeStore()
+  const { resume, updateSkills, toggleCategorizedSkills, updateTechnicalCategories, toggleSoftSkills } = useResumeStore()
   const [inputValues, setInputValues] = useState({
     technical: '',
     soft: '',
@@ -34,9 +34,22 @@ const SkillsForm = () => {
     }
   }
 
-  const renderSkillCategory = (category, title, placeholder) => (
+  const renderSkillCategory = (category, title, placeholder, hasToggle = false, toggleValue = true, onToggle = null) => (
     <div>
-      <label className="block text-sm font-medium text-gray-700 mb-2">{title}</label>
+      <div className="flex justify-between items-center mb-2">
+        <label className="block text-sm font-medium text-gray-700">{title}</label>
+        {hasToggle && (
+          <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
+            <input 
+              type="checkbox" 
+              checked={toggleValue}
+              onChange={(e) => onToggle && onToggle(e.target.checked)}
+              className="rounded text-primary-600 focus:ring-primary-500"
+            />
+            Include in Resume
+          </label>
+        )}
+      </div>
       <div className="flex gap-2 mb-2">
         <input
           type="text"
@@ -236,7 +249,14 @@ const SkillsForm = () => {
           )}
         </div>
 
-        {renderSkillCategory('soft', 'Soft Skills', 'e.g., Leadership, Communication')}
+        {renderSkillCategory(
+          'soft', 
+          'Soft Skills', 
+          'e.g., Leadership, Communication', 
+          true, 
+          resume.skills.includeSoftSkills !== false, 
+          toggleSoftSkills
+        )}
         {renderSkillCategory('languages', 'Languages', 'e.g., English (Native), Spanish (Fluent)')}
       </div>
     </div>

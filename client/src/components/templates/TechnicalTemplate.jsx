@@ -1,4 +1,4 @@
-import React from 'react'
+﻿import React from 'react'
 import { renderSkillsList } from '../../utils/renderSkills'
 import GenericSection from './GenericSection'
 import { colors, fonts, printStyles, getFontSize, getLineHeight, getMargins } from './PrintStyles'
@@ -158,20 +158,20 @@ const TechnicalTemplate = ({ resume, formatting }) => {
       <div style={styles.header}>
         <h1 style={styles.name}>{personalInfo.fullName || 'Your Name'}</h1>
         <div style={styles.contactRow}>
-          {personalInfo.email && <span style={styles.contactItem}>📧 {personalInfo.email}</span>}
-          {personalInfo.phone && <span style={styles.contactItem}>📱 {personalInfo.phone}</span>}
-          {personalInfo.location && <span style={styles.contactItem}>📍 {personalInfo.location}</span>}
-          {personalInfo.github && <a href={personalInfo.github} style={{ ...styles.contactItem, ...styles.link }}>{exportMode === 'digital' ? personalInfo.github : '⌨️ GitHub'}</a>}
-          {personalInfo.linkedin && <a href={personalInfo.linkedin} style={{ ...styles.contactItem, ...styles.link }}>{exportMode === 'digital' ? personalInfo.linkedin : '💼 LinkedIn'}</a>}
-          {personalInfo.portfolio && <a href={personalInfo.portfolio} style={{ ...styles.contactItem, ...styles.link }}>{exportMode === 'digital' ? personalInfo.portfolio : '🌐 Portfolio'}</a>}
+          {personalInfo.email && <span style={styles.contactItem}>ðŸ“§ {personalInfo.email}</span>}
+          {personalInfo.phone && <span style={styles.contactItem}>ðŸ“± {personalInfo.phone}</span>}
+          {personalInfo.location && <span style={styles.contactItem}>ðŸ“ {personalInfo.location}</span>}
+          {personalInfo.github && <a href={personalInfo.github} style={{ ...styles.contactItem, ...styles.link }}>{exportMode === 'digital' ? personalInfo.github : 'âŒ¨ï¸ GitHub'}</a>}
+          {personalInfo.linkedin && <a href={personalInfo.linkedin} style={{ ...styles.contactItem, ...styles.link }}>{exportMode === 'digital' ? personalInfo.linkedin : 'ðŸ’¼ LinkedIn'}</a>}
+          {personalInfo.portfolio && <a href={personalInfo.portfolio} style={{ ...styles.contactItem, ...styles.link }}>{exportMode === 'digital' ? personalInfo.portfolio : 'ðŸŒ Portfolio'}</a>}
         </div>
       </div>
 
       {/* Skills - First for technical template */}
-      {(skills.technical.length > 0 || skills.soft.length > 0) && (
+      {(skills.technical.length > 0 || (skills.includeSoftSkills !== false && skills.soft.length > 0)) && (
         <div style={styles.section}>
           <h2 style={styles.sectionTitle}>
-            <span style={styles.sectionIcon}>⚡</span>
+            <span style={styles.sectionIcon}>âš¡</span>
             Technical Skills
           </h2>
           <div style={styles.skillsGrid}>
@@ -204,7 +204,7 @@ const TechnicalTemplate = ({ resume, formatting }) => {
       {personalInfo.summary && (
         <div style={styles.section}>
           <h2 style={styles.sectionTitle}>
-            <span style={styles.sectionIcon}>👤</span>
+            <span style={styles.sectionIcon}>ðŸ‘¤</span>
             Summary
           </h2>
           <p style={{ margin: 0, fontSize: '12px', color: colors.gray600, lineHeight: '1.5' }}>{personalInfo.summary}</p>
@@ -215,7 +215,7 @@ const TechnicalTemplate = ({ resume, formatting }) => {
       {projects.length > 0 && (
         <div style={styles.section}>
           <h2 style={styles.sectionTitle}>
-            <span style={styles.sectionIcon}>🚀</span>
+            <span style={styles.sectionIcon}>ðŸš€</span>
             Projects
           </h2>
           {projects.map((proj, index) => (
@@ -223,14 +223,14 @@ const TechnicalTemplate = ({ resume, formatting }) => {
               <div style={styles.entryHeader}>
                 <div>
                   <span style={styles.entryTitle}>{proj.name}</span>
-                  {proj.link && <a href={proj.link} style={{ ...styles.link, marginLeft: '8px', fontSize: '10px' }}>↗</a>}
+                  {proj.link && <a href={proj.link} style={{ ...styles.link, marginLeft: '8px', fontSize: '10px' }}>â†—</a>}
                 </div>
               </div>
               {proj.technologies && <div style={styles.entryTech}>{proj.technologies}</div>}
               {proj.description && (
                 <ul style={styles.list}>
                   {proj.description.split('\n').filter(Boolean).map((line, i) => (
-                    <li key={i} style={{ ...styles.listItem, marginLeft: `${(line.match(/^\s*/)[0].length) * 8}px` }}>{line.replace(/^\s*[-•]\s*/, '')}</li>
+                    <li key={i} style={{ ...styles.listItem, marginLeft: `${(line.match(/^\s*/)[0].length) * 8}px` }}>{line.replace(/^\s*[-â€¢]\s*/, '')}</li>
                   ))}
                 </ul>
               )}
@@ -243,7 +243,7 @@ const TechnicalTemplate = ({ resume, formatting }) => {
       {experience.length > 0 && (
         <div style={styles.section}>
           <h2 style={styles.sectionTitle}>
-            <span style={styles.sectionIcon}>💼</span>
+            <span style={styles.sectionIcon}>ðŸ’¼</span>
             Experience
           </h2>
           {experience.map((exp, index) => (
@@ -251,14 +251,14 @@ const TechnicalTemplate = ({ resume, formatting }) => {
               <div style={styles.entryHeader}>
                 <div>
                   <div style={styles.entryTitle}>{exp.title}</div>
-                  <div style={{ fontSize: '12px', color: colors.gray600 }}>{exp.company}{exp.location && ` • ${exp.location}`}</div>
+                  <div style={{ fontSize: '12px', color: colors.gray600 }}>{exp.company}{exp.location && ` â€¢ ${exp.location}`}</div>
                 </div>
-                <div style={styles.entryDate}>{exp.startDate} – {exp.current ? 'Present' : exp.endDate}</div>
+                <div style={styles.entryDate}>{exp.startDate} â€“ {exp.current ? 'Present' : exp.endDate}</div>
               </div>
               {exp.description && (
                 <ul style={styles.list}>
                   {exp.description.split('\n').filter(Boolean).map((line, i) => (
-                    <li key={i} style={{ ...styles.listItem, marginLeft: `${(line.match(/^\s*/)[0].length) * 8}px` }}>{line.replace(/^\s*[-•]\s*/, '')}</li>
+                    <li key={i} style={{ ...styles.listItem, marginLeft: `${(line.match(/^\s*/)[0].length) * 8}px` }}>{line.replace(/^\s*[-â€¢]\s*/, '')}</li>
                   ))}
                 </ul>
               )}
@@ -271,7 +271,7 @@ const TechnicalTemplate = ({ resume, formatting }) => {
       {education.length > 0 && (
         <div style={styles.section}>
           <h2 style={styles.sectionTitle}>
-            <span style={styles.sectionIcon}>🎓</span>
+            <span style={styles.sectionIcon}>ðŸŽ“</span>
             Education
           </h2>
           {education.map((edu, index) => (
@@ -292,7 +292,7 @@ const TechnicalTemplate = ({ resume, formatting }) => {
       {achievements.length > 0 && (
         <div style={styles.section}>
           <h2 style={styles.sectionTitle}>
-            <span style={styles.sectionIcon}>🏆</span>
+            <span style={styles.sectionIcon}>ðŸ†</span>
             Certifications
           </h2>
           <div style={styles.skillTags}>
@@ -323,3 +323,4 @@ const TechnicalTemplate = ({ resume, formatting }) => {
 }
 
 export default TechnicalTemplate
+

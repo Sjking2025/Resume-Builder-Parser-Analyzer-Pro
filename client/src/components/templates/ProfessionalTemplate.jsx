@@ -1,4 +1,4 @@
-import React from 'react'
+﻿import React from 'react'
 import { renderSkillsList } from '../../utils/renderSkills'
 import GenericSection from './GenericSection'
 import { colors, fonts, printStyles, getFontSize, getLineHeight, getMargins } from './PrintStyles'
@@ -157,12 +157,12 @@ const ProfessionalTemplate = ({ resume, formatting }) => {
           )}
           <div style={styles.nameSection}>
             <h1 style={styles.name}>{personalInfo.fullName || 'Your Name'}</h1>
-            {personalInfo.location && <div style={styles.location}>📍 {personalInfo.location}</div>}
+            {personalInfo.location && <div style={styles.location}>ðŸ“ {personalInfo.location}</div>}
           </div>
         </div>
         <div style={styles.contactSection}>
-          {personalInfo.email && <div style={styles.contactItem}>✉️ {personalInfo.email}</div>}
-          {personalInfo.phone && <div style={styles.contactItem}>📞 {personalInfo.phone}</div>}
+          {personalInfo.email && <div style={styles.contactItem}>âœ‰ï¸ {personalInfo.email}</div>}
+          {personalInfo.phone && <div style={styles.contactItem}>ðŸ“ž {personalInfo.phone}</div>}
           <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '4px' }}>
             {personalInfo.linkedin && <a href={personalInfo.linkedin} style={styles.link}>{exportMode === 'digital' ? personalInfo.linkedin : 'LinkedIn'}</a>}
             {personalInfo.github && <a href={personalInfo.github} style={styles.link}>{exportMode === 'digital' ? personalInfo.github : 'GitHub'}</a>}
@@ -193,12 +193,12 @@ const ProfessionalTemplate = ({ resume, formatting }) => {
                   <div style={styles.entryCompany}>{exp.company}</div>
                   {exp.location && <div style={styles.entryLocation}>{exp.location}</div>}
                 </div>
-                <div style={styles.entryDate}>{exp.startDate} – {exp.current ? 'Present' : exp.endDate}</div>
+                <div style={styles.entryDate}>{exp.startDate} â€“ {exp.current ? 'Present' : exp.endDate}</div>
               </div>
               {exp.description && (
                 <ul style={styles.list}>
                   {exp.description.split('\n').filter(Boolean).map((line, i) => (
-                    <li key={i} style={{ ...styles.listItem, marginLeft: `${(line.match(/^\s*/)[0].length) * 8}px` }}>{line.replace(/^\s*[-•]\s*/, '')}</li>
+                    <li key={i} style={{ ...styles.listItem, marginLeft: `${(line.match(/^\s*/)[0].length) * 8}px` }}>{line.replace(/^\s*[-â€¢]\s*/, '')}</li>
                   ))}
                 </ul>
               )}
@@ -238,12 +238,12 @@ const ProfessionalTemplate = ({ resume, formatting }) => {
                   <div style={styles.entryTitle}>{proj.name}</div>
                   {proj.technologies && <div style={{ fontSize: '11px', color: colors.gray500 }}>{proj.technologies}</div>}
                 </div>
-                {proj.link && <a href={proj.link} style={{ ...styles.link, fontSize: '11px' }}>View →</a>}
+                {proj.link && <a href={proj.link} style={{ ...styles.link, fontSize: '11px' }}>View â†’</a>}
               </div>
               {proj.description && (
                 <ul style={styles.list}>
                   {proj.description.split('\n').filter(Boolean).map((line, i) => (
-                    <li key={i} style={{ ...styles.listItem, marginLeft: `${(line.match(/^\s*/)[0].length) * 8}px` }}>{line.replace(/^\s*[-•]\s*/, '')}</li>
+                    <li key={i} style={{ ...styles.listItem, marginLeft: `${(line.match(/^\s*/)[0].length) * 8}px` }}>{line.replace(/^\s*[-â€¢]\s*/, '')}</li>
                   ))}
                 </ul>
               )}
@@ -253,7 +253,7 @@ const ProfessionalTemplate = ({ resume, formatting }) => {
       )}
 
       {/* Skills */}
-      {(skills.technical.length > 0 || skills.soft.length > 0 || skills.languages.length > 0) && (
+      {(skills.technical.length > 0 || (skills.includeSoftSkills !== false && skills.soft.length > 0) || skills.languages.length > 0) && (
         <div style={styles.section}>
           <h2 style={styles.sectionTitle}>Skills</h2>
           {skills.technical.length > 0 && (
@@ -262,7 +262,7 @@ const ProfessionalTemplate = ({ resume, formatting }) => {
               {renderSkillsList(skills.technical, formatting?.skillsLayout, styles.skillTagPrimary)}
             </div>
           )}
-          {skills.soft.length > 0 && (
+          {(skills.includeSoftSkills !== false && skills.soft.length > 0) && (
             <div style={{ marginBottom: '8px' }}>
               <div style={{ fontSize: '11px', fontWeight: '600', color: colors.gray700, marginBottom: '4px' }}>Soft Skills</div>
               {renderSkillsList(skills.soft, formatting?.skillsLayout, styles.skillTag)}
@@ -283,7 +283,7 @@ const ProfessionalTemplate = ({ resume, formatting }) => {
           <div style={styles.skillsRow}>
             {achievements.map((achievement, index) => (
               <span key={index} style={{ ...styles.skillTagPrimary, backgroundColor: colors.gold100, color: colors.gold600 }}>
-                🏆 {achievement.title}{achievement.date && ` (${achievement.date})`}
+                ðŸ† {achievement.title}{achievement.date && ` (${achievement.date})`}
               </span>
             ))}
           </div>
@@ -308,3 +308,4 @@ const ProfessionalTemplate = ({ resume, formatting }) => {
 }
 
 export default ProfessionalTemplate
+

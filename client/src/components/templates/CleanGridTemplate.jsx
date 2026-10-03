@@ -1,4 +1,4 @@
-import React from 'react'
+﻿import React from 'react'
 import { renderSkillsList } from '../../utils/renderSkills'
 import GenericSection from './GenericSection'
 import { colors, printStyles, getFontSize, getLineHeight } from './PrintStyles'
@@ -176,13 +176,13 @@ const CleanGridTemplate = ({ resume, formatting }) => {
                 <article key={idx} style={styles.entry}>
                   <h3 style={styles.entryTitle}>{exp.title}</h3>
                   <div style={styles.subRow}>
-                    <span style={styles.muted}>{exp.company}{exp.location && ` · ${exp.location}`}</span>
-                    <span style={styles.muted}>{exp.startDate} – {exp.current ? 'Present' : exp.endDate}</span>
+                    <span style={styles.muted}>{exp.company}{exp.location && ` Â· ${exp.location}`}</span>
+                    <span style={styles.muted}>{exp.startDate} â€“ {exp.current ? 'Present' : exp.endDate}</span>
                   </div>
                   {exp.description && (
                     <ul style={styles.list}>
                       {exp.description.split('\n').filter(Boolean).map((line, i) => (
-                        <li key={i} style={{ ...styles.listItem, marginLeft: `${(line.match(/^\s*/)[0].length) * 8}px` }}>{line.replace(/^\s*[-•]\s*/, '')}</li>
+                        <li key={i} style={{ ...styles.listItem, marginLeft: `${(line.match(/^\s*/)[0].length) * 8}px` }}>{line.replace(/^\s*[-â€¢]\s*/, '')}</li>
                       ))}
                     </ul>
                   )}
@@ -204,7 +204,7 @@ const CleanGridTemplate = ({ resume, formatting }) => {
                   {proj.description && (
                     <ul style={styles.list}>
                       {proj.description.split('\n').filter(Boolean).map((line, i) => (
-                        <li key={i} style={{ ...styles.listItem, marginLeft: `${(line.match(/^\s*/)[0].length) * 8}px` }}>{line.replace(/^\s*[-•]\s*/, '')}</li>
+                        <li key={i} style={{ ...styles.listItem, marginLeft: `${(line.match(/^\s*/)[0].length) * 8}px` }}>{line.replace(/^\s*[-â€¢]\s*/, '')}</li>
                       ))}
                     </ul>
                   )}
@@ -232,7 +232,7 @@ const CleanGridTemplate = ({ resume, formatting }) => {
           )}
 
           {/* Skills */}
-          {(skills.technical.length > 0 || skills.soft.length > 0) && (
+          {(skills.technical.length > 0 || (skills.includeSoftSkills !== false && skills.soft.length > 0)) && (
             <section style={styles.section}>
               <h2 style={styles.sectionTitle}>Technical Skills</h2>
               {skills.technical.length > 0 && (
@@ -240,7 +240,7 @@ const CleanGridTemplate = ({ resume, formatting }) => {
                   <span style={styles.label}>Technical:</span> {renderSkillsList(skills.technical, formatting?.skillsLayout)}
                 </div>
               )}
-              {skills.soft.length > 0 && (
+              {(skills.includeSoftSkills !== false && skills.soft.length > 0) && (
                 <div style={styles.paragraph}>
                   <span style={styles.label}>Soft Skills:</span> {renderSkillsList(skills.soft, formatting?.skillsLayout)}
                 </div>
@@ -287,3 +287,4 @@ const CleanGridTemplate = ({ resume, formatting }) => {
 }
 
 export default CleanGridTemplate
+

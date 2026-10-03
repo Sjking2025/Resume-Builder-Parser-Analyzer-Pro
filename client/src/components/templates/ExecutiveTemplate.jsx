@@ -1,4 +1,4 @@
-import React from 'react'
+﻿import React from 'react'
 import { renderSkillsList } from '../../utils/renderSkills'
 import GenericSection from './GenericSection'
 import { colors, fonts, printStyles, getFontSize, getLineHeight, getMargins } from './PrintStyles'
@@ -125,9 +125,9 @@ const ExecutiveTemplate = ({ resume, formatting }) => {
       <div style={styles.header}>
         <h1 style={styles.name}>{personalInfo.fullName || 'Your Name'}</h1>
         <div style={styles.contactGrid}>
-          {personalInfo.email && <span>✉ {personalInfo.email}</span>}
-          {personalInfo.phone && <span>📞 {personalInfo.phone}</span>}
-          {personalInfo.location && <span>📍 {personalInfo.location}</span>}
+          {personalInfo.email && <span>âœ‰ {personalInfo.email}</span>}
+          {personalInfo.phone && <span>ðŸ“ž {personalInfo.phone}</span>}
+          {personalInfo.location && <span>ðŸ“ {personalInfo.location}</span>}
           {personalInfo.linkedin && <a href={personalInfo.linkedin} style={styles.link}>{exportMode === 'digital' ? personalInfo.linkedin : 'LinkedIn'}</a>}
           {personalInfo.github && <a href={personalInfo.github} style={styles.link}>{exportMode === 'digital' ? personalInfo.github : 'GitHub'}</a>}
           {personalInfo.portfolio && <a href={personalInfo.portfolio} style={styles.link}>{exportMode === 'digital' ? personalInfo.portfolio : 'Portfolio'}</a>}
@@ -154,12 +154,12 @@ const ExecutiveTemplate = ({ resume, formatting }) => {
                   <div style={styles.entryCompany}>{exp.company}</div>
                   {exp.location && <div style={styles.entryLocation}>{exp.location}</div>}
                 </div>
-                <div style={styles.entryDate}>{exp.startDate} – {exp.current ? 'Present' : exp.endDate}</div>
+                <div style={styles.entryDate}>{exp.startDate} â€“ {exp.current ? 'Present' : exp.endDate}</div>
               </div>
               {exp.description && (
                 <ul style={styles.list}>
                   {exp.description.split('\n').filter(Boolean).map((line, i) => (
-                    <li key={i} style={{ ...styles.listItem, marginLeft: `${(line.match(/^\s*/)[0].length) * 8}px` }}>{line.replace(/^\s*[-•]\s*/, '')}</li>
+                    <li key={i} style={{ ...styles.listItem, marginLeft: `${(line.match(/^\s*/)[0].length) * 8}px` }}>{line.replace(/^\s*[-â€¢]\s*/, '')}</li>
                   ))}
                 </ul>
               )}
@@ -199,12 +199,12 @@ const ExecutiveTemplate = ({ resume, formatting }) => {
                   <div style={styles.entryTitle}>{proj.name}</div>
                   {proj.technologies && <div style={{ fontSize: '11px', color: colors.gray600 }}>{proj.technologies}</div>}
                 </div>
-                {proj.link && <a href={proj.link} style={{ ...styles.link, fontSize: '11px' }}>View →</a>}
+                {proj.link && <a href={proj.link} style={{ ...styles.link, fontSize: '11px' }}>View â†’</a>}
               </div>
               {proj.description && (
                 <ul style={styles.list}>
                   {proj.description.split('\n').filter(Boolean).map((line, i) => (
-                    <li key={i} style={{ ...styles.listItem, marginLeft: `${(line.match(/^\s*/)[0].length) * 8}px` }}>{line.replace(/^\s*[-•]\s*/, '')}</li>
+                    <li key={i} style={{ ...styles.listItem, marginLeft: `${(line.match(/^\s*/)[0].length) * 8}px` }}>{line.replace(/^\s*[-â€¢]\s*/, '')}</li>
                   ))}
                 </ul>
               )}
@@ -214,7 +214,7 @@ const ExecutiveTemplate = ({ resume, formatting }) => {
       )}
 
       {/* Skills */}
-      {(skills.technical.length > 0 || skills.soft.length > 0 || skills.languages.length > 0) && (
+      {(skills.technical.length > 0 || (skills.includeSoftSkills !== false && skills.soft.length > 0) || skills.languages.length > 0) && (
         <div style={styles.section}>
           <h2 style={styles.sectionTitle}>Core Competencies</h2>
           <div style={styles.skillsGrid}>
@@ -224,7 +224,7 @@ const ExecutiveTemplate = ({ resume, formatting }) => {
                 <div style={{ color: colors.gray700, marginTop: '2px' }}>{renderSkillsList(skills.technical, formatting?.skillsLayout, { backgroundColor: colors.gray100, color: colors.gray700 }, { color: colors.gray700 })}</div>
               </div>
             )}
-            {skills.soft.length > 0 && (
+            {(skills.includeSoftSkills !== false && skills.soft.length > 0) && (
               <div style={styles.skillCategory}>
                 <strong style={{ color: colors.navy800 }}>Leadership:</strong>
                 <div style={{ color: colors.gray700, marginTop: '2px' }}>{renderSkillsList(skills.soft, formatting?.skillsLayout, { backgroundColor: colors.gray100, color: colors.gray700 }, { color: colors.gray700 })}</div>
@@ -246,7 +246,7 @@ const ExecutiveTemplate = ({ resume, formatting }) => {
           <ul style={{ ...styles.list, paddingLeft: '16px' }}>
             {achievements.map((achievement, index) => (
               <li key={index} style={styles.listItem}>
-                <strong>{achievement.title}</strong>{achievement.date && ` — ${achievement.date}`}
+                <strong>{achievement.title}</strong>{achievement.date && ` â€” ${achievement.date}`}
               </li>
             ))}
           </ul>
@@ -271,3 +271,4 @@ const ExecutiveTemplate = ({ resume, formatting }) => {
 }
 
 export default ExecutiveTemplate
+

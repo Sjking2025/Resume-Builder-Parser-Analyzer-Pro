@@ -1,4 +1,4 @@
-import React from 'react'
+﻿import React from 'react'
 import GenericSection from './GenericSection'
 import { colors, printStyles, getFontSize, getLineHeight } from './PrintStyles'
 
@@ -167,7 +167,7 @@ const TwoColumnTemplate = ({ resume, formatting }) => {
           )}
 
           {/* Soft Skills */}
-          {skills.soft.length > 0 && (
+          {(skills.includeSoftSkills !== false && skills.soft.length > 0) && (
             <div style={styles.section}>
               <h2 style={styles.sectionTitle}>Soft Skills</h2>
               {skills.soft.map((skill, idx) => (
@@ -216,7 +216,7 @@ const TwoColumnTemplate = ({ resume, formatting }) => {
                   {exp.description && (
                     <ul style={styles.list}>
                       {exp.description.split('\n').filter(Boolean).map((line, i) => (
-                        <li key={i} style={{ ...styles.listItem, marginLeft: `${(line.match(/^\s*/)[0].length) * 8}px` }}>{line.replace(/^\s*[-•]\s*/, '')}</li>
+                        <li key={i} style={{ ...styles.listItem, marginLeft: `${(line.match(/^\s*/)[0].length) * 8}px` }}>{line.replace(/^\s*[-â€¢]\s*/, '')}</li>
                       ))}
                     </ul>
                   )}
@@ -233,13 +233,13 @@ const TwoColumnTemplate = ({ resume, formatting }) => {
                 <div key={idx} style={styles.entry}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
                     <div style={styles.entryTitle}>{proj.name}</div>
-                    {proj.link && <a href={proj.link} style={{ color: colors.gray600, fontSize: '10px', textDecoration: 'none' }}>View →</a>}
+                    {proj.link && <a href={proj.link} style={{ color: colors.gray600, fontSize: '10px', textDecoration: 'none' }}>View â†’</a>}
                   </div>
                   {proj.technologies && <div style={{ fontSize: '10px', color: colors.gray500, marginTop: '2px' }}>{proj.technologies}</div>}
                   {proj.description && (
                     <ul style={styles.list}>
                       {proj.description.split('\n').filter(Boolean).map((line, i) => (
-                        <li key={i} style={{ ...styles.listItem, marginLeft: `${(line.match(/^\s*/)[0].length) * 8}px` }}>{line.replace(/^\s*[-•]\s*/, '')}</li>
+                        <li key={i} style={{ ...styles.listItem, marginLeft: `${(line.match(/^\s*/)[0].length) * 8}px` }}>{line.replace(/^\s*[-â€¢]\s*/, '')}</li>
                       ))}
                     </ul>
                   )}
@@ -268,3 +268,4 @@ const TwoColumnTemplate = ({ resume, formatting }) => {
 }
 
 export default TwoColumnTemplate
+

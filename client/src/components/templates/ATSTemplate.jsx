@@ -222,7 +222,7 @@ const ATSTemplate = ({ resume, formatting }) => {
               allSkillCategories.push({ name: 'Technical', skills: skills.technical });
             }
             
-            if (skills.soft.length > 0) {
+            if (skills.includeSoftSkills !== false && skills.soft.length > 0) {
               allSkillCategories.push({ name: 'Soft Skills', skills: skills.soft });
             }
             
@@ -271,7 +271,7 @@ const ATSTemplate = ({ resume, formatting }) => {
                 )
               )}
 
-              {skills.soft.length > 0 && (
+              {(skills.includeSoftSkills !== false && skills.soft.length > 0) && (
                 <div style={{ marginBottom: '4px', fontSize: '13px' }}>
                   <span style={{ fontWeight: '600', color: colors.text }}>Soft Skills: </span>
                   <span style={{ color: colors.textSecondary }}>{renderSkillsList(skills.soft, formatting?.skillsLayout)}</span>

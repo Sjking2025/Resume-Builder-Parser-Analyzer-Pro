@@ -1,4 +1,4 @@
-import React from 'react'
+﻿import React from 'react'
 import GenericSection from './GenericSection'
 import { colors, printStyles, getFontSize, getLineHeight } from './PrintStyles'
 
@@ -137,9 +137,9 @@ const SidebarTemplate = ({ resume, formatting }) => {
         <div style={{ marginBottom: '24px' }}>
           <h1 style={styles.name}>{personalInfo.fullName || 'Your Name'}</h1>
           <div style={{ marginTop: '12px' }}>
-            {personalInfo.email && <div style={styles.contactItem}>✉ {personalInfo.email}</div>}
-            {personalInfo.phone && <div style={styles.contactItem}>📞 {personalInfo.phone}</div>}
-            {personalInfo.location && <div style={styles.contactItem}>📍 {personalInfo.location}</div>}
+            {personalInfo.email && <div style={styles.contactItem}>âœ‰ {personalInfo.email}</div>}
+            {personalInfo.phone && <div style={styles.contactItem}>ðŸ“ž {personalInfo.phone}</div>}
+            {personalInfo.location && <div style={styles.contactItem}>ðŸ“ {personalInfo.location}</div>}
             {personalInfo.linkedin && <div style={styles.contactItem}><a href={personalInfo.linkedin} style={styles.link}>{exportMode === 'digital' ? personalInfo.linkedin : 'LinkedIn'}</a></div>}
             {personalInfo.github && <div style={styles.contactItem}><a href={personalInfo.github} style={styles.link}>{exportMode === 'digital' ? personalInfo.github : 'GitHub'}</a></div>}
             {personalInfo.portfolio && <div style={styles.contactItem}><a href={personalInfo.portfolio} style={styles.link}>{exportMode === 'digital' ? personalInfo.portfolio : 'Portfolio'}</a></div>}
@@ -147,7 +147,7 @@ const SidebarTemplate = ({ resume, formatting }) => {
         </div>
 
         {/* Skills */}
-        {(skills.technical.length > 0 || skills.soft.length > 0) && (
+        {(skills.technical.length > 0 || (skills.includeSoftSkills !== false && skills.soft.length > 0)) && (
           <div style={styles.sidebarSection}>
             <h2 style={styles.sidebarTitle}>Skills</h2>
             {skills.technical.map((skill, idx) => (
@@ -164,7 +164,7 @@ const SidebarTemplate = ({ resume, formatting }) => {
           <div style={styles.sidebarSection}>
             <h2 style={styles.sidebarTitle}>Languages</h2>
             {skills.languages.map((lang, idx) => (
-              <div key={idx} style={{ fontSize: '11px', color: colors.gray200, marginBottom: '3px' }}>• {lang}</div>
+              <div key={idx} style={{ fontSize: '11px', color: colors.gray200, marginBottom: '3px' }}>â€¢ {lang}</div>
             ))}
           </div>
         )}
@@ -177,7 +177,7 @@ const SidebarTemplate = ({ resume, formatting }) => {
               <div key={idx} style={{ marginBottom: '10px' }}>
                 <div style={{ fontWeight: '600', fontSize: '12px', color: colors.white }}>{edu.degree}</div>
                 <div style={{ fontSize: '11px', color: colors.gray300 }}>{edu.institution}</div>
-                <div style={{ fontSize: '10px', color: colors.gray400 }}>{edu.graduationDate}{edu.gpa && ` • GPA: ${edu.gpa}`}</div>
+                <div style={{ fontSize: '10px', color: colors.gray400 }}>{edu.graduationDate}{edu.gpa && ` â€¢ GPA: ${edu.gpa}`}</div>
               </div>
             ))}
           </div>
@@ -189,7 +189,7 @@ const SidebarTemplate = ({ resume, formatting }) => {
             <h2 style={styles.sidebarTitle}>Achievements</h2>
             {achievements.map((ach, idx) => (
               <div key={idx} style={{ fontSize: '11px', color: colors.gray200, marginBottom: '4px' }}>
-                🏆 {ach.title}
+                ðŸ† {ach.title}
               </div>
             ))}
           </div>
@@ -215,14 +215,14 @@ const SidebarTemplate = ({ resume, formatting }) => {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
                   <div>
                     <div style={styles.entryTitle}>{exp.title}</div>
-                    <div style={styles.entryCompany}>{exp.company}{exp.location && ` • ${exp.location}`}</div>
+                    <div style={styles.entryCompany}>{exp.company}{exp.location && ` â€¢ ${exp.location}`}</div>
                   </div>
                   <div style={styles.entryDate}>{exp.startDate} - {exp.current ? 'Present' : exp.endDate}</div>
                 </div>
                 {exp.description && (
                   <ul style={styles.list}>
                     {exp.description.split('\n').filter(Boolean).map((line, i) => (
-                      <li key={i} style={{ ...styles.listItem, marginLeft: `${(line.match(/^\s*/)[0].length) * 8}px` }}>{line.replace(/^\s*[-•]\s*/, '')}</li>
+                      <li key={i} style={{ ...styles.listItem, marginLeft: `${(line.match(/^\s*/)[0].length) * 8}px` }}>{line.replace(/^\s*[-â€¢]\s*/, '')}</li>
                     ))}
                   </ul>
                 )}
@@ -239,13 +239,13 @@ const SidebarTemplate = ({ resume, formatting }) => {
               <div key={idx} style={styles.entry}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
                   <div style={styles.entryTitle}>{proj.name}</div>
-                  {proj.link && <a href={proj.link} style={{ color: accent.primary, fontSize: '10px', textDecoration: 'none' }}>View →</a>}
+                  {proj.link && <a href={proj.link} style={{ color: accent.primary, fontSize: '10px', textDecoration: 'none' }}>View â†’</a>}
                 </div>
                 {proj.technologies && <div style={{ fontSize: '10px', color: colors.gray500 }}>{proj.technologies}</div>}
                 {proj.description && (
                   <ul style={styles.list}>
                     {proj.description.split('\n').filter(Boolean).map((line, i) => (
-                      <li key={i} style={{ ...styles.listItem, marginLeft: `${(line.match(/^\s*/)[0].length) * 8}px` }}>{line.replace(/^\s*[-•]\s*/, '')}</li>
+                      <li key={i} style={{ ...styles.listItem, marginLeft: `${(line.match(/^\s*/)[0].length) * 8}px` }}>{line.replace(/^\s*[-â€¢]\s*/, '')}</li>
                     ))}
                   </ul>
                 )}
@@ -273,3 +273,4 @@ const SidebarTemplate = ({ resume, formatting }) => {
 }
 
 export default SidebarTemplate
+

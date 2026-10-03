@@ -1,4 +1,4 @@
-import React from 'react'
+﻿import React from 'react'
 import { renderSkillsList } from '../../utils/renderSkills'
 import GenericSection from './GenericSection'
 import { colors, fonts, printStyles, getFontSize, getLineHeight } from './PrintStyles'
@@ -153,12 +153,12 @@ const CompactTemplate = ({ resume, formatting }) => {
                       <span style={styles.entryTitle}>{exp.title}</span>
                       <span style={styles.entrySubtitle}> | {exp.company}</span>
                     </div>
-                    <div style={styles.entryDate}>{exp.startDate} – {exp.current ? 'Present' : exp.endDate}</div>
+                    <div style={styles.entryDate}>{exp.startDate} â€“ {exp.current ? 'Present' : exp.endDate}</div>
                   </div>
                   {exp.description && (
                     <ul style={styles.list}>
                       {exp.description.split('\n').filter(Boolean).slice(0, 3).map((line, i) => (
-                        <li key={i} style={{ ...styles.listItem, marginLeft: `${(line.match(/^\s*/)[0].length) * 8}px` }}>{line.replace(/^\s*[-•]\s*/, '')}</li>
+                        <li key={i} style={{ ...styles.listItem, marginLeft: `${(line.match(/^\s*/)[0].length) * 8}px` }}>{line.replace(/^\s*[-â€¢]\s*/, '')}</li>
                       ))}
                     </ul>
                   )}
@@ -180,7 +180,7 @@ const CompactTemplate = ({ resume, formatting }) => {
                   {proj.description && (
                     <ul style={styles.list}>
                       {proj.description.split('\n').filter(Boolean).slice(0, 2).map((line, i) => (
-                        <li key={i} style={{ ...styles.listItem, marginLeft: `${(line.match(/^\s*/)[0].length) * 8}px` }}>{line.replace(/^\s*[-•]\s*/, '')}</li>
+                        <li key={i} style={{ ...styles.listItem, marginLeft: `${(line.match(/^\s*/)[0].length) * 8}px` }}>{line.replace(/^\s*[-â€¢]\s*/, '')}</li>
                       ))}
                     </ul>
                   )}
@@ -207,7 +207,7 @@ const CompactTemplate = ({ resume, formatting }) => {
           )}
 
           {/* Skills */}
-          {(skills.technical.length > 0 || skills.soft.length > 0) && (
+          {(skills.technical.length > 0 || (skills.includeSoftSkills !== false && skills.soft.length > 0)) && (
             <div style={styles.section}>
               <h2 style={styles.sectionTitle}>Skills</h2>
               {skills.technical.length > 0 && (
@@ -215,7 +215,7 @@ const CompactTemplate = ({ resume, formatting }) => {
                   <strong>Tech:</strong> {renderSkillsList(skills.technical, formatting?.skillsLayout)}
                 </div>
               )}
-              {skills.soft.length > 0 && (
+              {(skills.includeSoftSkills !== false && skills.soft.length > 0) && (
                 <div style={styles.skillsCompact}>
                   <strong>Soft:</strong> {renderSkillsList(skills.soft, formatting?.skillsLayout)}
                 </div>
@@ -234,7 +234,7 @@ const CompactTemplate = ({ resume, formatting }) => {
               <h2 style={styles.sectionTitle}>Awards</h2>
               {achievements.map((achievement, index) => (
                 <div key={index} style={{ fontSize: '10px', color: colors.gray600, marginBottom: '2px' }}>
-                  • {achievement.title}
+                  â€¢ {achievement.title}
                 </div>
               ))}
             </div>
@@ -260,3 +260,4 @@ const CompactTemplate = ({ resume, formatting }) => {
 }
 
 export default CompactTemplate
+

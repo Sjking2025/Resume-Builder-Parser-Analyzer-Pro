@@ -1,4 +1,4 @@
-import React from 'react'
+﻿import React from 'react'
 import { renderSkillsList } from '../../utils/renderSkills'
 import GenericSection from './GenericSection'
 import { colors, fonts, printStyles, getFontSize, getLineHeight, getMargins } from './PrintStyles'
@@ -162,14 +162,14 @@ const AcademicTemplate = ({ resume, formatting }) => {
           {experience.map((exp, index) => (
             <div key={index} style={styles.entry}>
               <div style={styles.entryHeader}>
-                <span style={styles.entryDate}>{exp.startDate} – {exp.current ? 'Present' : exp.endDate}</span>
+                <span style={styles.entryDate}>{exp.startDate} â€“ {exp.current ? 'Present' : exp.endDate}</span>
                 <div style={styles.entryTitle}>{exp.title}</div>
                 <div style={styles.entryInstitution}>{exp.company}{exp.location && `, ${exp.location}`}</div>
               </div>
               {exp.description && (
                 <ul style={styles.list}>
                   {exp.description.split('\n').filter(Boolean).map((line, i) => (
-                    <li key={i} style={{ ...styles.listItem, marginLeft: `${(line.match(/^\s*/)[0].length) * 8}px` }}>{line.replace(/^\s*[-•]\s*/, '')}</li>
+                    <li key={i} style={{ ...styles.listItem, marginLeft: `${(line.match(/^\s*/)[0].length) * 8}px` }}>{line.replace(/^\s*[-â€¢]\s*/, '')}</li>
                   ))}
                 </ul>
               )}
@@ -194,14 +194,14 @@ const AcademicTemplate = ({ resume, formatting }) => {
       )}
 
       {/* Skills */}
-      {(skills.technical.length > 0 || skills.soft.length > 0 || skills.languages.length > 0) && (
+      {(skills.technical.length > 0 || (skills.includeSoftSkills !== false && skills.soft.length > 0) || skills.languages.length > 0) && (
         <div style={styles.section}>
           <h2 style={styles.sectionTitle}>Skills & Competencies</h2>
           <div style={styles.skillsSection}>
             {skills.technical.length > 0 && (
               <p style={{ margin: '0 0 6px 0' }}><strong>Technical Skills:</strong> {renderSkillsList(skills.technical, formatting?.skillsLayout)}</p>
             )}
-            {skills.soft.length > 0 && (
+            {(skills.includeSoftSkills !== false && skills.soft.length > 0) && (
               <p style={{ margin: '0 0 6px 0' }}><strong>Soft Skills:</strong> {renderSkillsList(skills.soft, formatting?.skillsLayout)}</p>
             )}
             {skills.languages.length > 0 && (
@@ -241,3 +241,4 @@ const AcademicTemplate = ({ resume, formatting }) => {
 }
 
 export default AcademicTemplate
+

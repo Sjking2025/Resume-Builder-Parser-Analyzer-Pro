@@ -1,4 +1,4 @@
-import React from 'react'
+﻿import React from 'react'
 import GenericSection from './GenericSection'
 import { colors, printStyles, getFontSize, getLineHeight } from './PrintStyles'
 
@@ -166,9 +166,9 @@ const BoldHeaderTemplate = ({ resume, formatting }) => {
           )}
         </div>
         <div style={styles.contactSection}>
-          {personalInfo.email && <div style={styles.contactItem}>✉️ {personalInfo.email}</div>}
-          {personalInfo.phone && <div style={styles.contactItem}>📞 {personalInfo.phone}</div>}
-          {personalInfo.location && <div style={styles.contactItem}>📍 {personalInfo.location}</div>}
+          {personalInfo.email && <div style={styles.contactItem}>âœ‰ï¸ {personalInfo.email}</div>}
+          {personalInfo.phone && <div style={styles.contactItem}>ðŸ“ž {personalInfo.phone}</div>}
+          {personalInfo.location && <div style={styles.contactItem}>ðŸ“ {personalInfo.location}</div>}
           {personalInfo.linkedin && <div style={styles.contactItem}><a href={personalInfo.linkedin} style={styles.link}>{exportMode === 'digital' ? personalInfo.linkedin : 'LinkedIn'}</a></div>}
           {personalInfo.github && <div style={styles.contactItem}><a href={personalInfo.github} style={styles.link}>{exportMode === 'digital' ? personalInfo.github : 'GitHub'}</a></div>}
         </div>
@@ -204,11 +204,11 @@ const BoldHeaderTemplate = ({ resume, formatting }) => {
           )}
 
           {/* Soft Skills */}
-          {skills.soft.length > 0 && (
+          {(skills.includeSoftSkills !== false && skills.soft.length > 0) && (
             <div style={styles.sideSection}>
               <h2 style={styles.sideTitle}>Strengths</h2>
               {skills.soft.map((skill, idx) => (
-                <div key={idx} style={{ fontSize: '11px', color: colors.gray600, marginBottom: '4px' }}>✓ {skill}</div>
+                <div key={idx} style={{ fontSize: '11px', color: colors.gray600, marginBottom: '4px' }}>âœ“ {skill}</div>
               ))}
             </div>
           )}
@@ -218,7 +218,7 @@ const BoldHeaderTemplate = ({ resume, formatting }) => {
             <div style={styles.sideSection}>
               <h2 style={styles.sideTitle}>Languages</h2>
               {skills.languages.map((lang, idx) => (
-                <div key={idx} style={{ fontSize: '11px', color: colors.gray600, marginBottom: '4px' }}>• {lang}</div>
+                <div key={idx} style={{ fontSize: '11px', color: colors.gray600, marginBottom: '4px' }}>â€¢ {lang}</div>
               ))}
             </div>
           )}
@@ -229,7 +229,7 @@ const BoldHeaderTemplate = ({ resume, formatting }) => {
               <h2 style={styles.sideTitle}>Awards</h2>
               {achievements.map((ach, idx) => (
                 <div key={idx} style={{ fontSize: '11px', color: colors.gray600, marginBottom: '6px' }}>
-                  🏆 {ach.title}
+                  ðŸ† {ach.title}
                 </div>
               ))}
             </div>
@@ -247,14 +247,14 @@ const BoldHeaderTemplate = ({ resume, formatting }) => {
                   <div style={styles.entryHeader}>
                     <div>
                       <div style={styles.entryTitle}>{exp.title}</div>
-                      <div style={styles.entryCompany}>{exp.company}{exp.location && ` • ${exp.location}`}</div>
+                      <div style={styles.entryCompany}>{exp.company}{exp.location && ` â€¢ ${exp.location}`}</div>
                     </div>
                     <div style={styles.entryDate}>{exp.startDate} - {exp.current ? 'Present' : exp.endDate}</div>
                   </div>
                   {exp.description && (
                     <ul style={styles.list}>
                       {exp.description.split('\n').filter(Boolean).map((line, i) => (
-                        <li key={i} style={{ ...styles.listItem, marginLeft: `${(line.match(/^\s*/)[0].length) * 8}px` }}>{line.replace(/^\s*[-•]\s*/, '')}</li>
+                        <li key={i} style={{ ...styles.listItem, marginLeft: `${(line.match(/^\s*/)[0].length) * 8}px` }}>{line.replace(/^\s*[-â€¢]\s*/, '')}</li>
                       ))}
                     </ul>
                   )}
@@ -274,12 +274,12 @@ const BoldHeaderTemplate = ({ resume, formatting }) => {
                       <div style={styles.entryTitle}>{proj.name}</div>
                       {proj.technologies && <div style={{ fontSize: '10px', color: colors.gray500 }}>{proj.technologies}</div>}
                     </div>
-                    {proj.link && <a href={proj.link} style={{ color: accent.primary, fontSize: '10px', textDecoration: 'none' }}>View →</a>}
+                    {proj.link && <a href={proj.link} style={{ color: accent.primary, fontSize: '10px', textDecoration: 'none' }}>View â†’</a>}
                   </div>
                   {proj.description && (
                     <ul style={styles.list}>
                       {proj.description.split('\n').filter(Boolean).map((line, i) => (
-                        <li key={i} style={{ ...styles.listItem, marginLeft: `${(line.match(/^\s*/)[0].length) * 8}px` }}>{line.replace(/^\s*[-•]\s*/, '')}</li>
+                        <li key={i} style={{ ...styles.listItem, marginLeft: `${(line.match(/^\s*/)[0].length) * 8}px` }}>{line.replace(/^\s*[-â€¢]\s*/, '')}</li>
                       ))}
                     </ul>
                   )}
@@ -308,3 +308,4 @@ const BoldHeaderTemplate = ({ resume, formatting }) => {
 }
 
 export default BoldHeaderTemplate
+
